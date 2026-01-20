@@ -24,6 +24,7 @@ export async function googleLogin() {
   }
 
   revalidatePath("/", "layout");
+  redirect("/account");
 }
 
 // export async function login(formData: FormData) {

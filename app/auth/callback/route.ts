@@ -1,40 +1,52 @@
 import { NextResponse } from "next/server";
 // The client you created from the Server-Side Auth instructions
 import { createClient } from "@/lib/supabase/server";
-
+import { createAdminClient } from "@/lib/supabase/admin";
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  // if "next" is in param, use it as the redirect URL
-  let next = searchParams.get("next") ?? "/";
-  if (!next.startsWith("/")) {
-    // if "next" is not a relative URL, use the default
-    next = "/";
-  }
+  const next = searchParams.get("next") ?? "/";
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
 
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (data?.user?.email && !data.user.email.endsWith("@student.ateneo.edu")) {
-      await supabase.auth.signOut();
-      return NextResponse.redirect(`${origin}/login`);
-    }
+    if (!error && data?.user) {
+      const email = data.user.email?.toLowerCase() || ""; // Handle case sensitivity
+      const domain = "@student.ateneo.edu";
 
-    if (!error) {
-      const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
+      if (!email.endsWith(domain)) {
+        try {
+          const supabaseAdmin = await createAdminClient();
+          // Delete the user record
+          await supabaseAdmin.auth.admin.deleteUser(data.user.id);
+
+          await supabase.auth.signOut();
+        } catch (adminError) {
+          console.error("Cleanup failed for unauthorized user:", adminError);
+        }
+
+        return NextResponse.redirect(`${baseUrl}/login/non-ateneo-email-used`);
+      }
+
+      // Handle successful login redirect
+      const forwardedHost = request.headers.get("x-forwarded-host");
       const isLocalEnv = process.env.NODE_ENV === "development";
+
+      const safeNext = next.startsWith("/") ? next : "/";
+
       if (isLocalEnv) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${baseUrl}${safeNext}`);
       } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
+        return NextResponse.redirect(`https://${forwardedHost}${safeNext}`);
       } else {
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${baseUrl}${safeNext}`);
       }
     }
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`);
 }
