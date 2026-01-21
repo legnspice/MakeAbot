@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 // The client you created from the Server-Side Auth instructions
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
@@ -16,9 +17,9 @@ export async function GET(request: Request) {
 
     if (!error && data?.user) {
       const email = data.user.email?.toLowerCase() || ""; // Handle case sensitivity
-      const domain = "@student.ateneo.edu";
+      const acceptedDomain = "@student.ateneo.edu";
 
-      if (!email.endsWith(domain)) {
+      if (!email.endsWith(acceptedDomain)) {
         try {
           const supabaseAdmin = await createAdminClient();
           // Delete the user record
