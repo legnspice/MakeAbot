@@ -1,0 +1,46 @@
+import { and, eq, lte, gte, desc, ilike } from "drizzle-orm";
+import { db } from "../db";
+import { messages } from "../db/schema";
+import { getDayRange } from "./helper";
+
+export async function findMessages(filters: {
+  id?: string;
+  sender_id?: string;
+  receiver_id?: string;
+  request_bid_id?: string;
+  post_bid_id?: string;
+  content?: string;
+  timestamp?: Date;
+}) {
+  const {
+    id,
+    sender_id,
+    receiver_id,
+    request_bid_id,
+    post_bid_id,
+    content,
+    timestamp,
+  } = filters;
+  const conditions = [];
+
+  // If the filter exists, use the filter for the query.
+  if (id) conditions.push(eq(messages.id, id));
+  if (sender_id) conditions.push(eq(messages.sender_id, sender_id));
+  if (request_bid_id)
+    conditions.push(eq(messages.request_bid_id, request_bid_id));
+  if (receiver_id) conditions.push(eq(messages.receiver_id, receiver_id));
+  if (post_bid_id) conditions.push(eq(messages.post_bid_id, post_bid_id));
+  if (content) conditions.push(ilike(messages.content, `%${content}%`));
+
+  //   Selects all messages made in the day in general
+  if (timestamp) {
+    const { startOfDay, endOfDay } = getDayRange(timestamp);
+    conditions.push(gte(messages.timestamp, startOfDay));
+    conditions.push(lte(messages.timestamp, endOfDay));
+  }
+
+  return await db.query.messages.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
+    orderBy: [desc(messages.timestamp)],
+  });
+}

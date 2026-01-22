@@ -2,13 +2,10 @@ import {
   integer,
   pgTable,
   pgSchema,
-  pgEnum,
-  serial,
   text,
   uuid,
   timestamp,
   boolean,
-  check,
 } from "drizzle-orm/pg-core";
 
 export type Urgency =
@@ -36,14 +33,12 @@ export const users = pgTable("users", {
 });
 
 export const messages = pgTable("messages", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   sender_id: uuid("sender_id")
     .notNull()
-
     .references(() => users.id),
   receiver_id: uuid("receiver_id")
     .notNull()
-
     .references(() => users.id),
   request_bid_id: uuid("request_bid_id"),
   post_bid_id: uuid("post_bid_id"),
@@ -53,7 +48,7 @@ export const messages = pgTable("messages", {
 });
 
 export const requests = pgTable("requests", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   // For currency we use the smallest unit: Php in cents
   fee: integer("fee").notNull(),
@@ -66,7 +61,7 @@ export const requests = pgTable("requests", {
 });
 
 export const posts = pgTable("posts", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   // TODO: Implement photo upload
   photo: text("TODO: CHANGE"),
@@ -79,7 +74,7 @@ export const posts = pgTable("posts", {
 });
 
 export const request_bids = pgTable("request_bids", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   request_id: uuid("request_id")
     .notNull()
 
@@ -94,7 +89,7 @@ export const request_bids = pgTable("request_bids", {
 });
 
 export const post_bids = pgTable("post_bids", {
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   post_id: uuid("post_id")
     .notNull()
 

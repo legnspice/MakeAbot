@@ -30,7 +30,7 @@ importers:
         specifier: ^17.2.3
         version: 17.2.3
       drizzle-orm:
-        specifier: ^0.45.1
+        specifier: 0.45.1
         version: 0.45.1(kysely@0.28.9)(postgres@3.4.8)
       lucide-react:
         specifier: ^0.562.0
@@ -67,7 +67,7 @@ importers:
         specifier: ^19
         version: 19.2.3(@types/react@19.2.7)
       drizzle-kit:
-        specifier: ^0.31.8
+        specifier: 0.31.8
         version: 0.31.8
       eslint:
         specifier: ^9
