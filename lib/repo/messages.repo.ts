@@ -32,7 +32,7 @@ export async function findMessages(filters: {
   if (post_bid_id) conditions.push(eq(messages.post_bid_id, post_bid_id));
   if (content) conditions.push(ilike(messages.content, `%${content}%`));
 
-  //   Selects all messages made in the day in general
+  //   Selects all messages made in the day in general; TODO: Maybe add more specific ranges(?)
   if (timestamp) {
     const { startOfDay, endOfDay } = getDayRange(timestamp);
     conditions.push(gte(messages.timestamp, startOfDay));
