@@ -8,3 +8,18 @@ export async function getPosts(filters: { name?: string; id?: string }) {
     throw error;
   }
 }
+
+export async function editUser(
+  id: string,
+  data: {
+    name?: string;
+    phone_number?: string;
+  },
+) {
+  try {
+    return await usersRepo.updateUser(id, data);
+  } catch (error) {
+    console.error("Failed to update users from db: ", error);
+    throw error;
+  }
+}
