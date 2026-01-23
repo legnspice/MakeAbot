@@ -55,3 +55,41 @@ export async function findPostBids(filters: {
     orderBy: [desc(post_bids.created_at)],
   });
 }
+
+export async function insertPost(data: {
+  user_id: string;
+  title: string;
+  price?: number;
+  description?: string;
+  status?: PostStatus;
+}) {
+  return await db.insert(posts).values(data);
+}
+
+export async function insertPostBid(data: {
+  post_id: string;
+  bidder_id: string;
+}) {
+  return await db.insert(post_bids).values(data);
+}
+
+export async function deletePost(id: string) {
+  return await db.delete(posts).where(eq(posts.id, id));
+}
+
+export async function deletePostBid(id: string) {
+  return await db.delete(post_bids).where(eq(post_bids.id, id));
+}
+
+export async function updatePost(
+  id: string,
+  data: {
+    price?: number;
+    title?: string;
+    description?: string;
+    status?: PostStatus;
+    completed_at?: Date;
+  },
+) {
+  return await db.update(posts).set(data).where(eq(posts.id, id));
+}

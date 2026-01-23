@@ -51,9 +51,9 @@ export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   // For currency we use the smallest unit: Php in cents
-  fee: integer("fee").notNull(),
+  fee: integer("fee"),
   title: text("title").notNull(),
-  description: text("description").notNull(),
+  description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
   urgency: text("urgency").$type<Urgency>().notNull().default("Now"),
@@ -66,9 +66,9 @@ export const posts = pgTable("posts", {
   // TODO: Implement photo upload
   photo: text("TODO: CHANGE"),
   // For currency we use the smallest unit: Php in cents
-  price: integer("price").notNull(),
+  price: integer("price"),
   title: text("title").notNull(),
-  description: text("description").notNull(),
+  description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   status: text("status").$type<PostStatus>().notNull().default("Active"),
 });

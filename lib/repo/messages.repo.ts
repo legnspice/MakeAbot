@@ -44,3 +44,17 @@ export async function findMessages(filters: {
     orderBy: [desc(messages.timestamp)],
   });
 }
+
+export async function insertMessage(data: {
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  request_bid_id?: string;
+  post_bid_id?: string;
+}) {
+  return await db.insert(messages).values(data);
+}
+
+export async function deleteMessage(id: string) {
+  return await db.delete(messages).where(eq(messages.id, id));
+}
