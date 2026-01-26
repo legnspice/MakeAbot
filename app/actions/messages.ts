@@ -13,10 +13,10 @@ export async function getMessages(filters: FindMessagesSchema) {
   return await handleAction(() => messagesService.getMessages(filters));
 }
 
-export async function createRequest(data: InsertMessageSchema) {
+export async function createMessage(data: InsertMessageSchema) {
   return await handleAction(() => messagesService.createMessage(data));
 }
 
-export async function removeRequest(id: string) {
+export async function removeMessage(id: string) {
   return await handleAction(() => messagesService.removeMessage(id));
 }
