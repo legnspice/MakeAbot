@@ -1,16 +1,16 @@
 import { and, eq, lte, ilike, gte, desc } from "drizzle-orm";
 import { db } from "../db";
-import { posts, post_bids, PostStatus } from "../db/schema";
+import { posts, post_bids } from "../db/schema";
 import { getDayRange } from "./helper";
+import {
+  FindPostsSchema,
+  FindPostBidsSchema,
+  InsertPostBidSchema,
+  InsertPostSchema,
+  UpdatePostSchema,
+} from "../validation/posts";
 
-export async function findPosts(filters: {
-  id?: string;
-  user_id?: string;
-  price?: number;
-  title?: string;
-  created_at?: Date;
-  status?: PostStatus;
-}) {
+export async function findPosts(filters: FindPostsSchema) {
   const { id, user_id, price, title, status, created_at } = filters;
   const conditions = [];
 
@@ -32,12 +32,7 @@ export async function findPosts(filters: {
   });
 }
 
-export async function findPostBids(filters: {
-  id?: string;
-  post_id?: string;
-  bidder_id?: string;
-  created_at?: Date;
-}) {
+export async function findPostBids(filters: FindPostBidsSchema) {
   const { id, post_id, bidder_id, created_at } = filters;
   const conditions = [];
 
@@ -56,20 +51,11 @@ export async function findPostBids(filters: {
   });
 }
 
-export async function insertPost(data: {
-  user_id: string;
-  title: string;
-  price?: number;
-  description?: string;
-  status?: PostStatus;
-}) {
+export async function insertPost(data: InsertPostSchema) {
   return await db.insert(posts).values(data);
 }
 
-export async function insertPostBid(data: {
-  post_id: string;
-  bidder_id: string;
-}) {
+export async function insertPostBid(data: InsertPostBidSchema) {
   return await db.insert(post_bids).values(data);
 }
 
@@ -81,15 +67,6 @@ export async function deletePostBid(id: string) {
   return await db.delete(post_bids).where(eq(post_bids.id, id));
 }
 
-export async function updatePost(
-  id: string,
-  data: {
-    price?: number;
-    title?: string;
-    description?: string;
-    status?: PostStatus;
-    completed_at?: Date;
-  },
-) {
+export async function updatePost(id: string, data: UpdatePostSchema) {
   return await db.update(posts).set(data).where(eq(posts.id, id));
 }

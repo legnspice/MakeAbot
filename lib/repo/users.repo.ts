@@ -1,8 +1,9 @@
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+import { FindUserSchema, UpdateUserSchema } from "../validation/users";
 
-export async function findUsers(filters: { name?: string; id?: string }) {
+export async function findUsers(filters: FindUserSchema) {
   const { id, name } = filters;
   const conditions = [];
 
@@ -14,12 +15,6 @@ export async function findUsers(filters: { name?: string; id?: string }) {
   });
 }
 
-export async function updateUser(
-  id: string,
-  data: {
-    name?: string;
-    phone_number?: string;
-  },
-) {
+export async function updateUser(id: string, data: UpdateUserSchema) {
   return await db.update(users).set(data).where(eq(users.id, id));
 }

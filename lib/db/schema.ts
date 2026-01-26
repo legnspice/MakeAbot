@@ -7,15 +7,7 @@ import {
   timestamp,
   boolean,
 } from "drizzle-orm/pg-core";
-
-export type Urgency =
-  | "Now"
-  | "Within the hour"
-  | "Within the day"
-  | "Within the week"
-  | "Indefinite";
-export type RequestStatus = "Active" | "Ongoing" | "Completed" | "Cancelled";
-export type PostStatus = "Active" | "Closed" | "Busy";
+import { Urgency, PostStatus, RequestStatus } from "../validation/enums";
 
 const authSchema = pgSchema("auth");
 

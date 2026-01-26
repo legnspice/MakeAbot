@@ -1,17 +1,16 @@
 import { and, eq, lte, ilike, gte, desc } from "drizzle-orm";
 import { db } from "../db";
-import { requests, RequestStatus, Urgency, request_bids } from "../db/schema";
+import { requests, request_bids } from "../db/schema";
 import { getDayRange } from "./helper";
+import {
+  FindRequestsSchema,
+  FindRequestBidsSchema,
+  InsertRequestBidSchema,
+  InsertRequestSchema,
+  UpdateRequestSchema,
+} from "@/lib/validation/requests";
 
-export async function findRequests(filters: {
-  id?: string;
-  user_id?: string;
-  fee?: number;
-  title?: string;
-  status?: RequestStatus;
-  created_at?: Date;
-  urgency?: Urgency;
-}) {
+export async function findRequests(filters: FindRequestsSchema) {
   const { id, user_id, fee, title, status, urgency, created_at } = filters;
   const conditions = [];
 
@@ -34,12 +33,7 @@ export async function findRequests(filters: {
   });
 }
 
-export async function findRequestBids(filters: {
-  id?: string;
-  request_id?: string;
-  bidder_id?: string;
-  created_at?: Date;
-}) {
+export async function findRequestBids(filters: FindRequestBidsSchema) {
   const { id, request_id, bidder_id, created_at } = filters;
   const conditions = [];
 
@@ -58,21 +52,11 @@ export async function findRequestBids(filters: {
   });
 }
 
-export async function insertRequest(data: {
-  user_id: string;
-  title: string;
-  fee?: number;
-  status?: RequestStatus;
-  description?: string;
-  urgency?: Urgency;
-}) {
+export async function insertRequest(data: InsertRequestSchema) {
   return await db.insert(requests).values(data);
 }
 
-export async function insertRequestBid(data: {
-  request_id: string;
-  bidder_id: string;
-}) {
+export async function insertRequestBid(data: InsertRequestBidSchema) {
   return await db.insert(request_bids).values(data);
 }
 
@@ -84,16 +68,6 @@ export async function deleteRequestBid(id: string) {
   return await db.delete(request_bids).where(eq(request_bids.id, id));
 }
 
-export async function updateRequest(
-  id: string,
-  data: {
-    fee?: number;
-    title?: string;
-    description?: string;
-    status?: RequestStatus;
-    urgency?: Urgency;
-    completed_at?: Date;
-  },
-) {
+export async function updateRequest(id: string, data: UpdateRequestSchema) {
   return await db.update(requests).set(data).where(eq(requests.id, id));
 }

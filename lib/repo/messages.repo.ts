@@ -2,16 +2,12 @@ import { and, eq, lte, gte, desc, ilike } from "drizzle-orm";
 import { db } from "../db";
 import { messages } from "../db/schema";
 import { getDayRange } from "./helper";
+import {
+  FindMessagesSchema,
+  InsertMessageSchema,
+} from "../validation/messages";
 
-export async function findMessages(filters: {
-  id?: string;
-  sender_id?: string;
-  receiver_id?: string;
-  request_bid_id?: string;
-  post_bid_id?: string;
-  content?: string;
-  timestamp?: Date;
-}) {
+export async function findMessages(filters: FindMessagesSchema) {
   const {
     id,
     sender_id,
@@ -45,13 +41,7 @@ export async function findMessages(filters: {
   });
 }
 
-export async function insertMessage(data: {
-  sender_id: string;
-  receiver_id: string;
-  content: string;
-  request_bid_id?: string;
-  post_bid_id?: string;
-}) {
+export async function insertMessage(data: InsertMessageSchema) {
   return await db.insert(messages).values(data);
 }
 
