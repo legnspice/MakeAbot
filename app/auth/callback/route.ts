@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data?.user) {
-      const email = data.user.email?.toLowerCase() || ""; // Handle case sensitivity
+      const email = data.user.email?.toLowerCase() || "";
       const acceptedDomain = "@student.ateneo.edu";
 
       if (!email.endsWith(acceptedDomain)) {
