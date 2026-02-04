@@ -7,12 +7,12 @@ interface AuthContextType {
   userData: CurrentUserData;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
 interface AuthProviderProps {
   children: ReactNode;
   userData: CurrentUserData;
 }
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children, userData }: AuthProviderProps) {
   // userData is guaranteed to be non-null when this is rendered
@@ -21,7 +21,7 @@ export function AuthProvider({ children, userData }: AuthProviderProps) {
   );
 }
 
-// Custom hook to use the auth context
+// Custom hook to use the auth context; call everytime in a child component to get userData
 export function useAuth() {
   const context = useContext(AuthContext);
 

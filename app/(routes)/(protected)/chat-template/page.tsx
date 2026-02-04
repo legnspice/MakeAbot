@@ -5,7 +5,7 @@ import { getUsers } from "@/app/actions/users";
 import { ChatRoom } from "@/components/chat-room";
 
 export default function ChatTemplate() {
-  // Functionality test; TODO: REMOVE STATES AND CONFIGURE APPROPRIATELY TO UI
+  // Functionality test/template; TODO: REMOVE ALL THIS AND CONFIGURE APPROPRIATELY TO UI
   const [otherUserId, setOtherUserId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 

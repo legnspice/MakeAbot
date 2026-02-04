@@ -2,7 +2,7 @@
 
 import { RealtimeChat } from "@/components/realtime-chat";
 import { createMessage, getConversation } from "@/app/actions/messages";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
 import { getUsers } from "@/app/actions/users";
@@ -31,6 +31,9 @@ export const ChatRoom = ({
   const [otherUserName, setOtherUserName] = useState("Unknown User");
   const [chatDataLoading, setChatDataLoading] = useState(true);
 
+  // Use ref to track processed messages - doesn't cause re-renders
+  const processedMessageIds = useRef<Set<string>>(new Set());
+
   const { userData } = useAuth();
   const publicUser = userData.publicUser;
 
@@ -43,7 +46,11 @@ export const ChatRoom = ({
         post_bid_id: post_bid_id || null,
       });
 
-      if (result.data) setDbMessages(result.data);
+      if (result.data) {
+        setDbMessages(result.data);
+        // Mark existing messages as processed
+        result.data.forEach((msg) => processedMessageIds.current.add(msg.id));
+      }
 
       const result2 = await getUsers({ id: other_user_id });
       if (result2.data && result2.data.length > 0) {
@@ -57,13 +64,18 @@ export const ChatRoom = ({
 
   const handleMessage = useCallback(
     async (messages: ChatMessage[]) => {
+      // Find new messages from current user that haven't been processed
       const newMessagesFromCurrentUser = messages.filter(
         (msg) =>
           msg.user.name === publicUser.name &&
-          !dbMessages.some((dbMsg) => dbMsg.id === msg.id),
+          !processedMessageIds.current.has(msg.id),
       );
 
+      // Save each new message
       for (const message of newMessagesFromCurrentUser) {
+        // Mark as processed BEFORE saving to prevent duplicates
+        processedMessageIds.current.add(message.id);
+
         await createMessage({
           sender_id: publicUser.id,
           receiver_id: other_user_id,
@@ -73,7 +85,13 @@ export const ChatRoom = ({
         });
       }
     },
-    [publicUser, other_user_id, request_bid_id, post_bid_id, dbMessages],
+    [
+      publicUser.name,
+      publicUser.id,
+      other_user_id,
+      request_bid_id,
+      post_bid_id,
+    ],
   );
 
   // Show loading while chat data loads
