@@ -15,6 +15,10 @@ export async function findUsers(filters: FindUserSchema) {
   });
 }
 
+export async function insertUser(id: string) {
+  return await db.insert(users).values({ id });
+}
+
 export async function updateUser(id: string, data: UpdateUserSchema) {
   return await db.update(users).set(data).where(eq(users.id, id));
 }

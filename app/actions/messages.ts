@@ -7,7 +7,6 @@ import {
   FindMessagesSchema,
   InsertMessageSchema,
 } from "@/lib/validation/messages";
-import { messages } from "@/lib/db/schema";
 
 // TODO: ADD AUTHENTICATION TO SERVER ACTION ENDPOINTS FOR SECURITY (THIS)
 
