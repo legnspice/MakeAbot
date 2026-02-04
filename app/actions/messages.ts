@@ -3,14 +3,20 @@
 import * as messagesService from "@/lib/services/messages.service";
 import { handleAction } from "@/lib/error/actions-handler";
 import {
+  FindConversationSchema,
   FindMessagesSchema,
   InsertMessageSchema,
 } from "@/lib/validation/messages";
+import { messages } from "@/lib/db/schema";
 
 // TODO: ADD AUTHENTICATION TO SERVER ACTION ENDPOINTS FOR SECURITY (THIS)
 
 export async function getMessages(filters: FindMessagesSchema) {
   return await handleAction(() => messagesService.getMessages(filters));
+}
+
+export async function getConversation(filters: FindConversationSchema) {
+  return await handleAction(() => messagesService.getConversation(filters));
 }
 
 export async function createMessage(data: InsertMessageSchema) {

@@ -1,11 +1,36 @@
-import { and, eq, lte, gte, desc, ilike } from "drizzle-orm";
+import { and, eq, lte, gte, desc, ilike, asc, or } from "drizzle-orm";
 import { db } from "../db";
 import { messages } from "../db/schema";
 import { getDayRange } from "./helper";
 import {
   FindMessagesSchema,
   InsertMessageSchema,
+  FindConversationSchema,
 } from "../validation/messages";
+
+export async function findConversation(filters: FindConversationSchema) {
+  const { user1_id, user2_id, request_bid_id, post_bid_id } = filters;
+  const conditions = [];
+
+  // Messages between these two users
+  conditions.push(
+    or(
+      and(eq(messages.sender_id, user1_id), eq(messages.receiver_id, user2_id)),
+      and(eq(messages.sender_id, user2_id), eq(messages.receiver_id, user1_id)),
+    ),
+  );
+
+  if (request_bid_id) {
+    conditions.push(eq(messages.request_bid_id, request_bid_id));
+  } else if (post_bid_id) {
+    conditions.push(eq(messages.post_bid_id, post_bid_id));
+  }
+
+  return await db.query.messages.findMany({
+    where: and(...conditions),
+    orderBy: [asc(messages.timestamp)], // Oldest first for chat display
+  });
+}
 
 export async function findMessages(filters: FindMessagesSchema) {
   const {

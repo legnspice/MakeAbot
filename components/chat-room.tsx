@@ -1,9 +1,9 @@
-"use-client";
+"use client";
 
 import { RealtimeChat } from "@/components/realtime-chat";
-import { createMessage } from "@/app/actions/messages";
-import { createClient } from "@/lib/client";
-import { useMessagesQuery } from "@/hooks/use-messages-query";
+import { createMessage, getConversation } from "@/app/actions/messages";
+import { useCallback, useEffect, useState } from "react";
+import type { SelectMessage } from "@/lib/db/schema";
 
 interface ChatMessage {
   id: string;
@@ -14,47 +14,94 @@ interface ChatMessage {
   createdAt: string;
 }
 
-export const ChatRoom = async ({
-  user_id1,
-  user_id2,
+interface ChatRoomProps {
+  current_user_id: string;
+  current_user_name: string;
+  other_user_id: string;
+  other_user_name: string;
+  request_bid_id?: string | null; // Changed to accept null
+  post_bid_id?: string | null; // Changed to accept null
+}
+
+export const ChatRoom = ({
+  current_user_id,
+  current_user_name,
+  other_user_id,
+  other_user_name,
   request_bid_id,
   post_bid_id,
-}: {
-  user_id1: string;
-  user_id2: string;
-  request_bid_id?: string | undefined;
-  post_bid_id?: string | undefined;
-}) => {
-  // const supabase = await createClient();
+}: ChatRoomProps) => {
+  const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // const {
-  //   data: { user },
-  // } = await supabase.auth.getUser();
+  useEffect(() => {
+    async function loadMessages() {
+      const result = await getConversation({
+        user1_id: current_user_id,
+        user2_id: other_user_id,
+        request_bid_id: request_bid_id || null,
+        post_bid_id: post_bid_id || null,
+      });
 
-  // const user_id = user?.id;
+      if (result.data) {
+        setDbMessages(result.data);
+      }
+      setIsLoading(false);
+    }
+    loadMessages();
+  }, [current_user_id, other_user_id, request_bid_id, post_bid_id]);
 
-  const handleMessage = async (content: string) => {
-    // Store messages in your database
+  const formattedMessages: ChatMessage[] = dbMessages.map((msg) => ({
+    id: msg.id,
+    content: msg.content,
+    user: {
+      name:
+        msg.sender_id === current_user_id ? current_user_name : other_user_name,
+    },
+    createdAt: msg.timestamp.toISOString(),
+  }));
 
-    await createMessage({
-      sender_id: user_id1,
-      receiver_id: user_id2,
-      content,
+  const handleMessage = useCallback(
+    async (messages: ChatMessage[]) => {
+      const newMessagesFromCurrentUser = messages.filter(
+        (msg) =>
+          msg.user.name === current_user_name &&
+          !dbMessages.some((dbMsg) => dbMsg.id === msg.id),
+      );
+
+      for (const message of newMessagesFromCurrentUser) {
+        await createMessage({
+          sender_id: current_user_id,
+          receiver_id: other_user_id,
+          content: message.content,
+          request_bid_id: request_bid_id || null,
+          post_bid_id: post_bid_id || null,
+        });
+      }
+    },
+    [
+      current_user_id,
+      current_user_name,
+      other_user_id,
       request_bid_id,
       post_bid_id,
-    });
-  };
+      dbMessages,
+    ],
+  );
 
-  // const { data: messages } = useMessagesQuery();
-  const bid_id = request_bid_id ? request_bid_id : post_bid_id;
-  const roomName = [user_id1, user_id2, bid_id].sort().join("_");
+  const bid_id = request_bid_id ?? post_bid_id;
+  const roomName = [current_user_id, other_user_id, bid_id].sort().join("_");
+
+  if (isLoading) {
+    return <div>Loading messages...</div>;
+  }
 
   return (
     <RealtimeChat
       roomName={roomName}
-      username="john_doe"
-      // onMessage={handleMessage}
-      // messages={messages}
+      username={current_user_name}
+      onMessage={handleMessage}
+      messages={formattedMessages}
     />
   );
 };
