@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getSupabaseUser } from "@/app/actions/users";
 import { User } from "@supabase/supabase-js";
 import { SelectUser } from "@/lib/db/schema";
@@ -10,28 +10,21 @@ export interface CurrentUserData {
 }
 
 export function useCurrentUser() {
-  // SUPABASE USER: User from supabase's auth built-in table (notable fields: id, email)
-  // PUBLIC USER: User from db table that has custom attributes that are not present in supabase user
-
-  const [userData, setUserData] = useState<CurrentUserData | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [publicUser, setPublicUser] = useState<SelectUser | null>(null);
   const [currentUserDataLoading, setCurrentUserDataLoading] = useState(true);
 
   useEffect(() => {
     async function loadSupabaseUser() {
       const response = await getSupabaseUser();
       const user = response.data.user;
-      // setSupabaseUser(user);
 
       if (user?.id) {
-        // Get database user using supabase user id
         const returnedPublicUser = await getUsers({ id: user.id });
 
-        // Extract the first user from the array if successful
         if (returnedPublicUser.data && returnedPublicUser.data.length > 0) {
-          setUserData({
-            supabaseUser: user,
-            publicUser: returnedPublicUser.data[0],
-          });
+          setSupabaseUser(user);
+          setPublicUser(returnedPublicUser.data[0]);
         }
       }
 
@@ -39,6 +32,15 @@ export function useCurrentUser() {
     }
     loadSupabaseUser();
   }, []);
+
+  // Memoize the userData object so it has a stable reference
+  const userData = useMemo(() => {
+    if (!supabaseUser || !publicUser) return null;
+    return {
+      supabaseUser,
+      publicUser,
+    };
+  }, [supabaseUser, publicUser]);
 
   return {
     userData,

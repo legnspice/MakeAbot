@@ -2,7 +2,7 @@
 
 import { RealtimeChat } from "@/components/realtime-chat";
 import { createMessage, getConversation } from "@/app/actions/messages";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
 import { getUsers } from "@/app/actions/users";
@@ -21,7 +21,6 @@ interface ChatRoomProps {
   request_bid_id?: string | null;
   post_bid_id?: string | null;
 }
-
 export const ChatRoom = ({
   other_user_id,
   request_bid_id,
@@ -31,7 +30,6 @@ export const ChatRoom = ({
   const [otherUserName, setOtherUserName] = useState("Unknown User");
   const [chatDataLoading, setChatDataLoading] = useState(true);
 
-  // Use ref to track processed messages - doesn't cause re-renders
   const processedMessageIds = useRef<Set<string>>(new Set());
 
   const { userData } = useAuth();
@@ -48,7 +46,6 @@ export const ChatRoom = ({
 
       if (result.data) {
         setDbMessages(result.data);
-        // Mark existing messages as processed
         result.data.forEach((msg) => processedMessageIds.current.add(msg.id));
       }
 
@@ -62,18 +59,19 @@ export const ChatRoom = ({
     loadData();
   }, [publicUser.id, other_user_id, request_bid_id, post_bid_id]);
 
-  const handleMessage = useCallback(
-    async (messages: ChatMessage[]) => {
-      // Find new messages from current user that haven't been processed
+  const handleMessageLogic = useRef<(messages: ChatMessage[]) => Promise<void>>(
+    async () => {},
+  );
+
+  useEffect(() => {
+    handleMessageLogic.current = async (messages: ChatMessage[]) => {
       const newMessagesFromCurrentUser = messages.filter(
         (msg) =>
           msg.user.name === publicUser.name &&
           !processedMessageIds.current.has(msg.id),
       );
 
-      // Save each new message
       for (const message of newMessagesFromCurrentUser) {
-        // Mark as processed BEFORE saving to prevent duplicates
         processedMessageIds.current.add(message.id);
 
         await createMessage({
@@ -84,42 +82,49 @@ export const ChatRoom = ({
           post_bid_id: post_bid_id || null,
         });
       }
-    },
-    [
-      publicUser.name,
-      publicUser.id,
-      other_user_id,
-      request_bid_id,
-      post_bid_id,
-    ],
+    };
+  }, [
+    publicUser.name,
+    publicUser.id,
+    other_user_id,
+    request_bid_id,
+    post_bid_id,
+  ]);
+
+  const handleMessage = useCallback((messages: ChatMessage[]) => {
+    return handleMessageLogic.current(messages);
+  }, []);
+
+  // Memoize formattedMessages BEFORE the early return
+  const formattedMessages = useMemo<ChatMessage[]>(() => {
+    return dbMessages.map((msg) => ({
+      id: msg.id,
+      content: msg.content,
+      user: {
+        name:
+          msg.sender_id === publicUser.id
+            ? publicUser.name || "You"
+            : otherUserName,
+      },
+      createdAt: msg.timestamp.toISOString(),
+    }));
+  }, [dbMessages, publicUser.id, publicUser.name, otherUserName]);
+
+  const bid_id = request_bid_id ?? post_bid_id;
+  const roomName = useMemo(
+    () => [publicUser.id, other_user_id, bid_id].sort().join("_"),
+    [publicUser.id, other_user_id, bid_id],
   );
 
-  // Show loading while chat data loads
+  // NOW you can do the early return - AFTER all hooks
   if (chatDataLoading) {
     return <div>Loading messages...</div>;
   }
 
-  // Format messages for display
-  const formattedMessages: ChatMessage[] = dbMessages.map((msg) => ({
-    id: msg.id,
-    content: msg.content,
-    user: {
-      name:
-        msg.sender_id === publicUser.id
-          ? publicUser.name || "You"
-          : otherUserName,
-    },
-    createdAt: msg.timestamp.toISOString(),
-  }));
-
-  // Determine realtime chat parameters
-  const bid_id = request_bid_id ?? post_bid_id;
-  const roomName = [publicUser.id, other_user_id, bid_id].sort().join("_");
-
   return (
     <RealtimeChat
       roomName={roomName}
-      username={publicUser.name || "Anonymous"}
+      username={publicUser.name || "You"}
       onMessage={handleMessage}
       messages={formattedMessages}
     />
