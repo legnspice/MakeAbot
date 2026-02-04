@@ -1,10 +1,9 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/server";
-import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function DashboardPage() {
-  const { supabaseUser } = useSupabaseUser();
+  const { userData } = useAuth();
 
-  return <div>Welcome, {supabaseUser?.email}</div>;
+  return <div>Welcome, {userData!.supabaseUser?.email}</div>;
 }

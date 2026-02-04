@@ -1,8 +1,9 @@
 "use client";
 
-import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { AuthProvider } from "@/contexts/auth-context";
 
 // Layout level auth requirement for accessing protected pages
 export default function ProtectedLayout({
@@ -11,24 +12,24 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
-  const { supabaseUser, loading } = useSupabaseUser();
+  const { userData, currentUserDataLoading } = useCurrentUser();
 
   useEffect(() => {
-    if (!loading && !supabaseUser) {
+    if (!currentUserDataLoading && !userData) {
       router.push("/error");
     }
-  }, [supabaseUser, loading, router]);
+  }, [userData, currentUserDataLoading, router]);
 
   // Show loading state while checking auth
-  if (loading) {
-    return <div>Loading...</div>;
+  if (currentUserDataLoading) {
+    return <div>Authentication Loading...</div>;
   }
 
-  // Show children only if user is authenticated
-  if (supabaseUser) {
-    return <>{children}</>;
+  // Redirect handled by useEffect, show nothing while redirecting
+  if (!userData) {
+    return null;
   }
 
-  // Return null while redirecting
-  return null;
+  // Wrap children with AuthProvider, passing the guaranteed non-null userData
+  return <AuthProvider userData={userData}>{children}</AuthProvider>;
 }

@@ -4,6 +4,8 @@ import { RealtimeChat } from "@/components/realtime-chat";
 import { createMessage, getConversation } from "@/app/actions/messages";
 import { useCallback, useEffect, useState } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
+import { useAuth } from "@/contexts/auth-context";
+import { getUsers } from "@/app/actions/users";
 
 interface ChatMessage {
   id: string;
@@ -15,63 +17,55 @@ interface ChatMessage {
 }
 
 interface ChatRoomProps {
-  current_user_id: string;
-  current_user_name: string;
   other_user_id: string;
-  other_user_name: string;
-  request_bid_id?: string | null; // Changed to accept null
-  post_bid_id?: string | null; // Changed to accept null
+  request_bid_id?: string | null;
+  post_bid_id?: string | null;
 }
 
 export const ChatRoom = ({
-  current_user_id,
-  current_user_name,
   other_user_id,
-  other_user_name,
   request_bid_id,
   post_bid_id,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [otherUserName, setOtherUserName] = useState("Unknown User");
+  const [chatDataLoading, setChatDataLoading] = useState(true);
+
+  const { userData } = useAuth();
+  const publicUser = userData.publicUser;
 
   useEffect(() => {
-    async function loadMessages() {
+    async function loadData() {
       const result = await getConversation({
-        user1_id: current_user_id,
+        user1_id: publicUser.id,
         user2_id: other_user_id,
         request_bid_id: request_bid_id || null,
         post_bid_id: post_bid_id || null,
       });
 
-      if (result.data) {
-        setDbMessages(result.data);
-      }
-      setIsLoading(false);
-    }
-    loadMessages();
-  }, [current_user_id, other_user_id, request_bid_id, post_bid_id]);
+      if (result.data) setDbMessages(result.data);
 
-  const formattedMessages: ChatMessage[] = dbMessages.map((msg) => ({
-    id: msg.id,
-    content: msg.content,
-    user: {
-      name:
-        msg.sender_id === current_user_id ? current_user_name : other_user_name,
-    },
-    createdAt: msg.timestamp.toISOString(),
-  }));
+      const result2 = await getUsers({ id: other_user_id });
+      if (result2.data && result2.data.length > 0) {
+        setOtherUserName(result2.data[0].name || "Unknown User");
+      }
+
+      setChatDataLoading(false);
+    }
+    loadData();
+  }, [publicUser.id, other_user_id, request_bid_id, post_bid_id]);
 
   const handleMessage = useCallback(
     async (messages: ChatMessage[]) => {
       const newMessagesFromCurrentUser = messages.filter(
         (msg) =>
-          msg.user.name === current_user_name &&
+          msg.user.name === publicUser.name &&
           !dbMessages.some((dbMsg) => dbMsg.id === msg.id),
       );
 
       for (const message of newMessagesFromCurrentUser) {
         await createMessage({
-          sender_id: current_user_id,
+          sender_id: publicUser.id,
           receiver_id: other_user_id,
           content: message.content,
           request_bid_id: request_bid_id || null,
@@ -79,27 +73,35 @@ export const ChatRoom = ({
         });
       }
     },
-    [
-      current_user_id,
-      current_user_name,
-      other_user_id,
-      request_bid_id,
-      post_bid_id,
-      dbMessages,
-    ],
+    [publicUser, other_user_id, request_bid_id, post_bid_id, dbMessages],
   );
 
-  const bid_id = request_bid_id ?? post_bid_id;
-  const roomName = [current_user_id, other_user_id, bid_id].sort().join("_");
-
-  if (isLoading) {
+  // Show loading while chat data loads
+  if (chatDataLoading) {
     return <div>Loading messages...</div>;
   }
+
+  // Format messages for display
+  const formattedMessages: ChatMessage[] = dbMessages.map((msg) => ({
+    id: msg.id,
+    content: msg.content,
+    user: {
+      name:
+        msg.sender_id === publicUser.id
+          ? publicUser.name || "You"
+          : otherUserName,
+    },
+    createdAt: msg.timestamp.toISOString(),
+  }));
+
+  // Determine realtime chat parameters
+  const bid_id = request_bid_id ?? post_bid_id;
+  const roomName = [publicUser.id, other_user_id, bid_id].sort().join("_");
 
   return (
     <RealtimeChat
       roomName={roomName}
-      username={current_user_name}
+      username={publicUser.name || "Anonymous"}
       onMessage={handleMessage}
       messages={formattedMessages}
     />

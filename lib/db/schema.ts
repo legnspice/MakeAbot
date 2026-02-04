@@ -73,7 +73,6 @@ export const request_bids = pgTable("request_bids", {
     .references(() => requests.id, { onDelete: "cascade" }),
   bidder_id: uuid("bidder_id")
     .notNull()
-
     .references(() => users.id, {
       onDelete: "cascade",
     }),
