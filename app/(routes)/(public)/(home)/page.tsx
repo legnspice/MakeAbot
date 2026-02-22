@@ -19,7 +19,7 @@ export default function Home() {
       <Navbar onSearchClick={() => setSearchOpen((open) => !open)} />
 
       {/* Category filter row */}
-      <div className="px-4 pt-4 pb-2 border-b border-gray-200 overflow-x-auto">
+      <div className="px-4 pt-2 pb-2 border-b border-gray-200 overflow-x-auto">
         <div className="flex gap-2 items-center min-w-0">
           {FILTERS.map((label) => (
             <Button
@@ -28,8 +28,8 @@ export default function Home() {
               size="sm"
               className={`rounded-full shrink-0 ${
                 activeFilter === label
-                  ? 'bg-[#4A6FA5] text-white border-[#4A6FA5] hover:bg-[#3d5d8a] hover:text-white'
-                  : 'bg-blue-50/80 text-[#4A6FA5] border-blue-200 hover:bg-blue-100 hover:text-[#4A6FA5]'
+                  ? 'bg-[#3761B0] text-white border-[#3761B0] hover:bg-[#3761B0] hover:text-white'
+                  : 'bg-blue-50/80 text-[#3761B0] border-blue-200 hover:bg-blue-100 hover:text-[#3761B0]'
               }`}
               onClick={() => setActiveFilter(label)}
             >
@@ -50,8 +50,8 @@ export default function Home() {
       </div>
 
       {/* Main content - item list */}
-      <main className="flex-1 px-4 py-6 pb-28">
-        <div className="flex flex-col gap-6 max-w-md mx-auto">
+      <main className="flex-1 px-2 py-6 pb-28">
+        <div className="flex flex-col gap-3 max-w-md mx-auto">
           <ItemRequestCard
             variant="lent"
             requestedBy="Lent by:"
