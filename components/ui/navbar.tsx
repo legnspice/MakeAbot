@@ -8,7 +8,7 @@ type NavbarProps = {
 export default function Navbar({ onSearchClick }: NavbarProps) {
   return (
     <nav className="flex justify-between items-center px-10 py-5 border-b border-gray-200 bg-white">
-      <div className="text-5xl font-bold tracking-tight">
+      <div className="text-4xl font-bold tracking-tight">
         MakeAbot
       </div>
       
