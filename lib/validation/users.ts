@@ -5,7 +5,9 @@ import { z } from "zod";
 export const userSchema = z.object({
   id: z.string().uuid({}),
   name: z.string().min(1, "Name is required").nullable(),
+  id_number: z.int().nullable(),
   phone_number: z.string().nullable(),
+  contributions: z.int(),
 });
 
 // export const CurrentUserData = z.object({ supabaseUser, publicUser });
