@@ -77,8 +77,8 @@ export const requests = pgTable("requests", {
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-  // TODO: Implement photo upload
-  photo: text("TODO: CHANGE"),
+
+  imgUrl: text("imgUrl"),
   // For currency we use the smallest unit: Php in cents
   price: integer("price"),
   title: text("title").notNull(),

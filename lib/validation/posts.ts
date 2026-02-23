@@ -4,12 +4,12 @@ import { PostStatusEnum } from "../validation/enums";
 export const postSchema = z.object({
   id: z.string().uuid({}),
   user_id: z.string().uuid({}),
-  photo: z.string().nullable(),
+  imgUrl: z.string().nullable(),
   price: z.number().int().nonnegative().nullable(),
   title: z.string(),
   description: z.string().nullable(),
   created_at: z.date(),
-  status: PostStatusEnum,
+  status: PostStatusEnum.optional(),
 });
 
 export const postBidSchema = z.object({
@@ -35,6 +35,7 @@ export const insertPostSchema = postSchema.pick({
   title: true,
   price: true,
   description: true,
+  imgUrl: true,
   status: true,
 });
 
