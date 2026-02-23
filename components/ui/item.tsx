@@ -1,10 +1,15 @@
-interface ItemRequestCardProps {
+import type { ItemDetailData } from '@/components/ui/item-detail-modal';
+
+export interface ItemRequestCardProps {
   imageUrl?: string;
   requestedBy?: string;
   section?: string;
   time?: string;
   price?: string;
   variant?: 'lent' | 'requested';
+  /** Full item data for the detail modal when card is clicked */
+  detail?: ItemDetailData;
+  onClick?: () => void;
 }
 
 export default function ItemRequestCard({
@@ -13,10 +18,16 @@ export default function ItemRequestCard({
   section = 'SEC-A206',
   time = '5:00 P.M.',
   price = '$$$',
-  variant = 'requested'
+  variant = 'requested',
+  detail,
+  onClick,
 }: ItemRequestCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-md">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-md hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
+    >
       <div className="flex items-start gap-4">
         {/* Image placeholder */}
         <div className="shrink-0">
@@ -53,6 +64,6 @@ export default function ItemRequestCard({
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
