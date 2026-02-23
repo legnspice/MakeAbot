@@ -6,7 +6,7 @@ export const reviewsSchema = z.object({
   creator_id: z.string().uuid(),
   request_bid_id: z.string().uuid().nullable().optional(),
   post_bid_id: z.string().uuid().nullable().optional(),
-  comment: z.string().min(1, "Comment is required"),
+  comment: z.string(),
   created_at: z.date().optional(),
   rating: z.number().int().min(1).max(5),
 });

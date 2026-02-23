@@ -9,7 +9,7 @@ import {
 
 // TODO: ADD AUTHENTICATION TO SERVER ACTION ENDPOINTS FOR SECURITY (THIS)
 
-export async function getMessages(filters: FindReviewsSchema) {
+export async function getReviews(filters: FindReviewsSchema) {
   return await handleAction(() => reviewsService.getReviews(filters));
 }
 
