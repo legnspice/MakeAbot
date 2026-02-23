@@ -9,7 +9,7 @@ export default function BottomNav() {
           className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
-          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 break-words">
+          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
             Home
           </span>
         </button>
@@ -19,7 +19,7 @@ export default function BottomNav() {
           className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
-          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 break-words">
+          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
             Requests
           </span>
         </button>
@@ -29,7 +29,7 @@ export default function BottomNav() {
           className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
-          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 break-words">
+          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
             Offers
           </span>
         </button>
@@ -39,7 +39,7 @@ export default function BottomNav() {
           className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
-          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 break-words">
+          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
             Profile
           </span>
         </button>
