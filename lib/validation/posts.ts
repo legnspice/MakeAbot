@@ -45,6 +45,7 @@ export const updatePostSchema = postSchema
     title: true,
     description: true,
     status: true,
+    imgUrl: true,
   })
   .partial();
 
