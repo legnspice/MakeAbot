@@ -1,5 +1,5 @@
 {
-  "id": "9fe3f128-0ad8-4a95-ab91-54ba7d839c05",
+  "id": "74bec948-ae1e-4f8d-b48e-2113340cc3c5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,7 +12,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "sender_id": {
           "name": "sender_id",
@@ -86,6 +87,32 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "messages_request_bid_id_request_bids_id_fk": {
+          "name": "messages_request_bid_id_request_bids_id_fk",
+          "tableFrom": "messages",
+          "tableTo": "request_bids",
+          "columnsFrom": [
+            "request_bid_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "messages_post_bid_id_post_bids_id_fk": {
+          "name": "messages_post_bid_id_post_bids_id_fk",
+          "tableFrom": "messages",
+          "tableTo": "post_bids",
+          "columnsFrom": [
+            "post_bid_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -102,7 +129,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "post_id": {
           "name": "post_id",
@@ -167,7 +195,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "user_id": {
           "name": "user_id",
@@ -175,8 +204,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "TODO: CHANGE": {
-          "name": "TODO: CHANGE",
+        "imgUrl": {
+          "name": "imgUrl",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -185,7 +214,7 @@
           "name": "price",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "title": {
           "name": "title",
@@ -197,7 +226,7 @@
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -208,7 +237,8 @@
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "post_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'Active'"
@@ -244,7 +274,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "request_id": {
           "name": "request_id",
@@ -264,6 +295,14 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "bid_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Pending'"
         }
       },
       "indexes": {},
@@ -309,7 +348,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "user_id": {
           "name": "user_id",
@@ -321,7 +361,7 @@
           "name": "fee",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "title": {
           "name": "title",
@@ -333,7 +373,7 @@
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -350,14 +390,22 @@
         },
         "urgency": {
           "name": "urgency",
-          "type": "text",
+          "type": "urgency",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'Now'"
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "request_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'Active'"
@@ -385,6 +433,122 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.reviews": {
+      "name": "reviews",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "rated_user_id": {
+          "name": "rated_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_bid_id": {
+          "name": "request_bid_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "post_bid_id": {
+          "name": "post_bid_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comment": {
+          "name": "comment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "rating": {
+          "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reviews_rated_user_id_users_id_fk": {
+          "name": "reviews_rated_user_id_users_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "users",
+          "columnsFrom": [
+            "rated_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reviews_creator_id_users_id_fk": {
+          "name": "reviews_creator_id_users_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "users",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reviews_request_bid_id_requests_id_fk": {
+          "name": "reviews_request_bid_id_requests_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "requests",
+          "columnsFrom": [
+            "request_bid_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reviews_post_bid_id_posts_id_fk": {
+          "name": "reviews_post_bid_id_posts_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "posts",
+          "columnsFrom": [
+            "post_bid_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.users": {
       "name": "users",
       "schema": "",
@@ -401,11 +565,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "id_number": {
+          "name": "id_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "phone_number": {
           "name": "phone_number",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "contributions": {
+          "name": "contributions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         }
       },
       "indexes": {},
@@ -432,7 +609,47 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.bid_status": {
+      "name": "bid_status",
+      "schema": "public",
+      "values": [
+        "Pending",
+        "Accepted",
+        "Closed"
+      ]
+    },
+    "public.post_status": {
+      "name": "post_status",
+      "schema": "public",
+      "values": [
+        "Active",
+        "Closed",
+        "Busy"
+      ]
+    },
+    "public.request_status": {
+      "name": "request_status",
+      "schema": "public",
+      "values": [
+        "Active",
+        "Ongoing",
+        "Completed",
+        "Cancelled"
+      ]
+    },
+    "public.urgency": {
+      "name": "urgency",
+      "schema": "public",
+      "values": [
+        "Now",
+        "Within the hour",
+        "Within the day",
+        "Within the week",
+        "Indefinite"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
