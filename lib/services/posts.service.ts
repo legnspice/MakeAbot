@@ -1,4 +1,5 @@
 import * as postsRepo from "../repo/posts.repo";
+import { posts } from "../db/schema";
 import {
   FindPostsSchema,
   FindPostBidsSchema,
@@ -32,5 +33,13 @@ export async function removePostBid(id: string) {
 }
 
 export async function editPost(id: string, data: UpdatePostSchema) {
+  const updatePayload: Partial<typeof posts.$inferInsert> = {
+    ...data,
+  };
+
+  if (data.status === "Closed") {
+    updatePayload.imgUrl = null;
+  }
+
   return await postsRepo.updatePost(id, data);
 }

@@ -7,7 +7,12 @@ import {
   timestamp,
   boolean,
 } from "drizzle-orm/pg-core";
-import { Urgency, PostStatus, RequestStatus } from "../validation/enums";
+import {
+  Urgency,
+  PostStatus,
+  RequestStatus,
+  BidStatus,
+} from "../validation/enums";
 
 const authSchema = pgSchema("auth");
 
@@ -21,7 +26,9 @@ export const users = pgTable("users", {
     .primaryKey()
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),
   name: text("name"),
+  id_number: integer("id_number"),
   phone_number: text("phone_number"),
+  contributions: integer("contributions").notNull().default(0),
 });
 
 export const messages = pgTable("messages", {
@@ -32,11 +39,26 @@ export const messages = pgTable("messages", {
   receiver_id: uuid("receiver_id")
     .notNull()
     .references(() => users.id),
-  request_bid_id: uuid("request_bid_id"),
-  post_bid_id: uuid("post_bid_id"),
+  request_bid_id: uuid("request_bid_id").references(() => requests.id),
+  post_bid_id: uuid("post_bid_id").references(() => posts.id),
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   is_read: boolean("is_read").default(false).notNull(),
+});
+
+export const reviews = pgTable("reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  rated_user_id: uuid("rated_user_id")
+    .notNull()
+    .references(() => users.id),
+  creator_id: uuid("creator_id")
+    .notNull()
+    .references(() => users.id),
+  request_bid_id: uuid("request_bid_id").references(() => requests.id),
+  post_bid_id: uuid("post_bid_id").references(() => posts.id),
+  comment: text("comment"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  rating: integer("rating").notNull(),
 });
 
 export const requests = pgTable("requests", {
@@ -49,14 +71,15 @@ export const requests = pgTable("requests", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
   urgency: text("urgency").$type<Urgency>().notNull().default("Now"),
+  type: text(),
   status: text("status").$type<RequestStatus>().notNull().default("Active"),
 });
 
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-  // TODO: Implement photo upload
-  photo: text("TODO: CHANGE"),
+
+  imgUrl: text("imgUrl"),
   // For currency we use the smallest unit: Php in cents
   price: integer("price"),
   title: text("title").notNull(),
@@ -77,6 +100,7 @@ export const request_bids = pgTable("request_bids", {
       onDelete: "cascade",
     }),
   created_at: timestamp("created_at").notNull().defaultNow(),
+  status: text("status").$type<BidStatus>().notNull().default("Pending"),
 });
 
 export const post_bids = pgTable("post_bids", {

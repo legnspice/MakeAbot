@@ -17,6 +17,9 @@ export const RequestStatusEnum = z.enum([
 
 export const PostStatusEnum = z.enum(["Active", "Closed", "Busy"]);
 
+export const BidStatusEnum = z.enum(["Pending", "Accepted", "Closed"]);
+
 export type Urgency = z.infer<typeof UrgencyEnum>;
+export type BidStatus = z.infer<typeof BidStatusEnum>;
 export type RequestStatus = z.infer<typeof RequestStatusEnum>;
 export type PostStatus = z.infer<typeof PostStatusEnum>;

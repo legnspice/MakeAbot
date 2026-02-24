@@ -1,11 +1,11 @@
 "use client";
 
 import { RealtimeChat } from "@/components/realtime-chat";
-import { createMessage, getConversation } from "@/app/actions/messages";
+import { createMessage, getConversation } from "@/lib/actions/messages";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
-import { getUsers } from "@/app/actions/users";
+import { getUsers } from "@/lib/actions/users";
 
 interface ChatMessage {
   id: string;
