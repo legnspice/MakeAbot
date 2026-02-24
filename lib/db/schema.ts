@@ -8,11 +8,11 @@ import {
   boolean,
 } from "drizzle-orm/pg-core";
 import {
-  Urgency,
-  PostStatus,
-  RequestStatus,
-  BidStatus,
-} from "../validation/enums";
+  urgencyEnum,
+  postStatusEnum,
+  requestStatusEnum,
+  bidStatusEnum,
+} from "./enums";
 
 const authSchema = pgSchema("auth");
 
@@ -39,8 +39,8 @@ export const messages = pgTable("messages", {
   receiver_id: uuid("receiver_id")
     .notNull()
     .references(() => users.id),
-  request_bid_id: uuid("request_bid_id").references(() => requests.id),
-  post_bid_id: uuid("post_bid_id").references(() => posts.id),
+  request_bid_id: uuid("request_bid_id").references(() => request_bids.id),
+  post_bid_id: uuid("post_bid_id").references(() => post_bids.id),
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   is_read: boolean("is_read").default(false).notNull(),
@@ -70,9 +70,9 @@ export const requests = pgTable("requests", {
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
-  urgency: text("urgency").$type<Urgency>().notNull().default("Now"),
+  urgency: urgencyEnum("urgency").notNull().default("Now"),
   type: text(),
-  status: text("status").$type<RequestStatus>().notNull().default("Active"),
+  status: requestStatusEnum("status").notNull().default("Active"),
 });
 
 export const posts = pgTable("posts", {
@@ -85,14 +85,13 @@ export const posts = pgTable("posts", {
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
-  status: text("status").$type<PostStatus>().notNull().default("Active"),
+  status: postStatusEnum("status").notNull().default("Active"),
 });
 
 export const request_bids = pgTable("request_bids", {
   id: uuid("id").primaryKey().defaultRandom(),
   request_id: uuid("request_id")
     .notNull()
-
     .references(() => requests.id, { onDelete: "cascade" }),
   bidder_id: uuid("bidder_id")
     .notNull()
@@ -100,18 +99,16 @@ export const request_bids = pgTable("request_bids", {
       onDelete: "cascade",
     }),
   created_at: timestamp("created_at").notNull().defaultNow(),
-  status: text("status").$type<BidStatus>().notNull().default("Pending"),
+  status: bidStatusEnum("status").notNull().default("Pending"),
 });
 
 export const post_bids = pgTable("post_bids", {
   id: uuid("id").primaryKey().defaultRandom(),
   post_id: uuid("post_id")
     .notNull()
-
     .references(() => posts.id, { onDelete: "cascade" }),
   bidder_id: uuid("bidder_id")
     .notNull()
-
     .references(() => users.id, {
       onDelete: "cascade",
     }),

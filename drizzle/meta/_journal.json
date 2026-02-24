@@ -43,6 +43,13 @@
       "when": 1771856978290,
       "tag": "0005_stormy_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771952040395,
+      "tag": "0006_oval_whirlwind",
+      "breakpoints": true
     }
   ]
 }

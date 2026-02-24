@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UrgencyEnum, RequestStatusEnum } from "../validation/enums";
+import { UrgencyEnum, RequestStatusEnum } from "../db/enums";
 
 export const requestSchema = z.object({
   id: z.string().uuid({}),

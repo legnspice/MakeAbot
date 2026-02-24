@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PostStatusEnum } from "../validation/enums";
+import { PostStatusEnum } from "../db/enums";
 
 export const postSchema = z.object({
   id: z.string().uuid({}),
