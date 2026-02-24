@@ -2,7 +2,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getMessages } from "@/app/actions/messages";
+import { getMessages } from "@/lib/actions/messages";
 import type { FindMessagesSchema } from "@/lib/validation/messages";
 
 export function useMessagesQuery(filters: FindMessagesSchema) {

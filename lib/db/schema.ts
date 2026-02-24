@@ -71,6 +71,7 @@ export const requests = pgTable("requests", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
   urgency: text("urgency").$type<Urgency>().notNull().default("Now"),
+  type: text(),
   status: text("status").$type<RequestStatus>().notNull().default("Active"),
 });
 
