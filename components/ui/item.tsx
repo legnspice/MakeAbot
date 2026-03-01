@@ -15,8 +15,8 @@ export interface ItemRequestCardProps {
 export default function ItemRequestCard({
   imageUrl,
   requestedBy = 'Requested by:',
-  section = 'SEC-A206',
-  time = '5:00 P.M.',
+  section,
+  time,
   price = '$$$',
   variant = 'requested',
   detail,
@@ -46,18 +46,28 @@ export default function ItemRequestCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-gray-900 mb-1">ITEM</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">
+            {detail?.title ?? 'Item'}
+          </h3>
           {variant === 'lent' ? (
-            <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
-              <span>{requestedBy}</span>
-              <span className="text-gray-900 font-medium shrink-0">{price}</span>
-            </div>
+            <>
+              <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
+                <span>{requestedBy}</span>
+                <span className="text-gray-900 font-medium shrink-0">{price}</span>
+              </div>
+              {(section || time) && (section !== '—' || time !== '—') && (
+                <div className="mt-1.5 text-sm text-blue-600 font-medium flex flex-wrap gap-x-2 gap-y-0">
+                  {section && section !== '—' && <span>{section}</span>}
+                  {time && time !== '—' && <span>{time}</span>}
+                </div>
+              )}
+            </>
           ) : (
             <>
-              <p className="text-sm text-gray-600 mb-3">{requestedBy}</p>
+              <p className="text-sm text-gray-600 mb-1.5">{requestedBy}</p>
               <div className="flex items-center gap-4 text-blue-600 font-medium flex-wrap">
-                <span>{section}</span>
-                <span>{time}</span>
+                {section && section !== '—' && <span>{section}</span>}
+                {time && time !== '—' && <span>{time}</span>}
                 <span className="text-gray-900 ml-auto">{price}</span>
               </div>
             </>
