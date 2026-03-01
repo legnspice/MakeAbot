@@ -3,7 +3,7 @@
 import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import { Button } from '@/components/ui/button';
-import { SquarePen } from 'lucide-react';
+import { SquarePen, Star } from 'lucide-react';
 
 const SAMPLE_OFFERS = [
   { title: 'ITEM', shortDesc: 'short desc', price: '$$$' },
@@ -19,55 +19,47 @@ export default function ProfilePage() {
       <main className="flex-1 px-4 pt-6 pb-28 max-w-md mx-auto w-full">
         {/* Profile header */}
         <div className="flex flex-col gap-4">
-          <div className="flex gap-4 items-start">
-            {/* Profile picture */}
-            <div className="relative shrink-0">
-              <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-medium uppercase">
-                PROF_PIC
-              </div>
-              <button
-                type="button"
-                className="absolute -top-1 -right-1 w-6 h-6 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors"
-                aria-label="Edit profile picture"
-              >
-                <SquarePen className="w-3.5 h-3.5" />
-              </button>
+          <div className="relative flex flex-col items-start gap-3">
+            <button
+              type="button"
+              className="absolute top-0 right-0 w-8 h-8 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors"
+              aria-label="Edit profile"
+            >
+              <SquarePen className="w-4 h-4" />
+            </button>
+
+            {/* Profile picture on top, aligned left */}
+            <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-medium uppercase">
+              PROF_PIC
             </div>
 
-            {/* Name, pronouns, action buttons */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-gray-900">Juan Dela Cruz</h1>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-sm text-gray-700">he/him</span>
-                <button
-                  type="button"
-                  className="w-5 h-5 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors"
-                  aria-label="Edit pronouns"
-                >
-                  <SquarePen className="w-3 h-3" />
-                </button>
+            {/* Row: name/pronouns group + rating */}
+            <div className="flex items-center justify-between gap-4 w-full pr-2">
+              <div className="flex flex-col items-start">
+                <h1 className="text-2xl font-bold text-gray-900">Juan Dela Cruz</h1>
+                <span className="text-sm text-gray-700 mt-1">he/him</span>
               </div>
-              <div className="flex gap-2 mt-3">
-                <div className="h-9 flex-1 rounded-lg bg-gray-200" />
-                <div className="h-9 flex-1 rounded-lg bg-gray-200" />
+              <div className="flex flex-col items-center justify-center gap-1 shrink-0 ml-auto">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      className={`w-5 h-5 ${
+                        n <= 4 ? 'fill-[#E5A550] text-[#E5A550]' : 'fill-gray-200 text-gray-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-gray-600 font-medium">4 out of 5</span>
               </div>
             </div>
           </div>
 
           {/* Description / bio */}
-          <div className="relative">
-            <blockquote className="text-gray-700 text-sm leading-relaxed pr-8">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </blockquote>
-            <button
-              type="button"
-              className="absolute top-0 right-0 w-5 h-5 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors"
-              aria-label="Edit description"
-            >
-              <SquarePen className="w-3 h-3" />
-            </button>
-          </div>
+          <blockquote className="text-gray-700 text-sm leading-relaxed">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+            eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </blockquote>
 
           {/* Transactions */}
           <Button
