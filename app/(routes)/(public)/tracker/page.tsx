@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import FilterBar, { type SortOption } from '@/components/ui/filter-bar';
@@ -57,6 +58,7 @@ const SAMPLE_REQUESTS: TrackerRequest[] = [
 type TrackerCard = { type: 'offer'; data: TrackerOffer } | { type: 'request'; data: TrackerRequest };
 
 export default function TrackerPage() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [customFilters, setCustomFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('date');
@@ -139,9 +141,29 @@ export default function TrackerPage() {
           <div className="flex flex-col gap-3">
             {sortedCards.map((card) =>
               card.type === 'offer' ? (
-                <OfferCard key={`offer-${card.data.id}`} offer={card.data} />
+                <OfferCard
+                  key={`offer-${card.data.id}`}
+                  offer={card.data}
+                  onClick={() => {
+                    router.push(
+                      `/chat?itemId=${encodeURIComponent(card.data.id)}&kind=offer&title=${encodeURIComponent(
+                        card.data.itemName
+                      )}`
+                    );
+                  }}
+                />
               ) : (
-                <RequestCard key={`request-${card.data.id}`} request={card.data} />
+                <RequestCard
+                  key={`request-${card.data.id}`}
+                  request={card.data}
+                  onClick={() => {
+                    router.push(
+                      `/chat?itemId=${encodeURIComponent(card.data.id)}&kind=request&title=${encodeURIComponent(
+                        card.data.itemName
+                      )}`
+                    );
+                  }}
+                />
               )
             )}
           </div>
@@ -153,9 +175,13 @@ export default function TrackerPage() {
   );
 }
 
-function OfferCard({ offer }: { offer: TrackerOffer }) {
+function OfferCard({ offer, onClick }: { offer: TrackerOffer; onClick: () => void }) {
   return (
-    <div className="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
+    >
       {offer.notificationCount != null && offer.notificationCount > 0 && (
         <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
           {offer.notificationCount}
@@ -179,13 +205,17 @@ function OfferCard({ offer }: { offer: TrackerOffer }) {
           ))}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
-function RequestCard({ request }: { request: TrackerRequest }) {
+function RequestCard({ request, onClick }: { request: TrackerRequest; onClick: () => void }) {
   return (
-    <div className="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
+    >
       {request.notificationCount != null && request.notificationCount > 0 && (
         <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
           {request.notificationCount}
@@ -196,7 +226,7 @@ function RequestCard({ request }: { request: TrackerRequest }) {
       <div className="mt-3 flex justify-end">
         <span className="text-[#3761B0] font-semibold">{request.price}</span>
       </div>
-    </div>
+    </button>
   );
 }
 

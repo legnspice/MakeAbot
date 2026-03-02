@@ -1,6 +1,23 @@
 /** Supabase disabled for now – returns a no-op client. Uncomment block below to re-enable. */
+type SupabaseServerNoopClient = {
+  auth: {
+    getUser: () => Promise<{ data: { user: null }; error: null }>;
+    getClaims: () => Promise<{ data: { claims: null } }>;
+    getSession: () => Promise<{ data: { session: null }; error: null }>;
+    signOut: () => Promise<{ error: null }>;
+    exchangeCodeForSession: () => Promise<{ data: null; error: null }>;
+    verifyOtp: () => Promise<{ error: null }>;
+  };
+  from: (table?: string) => {
+    select: () => { single: () => Promise<{ data: null; error: null }> };
+    upsert: () => Promise<{ error: null }>;
+    insert: () => Promise<{ error: null }>;
+    update: () => { eq: () => Promise<{ error: null }> };
+  };
+};
+
 export async function createClient() {
-  return {
+  const client: SupabaseServerNoopClient = {
     auth: {
       getUser: () => Promise.resolve({ data: { user: null }, error: null }),
       getClaims: () => Promise.resolve({ data: { claims: null } }),
@@ -15,7 +32,9 @@ export async function createClient() {
       insert: () => Promise.resolve({ error: null }),
       update: () => ({ eq: () => Promise.resolve({ error: null }) }),
     }),
-  } as any;
+  };
+
+  return client;
 }
 
 /*

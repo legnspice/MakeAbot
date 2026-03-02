@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ItemRequestCard from '@/components/ui/item';
-import ItemDetailModal, { type ItemDetailData } from '@/components/ui/item-detail-modal';
+import { type ItemDetailData } from '@/components/ui/item-detail-modal';
 import FilterBar, { type SortOption } from '@/components/ui/filter-bar';
 import { Plus, ChevronLeft } from 'lucide-react';
 
@@ -71,6 +72,7 @@ function getPriceRank(price: string): number {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [customFilters, setCustomFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('date');
@@ -79,7 +81,6 @@ export default function Home() {
   const [newFilterName, setNewFilterName] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItem, setSelectedItem] = useState<ItemDetailData | null>(null);
   const [items, setItems] = useState<ListItem[]>(INITIAL_ITEMS);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<'offer' | 'request'>('request');
@@ -226,24 +227,20 @@ export default function Home() {
                   time={item.time}
                   price={item.price}
                   detail={item.detail}
-                  onClick={() => item.detail && setSelectedItem(item.detail)}
+                  onClick={() => {
+                    const kind = item.variant === 'lent' ? 'offer' : 'request';
+                    const title = item.detail.title ?? 'ITEM';
+                    router.push(
+                      `/chat?itemId=${encodeURIComponent(item.id)}&kind=${encodeURIComponent(
+                        kind
+                      )}&title=${encodeURIComponent(title)}`
+                    );
+                  }}
                 />
               ))}
             </div>
           </main>
         </div>
-
-        {/* Item detail modal */}
-        {selectedItem && (
-          <ItemDetailModal
-            item={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            onInquire={(item) => {
-              // Optional: handle inquire action
-              console.log('Inquire', item);
-            }}
-          />
-        )}
 
         {/* Create request/offer modal */}
         {isCreateOpen && (
