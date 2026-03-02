@@ -7,9 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ItemRequestCard from '@/components/ui/item';
 import ItemDetailModal, { type ItemDetailData } from '@/components/ui/item-detail-modal';
-import { Plus, ChevronLeft, ChevronDown } from 'lucide-react';
-
-const BUILTIN_FILTERS = ['All', 'Offers', 'Requests'] as const;
+import FilterBar, { type SortOption } from '@/components/ui/filter-bar';
+import { Plus, ChevronLeft } from 'lucide-react';
 
 type ListItem = {
   id: string;
@@ -61,8 +60,6 @@ const INITIAL_ITEMS: ListItem[] = [
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
-
-type SortOption = 'date' | 'price';
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -199,86 +196,23 @@ export default function Home() {
         {/* Main content below navbar */}
         <div className="flex flex-col h-full">
           {/* Category filter row */}
-          <div className="px-4 pb-2 border-b border-gray-200 overflow-x-auto">
-            <div className="flex gap-2 items-center min-w-0">
-              {allFilterLabels.map((label) => (
-                <Button
-                  key={label}
-                  variant="outline"
-                  size="sm"
-                  className={`rounded-full shrink-0 ${
-                    activeFilter === label
-                      ? 'bg-[#3761B0] text-white border-[#3761B0] hover:bg-[#3761B0] hover:text-white'
-                      : 'bg-white text-black font-bold border-[#3761B0] border-2 hover:bg-blue-100 hover:text-[#3761B0]'
-                  }`}
-                  onClick={() => setActiveFilter(label)}
-                >
-                  {label}
-                </Button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setAddFilterOpen((open) => !open)}
-                className="w-9 h-9 shrink-0 rounded-full bg-[#3761B0] text-white flex items-center justify-center hover:bg-[#2a4d8a] transition-colors"
-                aria-label="Add filter"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setSortMenuOpen(true)}
-                className="flex items-center gap-1.5 shrink-0 rounded-full bg-[#3761B0] text-white font-bold px-4 py-2 text-sm hover:bg-[#2a4d8a] transition-colors"
-                aria-label="Sort"
-              >
-                <span className="w-2 h-2 rounded-full bg-white/60" aria-hidden />
-                Sort
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
-            {addFilterOpen && (
-              <div className="mt-2 flex gap-2 items-center">
-                <Input
-                  value={newFilterName}
-                  onChange={(e) => setNewFilterName(e.target.value)}
-                  placeholder="Filter name (e.g. Books)"
-                  className="flex-1 rounded-full border-[#3761B0] bg-gray-50 text-sm"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddFilter()}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleAddFilter}
-                  className="rounded-full bg-[#3761B0] hover:bg-[#2a4d8a] text-white shrink-0"
-                >
-                  Add
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setAddFilterOpen(false);
-                    setNewFilterName('');
-                  }}
-                  className="rounded-full shrink-0"
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-            {searchOpen && (
-              <div className="mt-3">
-                <Input
-                  type="search"
-                  placeholder="Search items..."
-                  className="rounded-full border-gray-200 bg-gray-50 text-sm"
-                  aria-label="Search items"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
+          <FilterBar
+            filterLabels={allFilterLabels}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            addFilterOpen={addFilterOpen}
+            onAddFilterOpenChange={setAddFilterOpen}
+            newFilterName={newFilterName}
+            onNewFilterNameChange={setNewFilterName}
+            onAddFilter={handleAddFilter}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            sortModalOpen={sortMenuOpen}
+            onSortModalOpenChange={setSortMenuOpen}
+            showSearch={searchOpen}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+          />
 
           {/* Main content - item list */}
           <main className="flex-1 px-2 py-6 pb-28">
@@ -309,57 +243,6 @@ export default function Home() {
               console.log('Inquire', item);
             }}
           />
-        )}
-
-        {/* Sort modal */}
-        {sortMenuOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            onClick={() => setSortMenuOpen(false)}
-            aria-hidden
-          >
-            <div
-              className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="sort-modal-title"
-            >
-              <h2 id="sort-modal-title" className="text-lg font-bold text-gray-900 mb-4">
-                Sort by
-              </h2>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  className={`w-full rounded-xl px-4 py-3 text-left font-medium ${
-                    sortBy === 'date'
-                      ? 'bg-[#3761B0] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  onClick={() => {
-                    setSortBy('date');
-                    setSortMenuOpen(false);
-                  }}
-                >
-                  Date
-                </button>
-                <button
-                  type="button"
-                  className={`w-full rounded-xl px-4 py-3 text-left font-medium ${
-                    sortBy === 'price'
-                      ? 'bg-[#3761B0] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  onClick={() => {
-                    setSortBy('price');
-                    setSortMenuOpen(false);
-                  }}
-                >
-                  Price
-                </button>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* Create request/offer modal */}

@@ -16,15 +16,15 @@ export default function BottomNav() {
           </span>
         </Link>
 
-        <button
-          type="button"
+        <Link
+          href="/tracker"
           className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
           <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
             Tracker
           </span>
-        </button>
+        </Link>
 
         <Link
           href="/notifications"
