@@ -22,27 +22,17 @@ export default function BottomNav() {
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
           <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
-            Requests
-          </span>
-        </button>
-
-        <button
-          type="button"
-          className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
-        >
-          <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
-          <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
-            Offers
+            Tracker
           </span>
         </button>
 
         <Link
-          href="/profile"
+          href="/notifications"
           className="flex flex-1 flex-col items-center justify-center gap-1.5 min-w-0 px-1 py-2"
         >
           <div className="w-12 h-12 shrink-0 bg-gray-300 rounded-full" />
           <span className="text-white text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2 wrap-break-words">
-            Profile
+            Notifications
           </span>
         </Link>
       </div>

@@ -9,7 +9,7 @@ import ItemRequestCard from '@/components/ui/item';
 import ItemDetailModal, { type ItemDetailData } from '@/components/ui/item-detail-modal';
 import { Plus, ChevronLeft } from 'lucide-react';
 
-const FILTERS = ['Items', 'Rental', 'Services'] as const;
+const FILTERS = ['All', 'Offers', 'Requests'] as const;
 
 type ListItem = {
   id: string;
@@ -63,8 +63,9 @@ function generateId() {
 }
 
 export default function Home() {
-  const [activeFilter, setActiveFilter] = useState<(typeof FILTERS)[number]>('Items');
+  const [activeFilter, setActiveFilter] = useState<(typeof FILTERS)[number]>('All');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<ItemDetailData | null>(null);
   const [items, setItems] = useState<ListItem[]>(INITIAL_ITEMS);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -79,6 +80,20 @@ export default function Home() {
     monetaryIncentive: '',
     notesForRenter: '',
   });
+
+  const filterByCategory =
+    activeFilter === 'All'
+      ? items
+      : activeFilter === 'Offers'
+        ? items.filter((item) => item.variant === 'lent')
+        : items.filter((item) => item.variant === 'requested');
+
+  const searchLower = searchQuery.trim().toLowerCase();
+  const filteredItems = searchLower
+    ? filterByCategory.filter((item) =>
+        item.detail.title.toLowerCase().includes(searchLower)
+      )
+    : filterByCategory;
 
   const resetForm = () => {
     setForm({
@@ -150,7 +165,7 @@ export default function Home() {
         {/* Main content below navbar */}
         <div className="flex flex-col h-full">
           {/* Category filter row */}
-          <div className="px-4 pt-2 pb-2 border-b border-gray-200 overflow-x-auto">
+          <div className="px-4 pb-2 border-b border-gray-200 overflow-x-auto">
             <div className="flex gap-2 items-center min-w-0">
               {FILTERS.map((label) => (
                 <Button
@@ -160,7 +175,7 @@ export default function Home() {
                   className={`rounded-full shrink-0 ${
                     activeFilter === label
                       ? 'bg-[#3761B0] text-white border-[#3761B0] hover:bg-[#3761B0] hover:text-white'
-                      : 'bg-blue-50/80 text-[#3761B0] border-blue-200 hover:bg-blue-100 hover:text-[#3761B0]'
+                      : 'bg-white text-black font-bold border-[#3761B0] border-2 hover:bg-blue-100 hover:text-[#3761B0]'
                   }`}
                   onClick={() => setActiveFilter(label)}
                 >
@@ -175,6 +190,8 @@ export default function Home() {
                   placeholder="Search items..."
                   className="rounded-full border-gray-200 bg-gray-50 text-sm"
                   aria-label="Search items"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             )}
@@ -183,7 +200,7 @@ export default function Home() {
           {/* Main content - item list */}
           <main className="flex-1 px-2 py-6 pb-28">
             <div className="flex flex-col gap-3 max-w-md mx-auto">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <ItemRequestCard
                   key={item.id}
                   variant={item.variant}
@@ -411,11 +428,11 @@ export default function Home() {
         {/* Floating action button */}
         <Button
           size="icon"
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30"
+          className="fixed bottom-30 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30 p-0 flex items-center justify-center"
           aria-label="Add item"
           onClick={() => setIsCreateOpen(true)}
         >
-          <Plus className="w-6 h-6" />
+          <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
         </Button>
       </div>
 
