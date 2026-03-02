@@ -76,7 +76,8 @@ export default function Home() {
     description: '',
     postedBy: '',
     count: 1,
-    preferredTimeVenue: '',
+    preferredTime: '',
+    preferredVenue: '',
     monetaryIncentive: '',
     notesForRenter: '',
   });
@@ -101,7 +102,8 @@ export default function Home() {
       description: '',
       postedBy: '',
       count: 1,
-      preferredTimeVenue: '',
+      preferredTime: '',
+      preferredVenue: '',
       monetaryIncentive: '',
       notesForRenter: '',
     });
@@ -116,13 +118,8 @@ export default function Home() {
     const quantity = Math.max(1, form.count);
     const price = form.monetaryIncentive.trim() || (createType === 'offer' ? 'FREE' : '$$$');
 
-    const [section, time] = (() => {
-      const s = form.preferredTimeVenue.trim();
-      if (!s) return ['—', '—'];
-      const atIdx = s.toLowerCase().indexOf(' at ');
-      if (atIdx >= 0) return [s.slice(atIdx + 4).trim(), s.slice(0, atIdx).trim()];
-      return ['—', s];
-    })();
+    const time = form.preferredTime.trim() || '—';
+    const section = form.preferredVenue.trim() || '—';
 
     const detail: ItemDetailData = {
       title: fullTitle,
@@ -230,32 +227,32 @@ export default function Home() {
 
         {/* Create request/offer modal */}
         {isCreateOpen && (
-          <div className="absolute inset-x-0 top-0 bottom-24 bg-white z-20 rounded-t-3xl border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.16)] overflow-y-auto">
-            <div className="max-w-md mx-auto h-full flex flex-col">
+          <div className="absolute inset-x-0 top-0 bottom-24 bg-white z-20 rounded-t-3xl border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.16)] overflow-hidden flex flex-col">
+            <div className="max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
               {/* Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreateOpen(false);
                     resetForm();
                   }}
-                  className="p-2 rounded-full hover:bg-gray-100"
+                  className="relative z-10 shrink-0 p-2 rounded-full hover:bg-gray-100"
                   aria-label="Close create item form"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
 
-                <div className="flex-1 text-center -ml-8">
-                  <p className="text-sm text-gray-500">Create an</p>
-                  <div className="mt-2 inline-flex rounded-full bg-gray-100 p-1">
+                <div className="flex-1 flex items-center justify-center gap-2 -ml-8">
+                  <span className="text-sm font-semibold text-gray-800">Create an</span>
+                  <div className="inline-flex rounded-full bg-gray-100 p-1">
                     <button
                       type="button"
                       onClick={() => setCreateType('offer')}
-                      className={`px-4 py-1.5 text-sm rounded-full ${
+                      className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
                         createType === 'offer'
-                          ? 'bg-white text-black font-semibold shadow-sm'
-                          : 'text-gray-600'
+                          ? 'bg-gray-700 text-white font-medium'
+                          : 'text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       Offer
@@ -263,10 +260,10 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => setCreateType('request')}
-                      className={`px-4 py-1.5 text-sm rounded-full ${
+                      className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
                         createType === 'request'
-                          ? 'bg-white text-black font-semibold shadow-sm'
-                          : 'text-gray-600'
+                          ? 'bg-gray-700 text-white font-medium'
+                          : 'text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       Request
@@ -278,10 +275,10 @@ export default function Home() {
               </div>
 
               {/* Form */}
-              <div className="px-5 pt-2 pb-6 space-y-4 overflow-y-auto">
+              <div className="px-4 pt-1 pb-4 space-y-2">
                 {/* Type: Item / Service */}
-                <div className="flex items-center gap-4">
-                  <div className="w-32 text-sm text-gray-600">Type</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Type</div>
                   <div className="inline-flex rounded-full bg-gray-100 p-1">
                     <button
                       type="button"
@@ -309,44 +306,44 @@ export default function Home() {
                 </div>
 
                 {/* Posted by */}
-                <div className="flex items-start gap-4">
-                  <div className="w-32 mt-2 text-sm text-gray-600">
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-sm text-gray-600">
                     {createType === 'offer' ? 'Offered by' : 'Requested by'}
                   </div>
                   <Input
                     value={form.postedBy}
                     onChange={(e) => setForm((f) => ({ ...f, postedBy: e.target.value }))}
                     placeholder="Your name (defaults to You)"
-                    className="flex-1 rounded-2xl bg-blue-50/80 border-blue-100"
+                    className="flex-1 rounded-xl bg-gray-100 border-0"
                   />
                 </div>
 
                 {/* Item name */}
-                <div className="flex items-start gap-4">
-                  <div className="w-32 mt-2 text-sm text-gray-600">Item</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Item</div>
                   <Input
                     value={form.itemName}
                     onChange={(e) => setForm((f) => ({ ...f, itemName: e.target.value }))}
                     placeholder="What do you need?"
-                    className="flex-1 rounded-2xl bg-blue-50/80 border-blue-100"
+                    className="flex-1 rounded-xl bg-gray-100 border-0"
                   />
                 </div>
 
                 {/* Description */}
-                <div className="flex items-start gap-4">
-                  <div className="w-32 mt-2 text-sm text-gray-600">Description</div>
+                <div className="flex items-start gap-3">
+                  <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">Description</div>
                   <textarea
                     value={form.description}
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    rows={3}
-                    className="flex-1 rounded-2xl bg-blue-50/80 border border-blue-100 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-[#3761B0]"
+                    rows={2}
+                    className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
                     placeholder="Add more details about your item or request..."
                   />
                 </div>
 
                 {/* Image */}
-                <div className="flex items-center gap-4">
-                  <div className="w-32 text-sm text-gray-600">Image</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Image</div>
                   <button
                     type="button"
                     className="inline-flex items-center justify-center rounded-full bg-gray-200 px-4 py-2 text-sm text-gray-700"
@@ -356,8 +353,8 @@ export default function Home() {
                 </div>
 
                 {/* Count */}
-                <div className="flex items-center gap-4">
-                  <div className="w-32 text-sm text-gray-600">Count</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Count</div>
                   <Input
                     type="number"
                     min={1}
@@ -365,57 +362,67 @@ export default function Home() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, count: Math.max(1, parseInt(e.target.value, 10) || 1) }))
                     }
-                    className="w-24 rounded-2xl bg-blue-50/80 border-blue-100"
+                    className="w-24 rounded-xl bg-gray-100 border-0"
                   />
                 </div>
 
                 {/* Preferred Time and Venue */}
-                <div className="flex items-start gap-4">
-                  <div className="w-32 mt-2 text-sm text-gray-600">
+                <div className="flex items-start gap-3">
+                  <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
                     Preferred Time and Venue for Claiming
                   </div>
-                  <Input
-                    value={form.preferredTimeVenue}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, preferredTimeVenue: e.target.value }))
-                    }
-                    placeholder="e.g. Today, 5 PM at SEC-A206"
-                    className="flex-1 rounded-2xl bg-blue-50/80 border-blue-100"
-                  />
+                  <div className="flex-1 flex flex-col gap-2">
+                    <Input
+                      value={form.preferredTime}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, preferredTime: e.target.value }))
+                      }
+                      placeholder="e.g. Today, 5 PM"
+                      className="w-full rounded-xl bg-gray-100 border-0"
+                    />
+                    <Input
+                      value={form.preferredVenue}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, preferredVenue: e.target.value }))
+                      }
+                      placeholder="e.g. SEC-A206"
+                      className="w-full rounded-xl bg-gray-100 border-0"
+                    />
+                  </div>
                 </div>
 
                 {/* Monetary Incentive */}
-                <div className="flex items-center gap-4">
-                  <div className="w-32 text-sm text-gray-600">Monetary Incentive</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Monetary Incentive</div>
                   <Input
                     value={form.monetaryIncentive}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, monetaryIncentive: e.target.value }))
                     }
                     placeholder="Optional"
-                    className="flex-1 rounded-2xl bg-blue-50/80 border-blue-100"
+                    className="flex-1 rounded-xl bg-gray-100 border-0"
                   />
                 </div>
 
                 {/* Notes for renter */}
-                <div className="flex items-start gap-4">
-                  <div className="w-32 mt-2 text-sm text-gray-600">Notes for Renter</div>
+                <div className="flex items-start gap-3">
+                  <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">Notes for Renter</div>
                   <textarea
                     value={form.notesForRenter}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, notesForRenter: e.target.value }))
                     }
-                    rows={3}
-                    className="flex-1 rounded-2xl bg-blue-50/80 border border-blue-100 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-[#3761B0]"
+                    rows={2}
+                    className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
                     placeholder="Anything else they should know?"
                   />
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-2">
                   <Button
                     type="button"
                     onClick={handlePost}
-                    className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-black font-semibold"
+                    className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase"
                   >
                     POST!
                   </Button>
@@ -426,14 +433,16 @@ export default function Home() {
         )}
 
         {/* Floating action button */}
-        <Button
-          size="icon"
-          className="fixed bottom-30 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30 p-0 flex items-center justify-center"
-          aria-label="Add item"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
-        </Button>
+        {!isCreateOpen && (
+          <Button
+            size="icon"
+            className="fixed bottom-30 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30 p-0 flex items-center justify-center"
+            aria-label="Add item"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
+          </Button>
+        )}
       </div>
 
       <BottomNav />
