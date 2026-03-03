@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769015114262,
-      "tag": "0000_needy_wendigo",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1769089317838,
-      "tag": "0001_ancient_marauders",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1771806063392,
-      "tag": "0002_naive_vector",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1771806241766,
-      "tag": "0003_bitter_blade",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1771806275430,
-      "tag": "0004_daily_siren",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1771856978290,
-      "tag": "0005_stormy_manta",
+      "when": 1771956982174,
+      "tag": "0000_amused_ma_gnuci",
       "breakpoints": true
     }
   ]
