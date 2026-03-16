@@ -1,0 +1,75 @@
+import { and, eq, lte, gte, desc, ilike, asc, or } from "drizzle-orm";
+import { db } from "../db";
+import { messages } from "../db/schema";
+import { getDayRange } from "./helper";
+import {
+  FindMessagesSchema,
+  InsertMessageSchema,
+  FindConversationSchema,
+} from "../validation/messages";
+
+export async function findConversation(filters: FindConversationSchema) {
+  const { user1_id, user2_id, request_bid_id, post_bid_id } = filters;
+  const conditions = [];
+
+  // Messages between these two users
+  conditions.push(
+    or(
+      and(eq(messages.sender_id, user1_id), eq(messages.receiver_id, user2_id)),
+      and(eq(messages.sender_id, user2_id), eq(messages.receiver_id, user1_id)),
+    ),
+  );
+
+  if (request_bid_id) {
+    conditions.push(eq(messages.request_bid_id, request_bid_id));
+  } else if (post_bid_id) {
+    conditions.push(eq(messages.post_bid_id, post_bid_id));
+  }
+
+  return await db.query.messages.findMany({
+    where: and(...conditions),
+    orderBy: [asc(messages.timestamp)], // Oldest first for chat display
+  });
+}
+
+export async function findMessages(filters: FindMessagesSchema) {
+  const {
+    id,
+    sender_id,
+    receiver_id,
+    request_bid_id,
+    post_bid_id,
+    content,
+    timestamp,
+  } = filters;
+  const conditions = [];
+
+  // If the filter exists, use the filter for the query.
+  if (id) conditions.push(eq(messages.id, id));
+  if (sender_id) conditions.push(eq(messages.sender_id, sender_id));
+  if (request_bid_id)
+    conditions.push(eq(messages.request_bid_id, request_bid_id));
+  if (receiver_id) conditions.push(eq(messages.receiver_id, receiver_id));
+  if (post_bid_id) conditions.push(eq(messages.post_bid_id, post_bid_id));
+  if (content) conditions.push(ilike(messages.content, `%${content}%`));
+
+  //   Selects all messages made in the day in general; TODO: Maybe add more specific ranges(?)
+  if (timestamp) {
+    const { startOfDay, endOfDay } = getDayRange(timestamp);
+    conditions.push(gte(messages.timestamp, startOfDay));
+    conditions.push(lte(messages.timestamp, endOfDay));
+  }
+
+  return await db.query.messages.findMany({
+    where: conditions.length > 0 ? and(...conditions) : undefined,
+    orderBy: [desc(messages.timestamp)],
+  });
+}
+
+export async function insertMessage(data: InsertMessageSchema) {
+  return await db.insert(messages).values(data);
+}
+
+export async function deleteMessage(id: string) {
+  return await db.delete(messages).where(eq(messages.id, id));
+}
