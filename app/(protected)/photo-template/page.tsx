@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { createClient } from "@/lib/client";
+import { createClient } from "@/lib/supabase/client";
 import imageCompression from "browser-image-compression";
 
 export default function PhotoTemplate() {
