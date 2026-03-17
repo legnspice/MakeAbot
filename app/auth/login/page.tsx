@@ -25,7 +25,6 @@ export default function LoginPage() {
             type="submit"
             className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-3 px-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm"
           >
-            {/* Google logo SVG */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5 shrink-0">
               <path fill="#EA4335" d="M24 9.5c3.1 0 5.6 1.1 7.6 2.9l5.6-5.6C33.7 3.5 29.2 1.5 24 1.5 14.9 1.5 7.2 7.1 3.9 14.9l6.6 5.1C12.2 13.7 17.6 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.2-4.5 6.8l7 5.4c4.1-3.8 6.2-9.3 6.2-16.2z"/>

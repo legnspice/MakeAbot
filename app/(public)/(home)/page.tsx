@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -10,9 +10,14 @@ import ItemRequestCard from "@/components/ui/item";
 import { type ItemDetailData } from "@/components/ui/item-detail-modal";
 import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
 import { Plus, ChevronLeft } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { getPosts, createPost, getPostBids, createPostBid } from "@/lib/actions/posts";
+import { getRequests, createRequest, getRequestBids, createRequestBid } from "@/lib/actions/requests";
 
 type ListItem = {
   id: string;
+  itemDbId: string;
+  userId: string;
   variant: "lent" | "requested";
   requestedBy: string;
   section?: string;
@@ -21,50 +26,15 @@ type ListItem = {
   detail: ItemDetailData;
 };
 
-const INITIAL_ITEMS: ListItem[] = [
-  {
-    id: "1",
-    variant: "lent",
-    requestedBy: "Offered by: Provider name",
-    section: "SEC-A206",
-    time: "5:00 P.M.",
-    price: "FREE",
-    detail: {
-      title: "Lorem Ipsum item",
-      lentBy: "Provider name",
-      quantity: 1,
-      price: "FREE",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-      note: "Lorem ipsum.",
-      linkUrl: "#",
-    } satisfies ItemDetailData,
-  },
-  {
-    id: "2",
-    variant: "requested",
-    requestedBy: "Requested by: Anonymous",
-    section: "SEC-A206",
-    time: "5:00 P.M.",
-    price: "$$$",
-    detail: {
-      title: "Requested item",
-      quantity: 2,
-      price: "$$$",
-      description:
-        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-      note: "Contact for availability.",
-    } satisfies ItemDetailData,
-  },
-];
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+function formatPrice(value: number | null | undefined): string {
+  if (value == null || value === 0) return "FREE";
+  return `₱${value}`;
 }
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
   if (p === "FREE") return 0;
+  if (p.startsWith("₱")) return parseInt(p.slice(1), 10) || 1;
   if (p === "$") return 1;
   if (p === "$$") return 2;
   if (p === "$$$") return 3;
@@ -73,6 +43,9 @@ function getPriceRank(price: string): number {
 
 export default function Home() {
   const router = useRouter();
+  const { userData } = useAuth();
+  const currentUser = userData.publicUser;
+
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [customFilters, setCustomFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("date");
@@ -81,20 +54,82 @@ export default function Home() {
   const [newFilterName, setNewFilterName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [items, setItems] = useState<ListItem[]>(INITIAL_ITEMS);
+  const [items, setItems] = useState<ListItem[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<"offer" | "request">("request");
   const [itemKind, setItemKind] = useState<"item" | "service">("item");
+  const [isPosting, setIsPosting] = useState(false);
   const [form, setForm] = useState({
     itemName: "",
     description: "",
-    postedBy: "",
     count: 1,
     preferredTime: "",
     preferredVenue: "",
     monetaryIncentive: "",
     notesForRenter: "",
   });
+
+  const loadItems = useCallback(async () => {
+    const [postsResult, requestsResult] = await Promise.all([
+      getPosts({}),
+      getRequests({}),
+    ]);
+
+    const mapped: ListItem[] = [];
+
+    if (postsResult.data) {
+      for (const post of postsResult.data) {
+        const posterName =
+          post.user_id === currentUser.id
+            ? currentUser.name ?? "You"
+            : "User";
+        mapped.push({
+          id: post.id,
+          itemDbId: post.id,
+          userId: post.user_id ?? "",
+          variant: "lent",
+          requestedBy: `Offered by: ${posterName}`,
+          price: formatPrice(post.price),
+          detail: {
+            title: post.title,
+            lentBy: posterName,
+            quantity: 1,
+            price: formatPrice(post.price),
+            description: post.description ?? undefined,
+          },
+        });
+      }
+    }
+
+    if (requestsResult.data) {
+      for (const req of requestsResult.data) {
+        const posterName =
+          req.user_id === currentUser.id
+            ? currentUser.name ?? "You"
+            : "User";
+        mapped.push({
+          id: req.id,
+          itemDbId: req.id,
+          userId: req.user_id ?? "",
+          variant: "requested",
+          requestedBy: `Requested by: ${posterName}`,
+          price: formatPrice(req.fee),
+          detail: {
+            title: req.title,
+            quantity: 1,
+            price: formatPrice(req.fee),
+            description: req.description ?? undefined,
+          },
+        });
+      }
+    }
+
+    setItems(mapped);
+  }, [currentUser.id, currentUser.name]);
+
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
 
   const filterByCategory =
     activeFilter === "All"
@@ -139,7 +174,6 @@ export default function Home() {
     setForm({
       itemName: "",
       description: "",
-      postedBy: "",
       count: 1,
       preferredTime: "",
       preferredVenue: "",
@@ -150,51 +184,95 @@ export default function Home() {
     setItemKind("item");
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     const title =
       form.itemName.trim() ||
       (createType === "offer" ? "New offer" : "New request");
     const prefix = itemKind === "service" ? "[Service] " : "";
     const fullTitle = prefix + title;
-    const quantity = Math.max(1, form.count);
-    const price =
-      form.monetaryIncentive.trim() ||
-      (createType === "offer" ? "FREE" : "$$$");
+    const priceValue = form.monetaryIncentive.trim()
+      ? parseInt(form.monetaryIncentive.trim(), 10) || null
+      : null;
 
-    const time = form.preferredTime.trim() || "—";
-    const section = form.preferredVenue.trim() || "—";
+    setIsPosting(true);
+    try {
+      if (createType === "offer") {
+        await createPost({
+          user_id: currentUser.id,
+          title: fullTitle,
+          price: priceValue,
+          description: form.description.trim() || null,
+          imgUrl: null,
+          status: "Active",
+        });
+      } else {
+        await createRequest({
+          user_id: currentUser.id,
+          title: fullTitle,
+          fee: priceValue,
+          description: form.description.trim() || null,
+          urgency: "Now",
+          status: "Active",
+        });
+      }
+      await loadItems();
+      setIsCreateOpen(false);
+      resetForm();
+    } finally {
+      setIsPosting(false);
+    }
+  };
 
-    const detail: ItemDetailData = {
-      title: fullTitle,
-      quantity,
-      price,
-      description: form.description.trim() || "No description.",
-      note: form.notesForRenter.trim() || undefined,
-    };
+  const handleItemClick = async (item: ListItem) => {
+    const kind = item.variant === "lent" ? "offer" : "request";
+    const title = item.detail.title ?? "ITEM";
 
-    const postedByName = form.postedBy.trim() || "You";
-    if (createType === "offer") {
-      detail.lentBy = postedByName;
+    // If it's the user's own item, go to tracker
+    if (item.userId === currentUser.id) {
+      router.push("/tracker");
+      return;
     }
 
-    const requestedByLabel =
-      createType === "offer"
-        ? `Offered by: ${postedByName}`
-        : `Requested by: ${postedByName}`;
+    // Find or create a bid
+    let bidId: string | null = null;
 
-    const newItem: ListItem = {
-      id: generateId(),
-      variant: createType === "offer" ? "lent" : "requested",
-      requestedBy: requestedByLabel,
-      section,
-      time,
-      price,
-      detail,
-    };
+    if (kind === "offer") {
+      const existing = await getPostBids({
+        post_id: item.itemDbId,
+        bidder_id: currentUser.id,
+      });
+      if (existing.data && existing.data.length > 0) {
+        bidId = existing.data[0].id;
+      } else {
+        await createPostBid({ post_id: item.itemDbId, bidder_id: currentUser.id });
+        const created = await getPostBids({
+          post_id: item.itemDbId,
+          bidder_id: currentUser.id,
+        });
+        bidId = created.data?.[0]?.id ?? null;
+      }
+    } else {
+      const existing = await getRequestBids({
+        request_id: item.itemDbId,
+        bidder_id: currentUser.id,
+      });
+      if (existing.data && existing.data.length > 0) {
+        bidId = existing.data[0].id;
+      } else {
+        await createRequestBid({ request_id: item.itemDbId, bidder_id: currentUser.id });
+        const created = await getRequestBids({
+          request_id: item.itemDbId,
+          bidder_id: currentUser.id,
+        });
+        bidId = created.data?.[0]?.id ?? null;
+      }
+    }
 
-    setItems((prev) => [newItem, ...prev]);
-    setIsCreateOpen(false);
-    resetForm();
+    if (!bidId) return;
+
+    router.push(
+      `/chat?bidId=${encodeURIComponent(bidId)}&kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}&otherId=${encodeURIComponent(item.userId)}`,
+    );
   };
 
   return (
@@ -202,9 +280,7 @@ export default function Home() {
       <Navbar onSearchClick={() => setSearchOpen((open) => !open)} />
 
       <div className="relative flex-1">
-        {/* Main content below navbar */}
         <div className="flex flex-col h-full">
-          {/* Category filter row */}
           <FilterBar
             filterLabels={allFilterLabels}
             activeFilter={activeFilter}
@@ -223,7 +299,6 @@ export default function Home() {
             onSearchQueryChange={setSearchQuery}
           />
 
-          {/* Main content - item list */}
           <main className="flex-1 px-2 py-6 pb-28">
             <div className="flex flex-col gap-3 max-w-md mx-auto">
               {filteredItems.map((item) => (
@@ -235,15 +310,7 @@ export default function Home() {
                   time={item.time}
                   price={item.price}
                   detail={item.detail}
-                  onClick={() => {
-                    const kind = item.variant === "lent" ? "offer" : "request";
-                    const title = item.detail.title ?? "ITEM";
-                    router.push(
-                      `/chat?itemId=${encodeURIComponent(item.id)}&kind=${encodeURIComponent(
-                        kind,
-                      )}&title=${encodeURIComponent(title)}`,
-                    );
-                  }}
+                  onClick={() => handleItemClick(item)}
                 />
               ))}
             </div>
@@ -305,9 +372,7 @@ export default function Home() {
               <div className="px-4 pt-1 pb-4 space-y-2">
                 {/* Type: Item / Service */}
                 <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">
-                    Type
-                  </div>
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Type</div>
                   <div className="inline-flex rounded-full bg-gray-100 p-1">
                     <button
                       type="button"
@@ -334,26 +399,9 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Posted by */}
-                <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">
-                    {createType === "offer" ? "Offered by" : "Requested by"}
-                  </div>
-                  <Input
-                    value={form.postedBy}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, postedBy: e.target.value }))
-                    }
-                    placeholder="Your name (defaults to You)"
-                    className="flex-1 rounded-xl bg-gray-100 border-0"
-                  />
-                </div>
-
                 {/* Item name */}
                 <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">
-                    Item
-                  </div>
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Item</div>
                   <Input
                     value={form.itemName}
                     onChange={(e) =>
@@ -380,24 +428,9 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Image */}
-                <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">
-                    Image
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full bg-gray-200 px-4 py-2 text-sm text-gray-700"
-                  >
-                    Add Image
-                  </button>
-                </div>
-
                 {/* Count */}
                 <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">
-                    Count
-                  </div>
+                  <div className="w-28 shrink-0 text-sm text-gray-600">Count</div>
                   <Input
                     type="number"
                     min={1}
@@ -415,16 +448,13 @@ export default function Home() {
                 {/* Preferred Time and Venue */}
                 <div className="flex items-start gap-3">
                   <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                    Preferred Time and Venue for Claiming
+                    Preferred Time and Venue
                   </div>
                   <div className="flex-1 flex flex-col gap-2">
                     <Input
                       value={form.preferredTime}
                       onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          preferredTime: e.target.value,
-                        }))
+                        setForm((f) => ({ ...f, preferredTime: e.target.value }))
                       }
                       placeholder="e.g. Today, 5 PM"
                       className="w-full rounded-xl bg-gray-100 border-0"
@@ -432,10 +462,7 @@ export default function Home() {
                     <Input
                       value={form.preferredVenue}
                       onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          preferredVenue: e.target.value,
-                        }))
+                        setForm((f) => ({ ...f, preferredVenue: e.target.value }))
                       }
                       placeholder="e.g. SEC-A206"
                       className="w-full rounded-xl bg-gray-100 border-0"
@@ -446,17 +473,16 @@ export default function Home() {
                 {/* Monetary Incentive */}
                 <div className="flex items-center gap-3">
                   <div className="w-28 shrink-0 text-sm text-gray-600">
-                    Monetary Incentive
+                    {createType === "offer" ? "Price (₱)" : "Fee (₱)"}
                   </div>
                   <Input
+                    type="number"
+                    min={0}
                     value={form.monetaryIncentive}
                     onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        monetaryIncentive: e.target.value,
-                      }))
+                      setForm((f) => ({ ...f, monetaryIncentive: e.target.value }))
                     }
-                    placeholder="Optional"
+                    placeholder="Leave empty for FREE"
                     className="flex-1 rounded-xl bg-gray-100 border-0"
                   />
                 </div>
@@ -464,7 +490,7 @@ export default function Home() {
                 {/* Notes for renter */}
                 <div className="flex items-start gap-3">
                   <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                    Notes for Renter
+                    Notes
                   </div>
                   <textarea
                     value={form.notesForRenter}
@@ -481,9 +507,10 @@ export default function Home() {
                   <Button
                     type="button"
                     onClick={handlePost}
-                    className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase"
+                    disabled={isPosting}
+                    className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
                   >
-                    POST!
+                    {isPosting ? "Posting..." : "POST!"}
                   </Button>
                 </div>
               </div>

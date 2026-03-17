@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       const email = data.user.email?.toLowerCase() || "";
       const acceptedDomain = "@student.ateneo.edu";
 
-      if (email.endsWith(acceptedDomain)) {
+      if (!email.endsWith(acceptedDomain)) {
         try {
           const supabaseAdmin = await createAdminClient();
           // Delete the user record

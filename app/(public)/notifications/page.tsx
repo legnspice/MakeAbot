@@ -1,54 +1,141 @@
 'use client';
 
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
+import { useAuth } from '@/contexts/auth-context';
+import { getPosts, getPostBids } from '@/lib/actions/posts';
+import { getRequests, getRequestBids } from '@/lib/actions/requests';
+import { getMessages } from '@/lib/actions/messages';
+import { getUsers } from '@/lib/actions/users';
 
-const SAMPLE_NOTIFICATIONS = [
-  {
-    id: '1',
-    title: 'New Request for [OFFER NAME]',
-    body: 'made by [Lorem ipsum name]',
-    meta: '6:09 P.M.',
-  },
-  {
-    id: '2',
-    title: 'New Message from [Lorem ipsum name]',
-    body: 'on [OFFER NAME]',
-    meta: 'Jan 22',
-  },
-];
+type NotificationItem = {
+  id: string;
+  title: string;
+  body: string;
+  meta: string;
+  href?: string;
+};
+
+function formatTime(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 export default function NotificationsPage() {
+  const router = useRouter();
+  const { userData } = useAuth();
+  const currentUser = userData.publicUser;
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadNotifications = useCallback(async () => {
+    const items: NotificationItem[] = [];
+
+    // 1. New bids on my posts (someone wants my offer)
+    const postsResult = await getPosts({ user_id: currentUser.id });
+    if (postsResult.data) {
+      for (const post of postsResult.data) {
+        const bidsResult = await getPostBids({ post_id: post.id });
+        for (const bid of bidsResult.data ?? []) {
+          const userResult = await getUsers({ id: bid.bidder_id });
+          const name = userResult.data?.[0]?.name ?? 'Someone';
+          items.push({
+            id: `post-bid-${bid.id}`,
+            title: `New request for ${post.title}`,
+            body: `by ${name}`,
+            meta: formatTime(bid.created_at),
+            href: `/chat?bidId=${bid.id}&kind=offer&title=${encodeURIComponent(post.title)}&otherId=${bid.bidder_id}`,
+          });
+        }
+      }
+    }
+
+    // 2. New bids on my requests (someone offered to help)
+    const requestsResult = await getRequests({ user_id: currentUser.id });
+    if (requestsResult.data) {
+      for (const req of requestsResult.data) {
+        const bidsResult = await getRequestBids({ request_id: req.id });
+        for (const bid of bidsResult.data ?? []) {
+          const userResult = await getUsers({ id: bid.bidder_id });
+          const name = userResult.data?.[0]?.name ?? 'Someone';
+          items.push({
+            id: `req-bid-${bid.id}`,
+            title: `New offer for ${req.title}`,
+            body: `by ${name}`,
+            meta: formatTime(bid.created_at),
+            href: `/chat?bidId=${bid.id}&kind=request&title=${encodeURIComponent(req.title)}&otherId=${bid.bidder_id}`,
+          });
+        }
+      }
+    }
+
+    // 3. Unread messages
+    const messagesResult = await getMessages({ receiver_id: currentUser.id });
+    const unread = (messagesResult.data ?? []).filter((m) => !m.is_read);
+    for (const msg of unread) {
+      const userResult = await getUsers({ id: msg.sender_id });
+      const name = userResult.data?.[0]?.name ?? 'Someone';
+      items.push({
+        id: `msg-${msg.id}`,
+        title: `New message from ${name}`,
+        body: msg.content.length > 60 ? msg.content.slice(0, 60) + '…' : msg.content,
+        meta: formatTime(msg.timestamp),
+      });
+    }
+
+
+    setNotifications(items);
+    setLoading(false);
+  }, [currentUser.id]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 pt-4 pb-28">
-        <section aria-label="Notifications">
-          <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white">
-            {SAMPLE_NOTIFICATIONS.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                className="w-full text-left px-4 py-4 focus:outline-none focus-visible:bg-gray-50"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 leading-snug">
-                      {n.title}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+        {loading ? (
+          <p className="text-center text-gray-400 text-sm pt-10">Loading…</p>
+        ) : notifications.length === 0 ? (
+          <p className="text-center text-gray-400 text-sm pt-10">No notifications yet</p>
+        ) : (
+          <section aria-label="Notifications">
+            <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white">
+              {notifications.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => n.href && router.push(n.href)}
+                  className="w-full text-left px-4 py-4 focus:outline-none focus-visible:bg-gray-50 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">
+                        {n.title}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-gray-500 mt-1">{n.meta}</span>
                   </div>
-                  <span className="shrink-0 text-xs text-gray-500 mt-1">{n.meta}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <BottomNav />
     </div>
   );
 }
-
