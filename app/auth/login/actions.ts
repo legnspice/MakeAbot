@@ -3,6 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+export async function logout() {
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/auth/login");
+}
+
 import { createClient } from "@/lib/supabase/server";
 
 export async function googleLogin() {

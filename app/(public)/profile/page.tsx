@@ -6,11 +6,12 @@ import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SquarePen, Star, X } from 'lucide-react';
+import { SquarePen, Star, X, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { getReviews } from '@/lib/actions/reviews';
 import { getPosts } from '@/lib/actions/posts';
 import { editUser, getUsers } from '@/lib/actions/users';
+import { logout } from '@/app/auth/login/actions';
 import type { SelectPost } from '@/lib/db/schema';
 
 function formatPrice(value: number | null | undefined): string {
@@ -167,6 +168,17 @@ export default function ProfilePage() {
           >
             {currentUser.contributions} completed transaction{currentUser.contributions !== 1 ? 's' : ''}
           </Button>
+
+          <form action={logout}>
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full rounded-xl border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Log out
+            </Button>
+          </form>
         </div>
 
         {/* Current offers */}
