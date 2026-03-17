@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#4A6FA5] shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#4A6FA5] shadow-lg">
       <div className="flex justify-around items-stretch gap-1 py-3 px-2 min-h-[72px]">
         <Link
           href="/"

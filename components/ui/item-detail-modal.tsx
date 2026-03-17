@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ExternalLink, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,8 @@ export interface ItemDetailData {
   imageUrl?: string;
   title: string;
   lentBy?: string;
+  requestedBy?: string;
+  location?: string;
   quantity?: number;
   price: string;
   description: string;
@@ -19,6 +21,8 @@ interface ItemDetailModalProps {
   item: ItemDetailData | null;
   onClose: () => void;
   onInquire?: (item: ItemDetailData) => void;
+  onChatClick?: () => void;
+  isOwner?: boolean;
   className?: string;
 }
 
@@ -26,13 +30,11 @@ export default function ItemDetailModal({
   item,
   onClose,
   onInquire,
+  onChatClick,
+  isOwner = false,
   className,
 }: ItemDetailModalProps) {
   if (!item) return null;
-
-  const handleInquire = () => {
-    onInquire?.(item);
-  };
 
   const handleLinkClick = () => {
     if (item.linkUrl) window.open(item.linkUrl, '_blank');
@@ -40,7 +42,6 @@ export default function ItemDetailModal({
 
   return (
     <>
-      {/* Backdrop - doesn't cover navbar (top) or bottom nav (bottom) */}
       <div
         className="fixed inset-0 z-40 bg-black/40 animate-in fade-in duration-200"
         aria-hidden
@@ -49,15 +50,14 @@ export default function ItemDetailModal({
       <div
         className={cn(
           'fixed left-0 right-0 z-50 flex items-center justify-center px-4 animate-in fade-in duration-200',
-          // Leave space for navbar (~72px) and bottom nav (~88px)
-          'top-[72px] bottom-[88px]',
+          'top-18 bottom-22 md:inset-0',
           className
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="item-detail-title"
       >
-        <div className="h-full max-h-[540px] w-full max-w-md flex flex-col rounded-2xl bg-white shadow-xl overflow-hidden">
+        <div className="h-full max-h-80 md:max-h-96 w-full max-w-sm flex flex-col rounded-2xl bg-white shadow-xl overflow-hidden">
           {/* Back button */}
           <div className="shrink-0 p-3">
             <Button
@@ -72,20 +72,7 @@ export default function ItemDetailModal({
             </Button>
           </div>
 
-          {/* Image */}
-          <div className="shrink-0 w-full h-36 bg-gray-100 border-y border-gray-200 flex items-center justify-center overflow-hidden">
-            {item.imageUrl ? (
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-[#3761B0] font-medium text-sm">ITEM_IMAGE</span>
-            )}
-          </div>
-
-          {/* Content - no scroll so everything stays visible */}
+          {/* Content */}
           <div className="flex-1 min-h-0 px-4 py-3">
             <div className="flex items-start justify-between gap-3 mb-1">
               <h1
@@ -100,11 +87,14 @@ export default function ItemDetailModal({
               </div>
             </div>
             {item.lentBy && (
-              <p className="text-sm text-gray-600 mb-2">Lent by {item.lentBy}</p>
+              <p className="text-sm text-gray-600">Lent by {item.lentBy}</p>
             )}
-            <p className="text-gray-700 text-sm leading-relaxed mb-2">
-              &ldquo;{item.description}&rdquo;
-            </p>
+            {item.requestedBy && (
+              <p className="text-sm text-gray-600">Requested by {item.requestedBy}</p>
+            )}
+            {item.location && (
+              <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>
+            )}
             {item.note && (
               <p className="text-sm text-gray-600">
                 <span className="font-medium">Note:</span> {item.note}
@@ -112,15 +102,26 @@ export default function ItemDetailModal({
             )}
           </div>
 
-          {/* Actions - extra padding so buttons aren't stuck to bottom */}
+          {/* Actions */}
           <div className="shrink-0 pt-3 px-3 pb-5 flex items-center justify-center gap-3 border-t border-gray-100">
-            <Button
-              type="button"
-              className="flex-1 max-w-[240px] h-11 rounded-xl bg-[#CDA452] hover:bg-[#B8923F] text-white font-semibold uppercase tracking-wide text-sm"
-              onClick={handleInquire}
-            >
-              Inquire
-            </Button>
+            {isOwner ? (
+              <Button
+                type="button"
+                className="flex-1 max-w-60 h-11 rounded-xl bg-[#3761B0] hover:bg-[#2a4d8a] text-white font-semibold uppercase tracking-wide text-sm flex items-center justify-center gap-2"
+                onClick={onChatClick}
+              >
+                <MessageCircle className="w-4 h-4" />
+                Chat
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="flex-1 max-w-60 h-11 rounded-xl bg-[#CDA452] hover:bg-[#B8923F] text-white font-semibold uppercase tracking-wide text-sm"
+                onClick={() => onInquire?.(item)}
+              >
+                Inquire
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"

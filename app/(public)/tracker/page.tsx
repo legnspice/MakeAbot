@@ -55,6 +55,8 @@ export default function TrackerPage() {
   const [sortModalOpen, setSortModalOpen] = useState(false);
   const [addFilterOpen, setAddFilterOpen] = useState(false);
   const [newFilterName, setNewFilterName] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
 
@@ -140,10 +142,15 @@ export default function TrackerPage() {
     ...filterRequests(requests).map((data) => ({ type: 'request' as const, data })),
   ];
 
+  const searchLower = searchQuery.trim().toLowerCase();
+  const filteredCards = searchLower
+    ? cards.filter((c) => c.data.itemName.toLowerCase().includes(searchLower))
+    : cards;
+
   const sortedCards =
     sortBy === 'date'
-      ? cards
-      : [...cards].sort((a, b) => {
+      ? filteredCards
+      : [...filteredCards].sort((a, b) => {
           const priceA = a.type === 'offer' ? 'FREE' : a.data.price;
           const priceB = b.type === 'offer' ? 'FREE' : b.data.price;
           return getPriceRank(priceA) - getPriceRank(priceB);
@@ -167,7 +174,7 @@ export default function TrackerPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar />
+      <Navbar onSearchToggle={() => setSearchOpen((o) => !o)} searchOpen={searchOpen} />
 
       <FilterBar
         filterLabels={allFilterLabels}
@@ -182,11 +189,15 @@ export default function TrackerPage() {
         onSortChange={setSortBy}
         sortModalOpen={sortModalOpen}
         onSortModalOpenChange={setSortModalOpen}
+        showSearch={searchOpen}
+        onSearchToggle={() => setSearchOpen((o) => !o)}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
       />
 
-      <main className="flex-1 max-w-md mx-auto w-full px-4 pt-4 pb-28">
+      <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
         <section aria-label="Tracker">
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
             {sortedCards.map((card) =>
               card.type === 'offer' ? (
                 <OfferCard

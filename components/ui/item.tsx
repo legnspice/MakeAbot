@@ -28,7 +28,7 @@ export default function ItemRequestCard({
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-md hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
+      className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
     >
       <div className="flex flex-col gap-1.5">
         <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
@@ -39,6 +39,11 @@ export default function ItemRequestCard({
             ? requestedBy.replace(/^Offered by:/i, "Lent by:")
             : requestedBy}
         </p>
+        {detail?.description && (
+          <p className="hidden md:block text-sm text-gray-500 line-clamp-2">
+            {detail.description}
+          </p>
+        )}
         {(hasLocation || hasDate) && (
           <div className="text-sm text-gray-600 flex flex-wrap gap-x-2 gap-y-0">
             {hasLocation && <span>{section}</span>}

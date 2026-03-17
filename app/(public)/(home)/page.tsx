@@ -7,12 +7,13 @@ import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ItemRequestCard from "@/components/ui/item";
-import { type ItemDetailData } from "@/components/ui/item-detail-modal";
+import ItemDetailModal, { type ItemDetailData } from "@/components/ui/item-detail-modal";
 import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
 import { Plus, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { getPosts, createPost, getPostBids, createPostBid } from "@/lib/actions/posts";
 import { getRequests, createRequest, getRequestBids, createRequestBid } from "@/lib/actions/requests";
+import { getUsers } from "@/lib/actions/users";
 
 type ListItem = {
   id: string;
@@ -55,6 +56,7 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<ListItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<"offer" | "request">("request");
   const [itemKind, setItemKind] = useState<"item" | "service">("item");
@@ -79,10 +81,11 @@ export default function Home() {
 
     if (postsResult.data) {
       for (const post of postsResult.data) {
-        const posterName =
-          post.user_id === currentUser.id
-            ? currentUser.name ?? "You"
-            : "User";
+        let posterName = currentUser.name ?? "You";
+        if (post.user_id !== currentUser.id) {
+          const userResult = await getUsers({ id: post.user_id ?? "" });
+          posterName = userResult.data?.[0]?.name ?? "User";
+        }
         mapped.push({
           id: post.id,
           itemDbId: post.id,
@@ -103,10 +106,11 @@ export default function Home() {
 
     if (requestsResult.data) {
       for (const req of requestsResult.data) {
-        const posterName =
-          req.user_id === currentUser.id
-            ? currentUser.name ?? "You"
-            : "User";
+        let posterName = currentUser.name ?? "You";
+        if (req.user_id !== currentUser.id) {
+          const userResult = await getUsers({ id: req.user_id ?? "" });
+          posterName = userResult.data?.[0]?.name ?? "User";
+        }
         mapped.push({
           id: req.id,
           itemDbId: req.id,
@@ -116,6 +120,7 @@ export default function Home() {
           price: formatPrice(req.fee),
           detail: {
             title: req.title,
+            requestedBy: posterName,
             quantity: 1,
             price: formatPrice(req.fee),
             description: req.description ?? undefined,
@@ -223,15 +228,9 @@ export default function Home() {
     }
   };
 
-  const handleItemClick = async (item: ListItem) => {
+  const handleInquire = async (item: ListItem) => {
     const kind = item.variant === "lent" ? "offer" : "request";
     const title = item.detail.title ?? "ITEM";
-
-    // If it's the user's own item, go to tracker
-    if (item.userId === currentUser.id) {
-      router.push("/tracker");
-      return;
-    }
 
     // Find or create a bid
     let bidId: string | null = null;
@@ -277,50 +276,75 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar onSearchClick={() => setSearchOpen((open) => !open)} />
+      <Navbar onSearchToggle={() => setSearchOpen((o) => !o)} searchOpen={searchOpen} />
 
-      <div className="relative flex-1">
-        <div className="flex flex-col h-full">
-          <FilterBar
-            filterLabels={allFilterLabels}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            addFilterOpen={addFilterOpen}
-            onAddFilterOpenChange={setAddFilterOpen}
-            newFilterName={newFilterName}
-            onNewFilterNameChange={setNewFilterName}
-            onAddFilter={handleAddFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            sortModalOpen={sortMenuOpen}
-            onSortModalOpenChange={setSortMenuOpen}
-            showSearch={searchOpen}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-          />
+      <div className="relative">
+        <FilterBar
+          filterLabels={allFilterLabels}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          addFilterOpen={addFilterOpen}
+          onAddFilterOpenChange={setAddFilterOpen}
+          newFilterName={newFilterName}
+          onNewFilterNameChange={setNewFilterName}
+          onAddFilter={handleAddFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortModalOpen={sortMenuOpen}
+          onSortModalOpenChange={setSortMenuOpen}
+          showSearch={searchOpen}
+          onSearchToggle={() => setSearchOpen((open) => !open)}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+        />
 
-          <main className="flex-1 px-2 py-6 pb-28">
-            <div className="flex flex-col gap-3 max-w-md mx-auto">
-              {filteredItems.map((item) => (
-                <ItemRequestCard
-                  key={item.id}
-                  variant={item.variant}
-                  requestedBy={item.requestedBy}
-                  section={item.section}
-                  time={item.time}
-                  price={item.price}
-                  detail={item.detail}
-                  onClick={() => handleItemClick(item)}
-                />
-              ))}
-            </div>
-          </main>
-        </div>
+        <main className="px-4 py-6 pb-28 md:pb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
+            {filteredItems.map((item) => (
+              <ItemRequestCard
+                key={item.id}
+                variant={item.variant}
+                requestedBy={item.requestedBy}
+                section={item.section}
+                time={item.time}
+                price={item.price}
+                detail={item.detail}
+                onClick={() => setSelectedItem(item)}
+              />
+            ))}
+          </div>
+        </main>
+
+        {/* Item detail modal */}
+        <ItemDetailModal
+          item={selectedItem?.detail ?? null}
+          isOwner={selectedItem?.userId === currentUser.id}
+          onClose={() => setSelectedItem(null)}
+          onInquire={() => {
+            if (selectedItem) {
+              setSelectedItem(null);
+              handleInquire(selectedItem);
+            }
+          }}
+          onChatClick={() => {
+            setSelectedItem(null);
+            router.push("/tracker");
+          }}
+        />
 
         {/* Create request/offer modal */}
         {isCreateOpen && (
-          <div className="absolute inset-x-0 top-0 bottom-24 bg-white z-20 rounded-t-3xl border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.16)] overflow-hidden flex flex-col">
-            <div className="max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-20 bg-black/40"
+              onClick={() => { setIsCreateOpen(false); resetForm(); }}
+              aria-hidden
+            />
+            {/* Modal panel: leaves navbar + bottom nav visible on mobile */}
+            <div className="fixed inset-x-0 top-32 bottom-36 md:inset-0 md:flex md:items-center md:justify-center z-30">
+              <div className="bg-white rounded-2xl md:shadow-2xl md:w-full md:max-w-lg md:max-h-[85vh] border border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.16)] overflow-hidden flex flex-col h-full md:h-auto mx-4 md:mx-0">
+            <div className="max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide w-full">
               {/* Header */}
               <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
                 <button
@@ -422,7 +446,7 @@ export default function Home() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, description: e.target.value }))
                     }
-                    rows={2}
+                    rows={4}
                     className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
                     placeholder="Add more details about your item or request..."
                   />
@@ -515,14 +539,16 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Floating action button */}
         {!isCreateOpen && (
           <Button
             size="icon"
-            className="fixed bottom-30 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30 p-0 flex items-center justify-center"
+            className="fixed bottom-30 md:bottom-6 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30 p-0 flex items-center justify-center"
             aria-label="Add item"
             onClick={() => setIsCreateOpen(true)}
           >
