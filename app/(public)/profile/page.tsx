@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import { Button } from '@/components/ui/button';
@@ -20,8 +21,10 @@ function formatPrice(value: number | null | undefined): string {
 export default function ProfilePage() {
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
-  const avatarUrl = userData.supabaseUser.user_metadata?.avatar_url as string | undefined;
-  const googleName = (userData.supabaseUser.user_metadata?.full_name ?? userData.supabaseUser.user_metadata?.name ?? '') as string;
+  const meta = userData.supabaseUser.user_metadata ?? {};
+  const avatarUrl = (meta.avatar_url ?? meta.picture ?? '') as string;
+  const googleName = (meta.full_name ?? meta.name ?? '') as string;
+
 
   const [avgRating, setAvgRating] = useState<number>(0);
   const [reviewCount, setReviewCount] = useState(0);
@@ -114,10 +117,9 @@ export default function ProfilePage() {
             </button>
 
             {/* Profile picture */}
-            <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-sm font-medium">
+            <div className="relative w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-sm font-medium">
               {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                <Image src={avatarUrl} alt="Profile" fill className="object-cover" />
               ) : (
                 <span className="uppercase">{(name || 'U').charAt(0)}</span>
               )}
