@@ -105,8 +105,99 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
 
-      <main className="flex-1 px-4 pt-6 pb-28 max-w-md mx-auto w-full">
-        <div className="flex flex-col gap-4">
+      <main className="flex-1 px-4 pt-6 pb-28 w-full mx-auto max-w-md md:max-w-5xl">
+
+        {/* ── Desktop layout ── */}
+        <div className="hidden md:block">
+          {/* Header: avatar + info side by side */}
+          <div className="flex items-start gap-8">
+            {/* Avatar */}
+            <div className="relative w-48 h-48 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-2xl font-medium shrink-0">
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt="Profile" fill className="object-cover" />
+              ) : (
+                <span className="uppercase">{(name || 'U').charAt(0)}</span>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 pt-2">
+              {/* Name + rating + edit */}
+              <div className="flex items-center gap-4">
+                <h1 className="text-4xl font-bold text-gray-900">{name || 'User'}</h1>
+                {reviewCount > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-2xl font-semibold text-gray-800">{displayRating}</span>
+                    <Star className="w-6 h-6 fill-[#E5A550] text-[#E5A550]" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={openEdit}
+                  className="ml-auto w-8 h-8 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors shrink-0"
+                  aria-label="Edit profile"
+                >
+                  <SquarePen className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Phone + ID */}
+              <div className="flex items-center gap-4 mt-2 text-gray-500 text-sm">
+                {phoneNumber && <span>{phoneNumber}</span>}
+                {idNumber && <span>ID: {idNumber}</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons row */}
+          <div className="flex items-center gap-3 mt-6">
+            <Button
+              type="button"
+              className="rounded-full bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium px-6"
+            >
+              {currentUser.contributions} completed transaction{currentUser.contributions !== 1 ? 's' : ''}
+            </Button>
+            <form action={logout}>
+              <Button
+                type="submit"
+                variant="outline"
+                className="rounded-full border-gray-300 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium flex items-center gap-2"
+              >
+                Log out
+              </Button>
+            </form>
+          </div>
+
+          {/* Current offers */}
+          <section className="mt-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Current Offers</h2>
+            <div className="border-t border-gray-200 pt-4">
+              {offers.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">No active offers</p>
+              ) : (
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {offers.map((offer) => (
+                    <div
+                      key={offer.id}
+                      className="shrink-0 w-52 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                    >
+                      <p className="font-bold text-gray-800 uppercase text-sm mb-1 truncate">
+                        {offer.title}
+                      </p>
+                      <p className="text-sm text-gray-500 mb-4 line-clamp-3">
+                        {offer.description ?? '—'}
+                      </p>
+                      <p className="font-bold text-[#3761B0]">{formatPrice(offer.price)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* ── Mobile layout ── */}
+        <div className="flex md:hidden flex-col gap-4">
           <div className="relative flex flex-col items-start gap-3">
             <button
               type="button"
@@ -161,7 +252,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Completed transactions */}
           <Button
             type="button"
             className="w-full rounded-xl bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium py-6"
@@ -179,32 +269,32 @@ export default function ProfilePage() {
               Log out
             </Button>
           </form>
-        </div>
 
-        {/* Current offers */}
-        <section className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Current Offers</h2>
-          {offers.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No active offers</p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-              {offers.map((offer) => (
-                <div
-                  key={offer.id}
-                  className="shrink-0 w-40 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                >
-                  <p className="font-bold text-gray-800 uppercase text-sm mb-1 truncate">
-                    {offer.title}
-                  </p>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                    {offer.description ?? '—'}
-                  </p>
-                  <p className="font-bold text-gray-900">{formatPrice(offer.price)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+          {/* Current offers */}
+          <section className="mt-4">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Current Offers</h2>
+            {offers.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No active offers</p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                {offers.map((offer) => (
+                  <div
+                    key={offer.id}
+                    className="shrink-0 w-40 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <p className="font-bold text-gray-800 uppercase text-sm mb-1 truncate">
+                      {offer.title}
+                    </p>
+                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">
+                      {offer.description ?? '—'}
+                    </p>
+                    <p className="font-bold text-gray-900">{formatPrice(offer.price)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </main>
 
       {/* Edit profile modal */}
