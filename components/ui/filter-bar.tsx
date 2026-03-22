@@ -44,9 +44,54 @@ export default function FilterBar({
   onSearchQueryChange,
 }: FilterBarProps) {
   return (
-    <div className="border-b border-gray-200 pt-3 md:pt-4">
-      {/* Pills row + action buttons inline */}
-      <div className="flex items-center">
+    <div className="border-b border-gray-200 pt-3 md:pt-2">
+
+      {/* ── Desktop layout ── */}
+      <div className="hidden md:flex items-center gap-2 px-4 pb-2">
+        {/* Search input */}
+        <div className="relative flex-1">
+          <Input
+            type="search"
+            placeholder="Search an item"
+            className="rounded-full border-gray-200 bg-gray-100 text-sm focus-visible:ring-[#3761B0] h-8"
+            aria-label="Search items"
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange?.(e.target.value)}
+          />
+        </div>
+
+        {/* Sort pill button */}
+        <button
+          type="button"
+          onClick={() => onSortModalOpenChange(true)}
+          className="shrink-0 h-8 px-4 rounded-full bg-[#3761B0] text-white text-sm font-medium flex items-center gap-1.5 hover:bg-[#2a4d8a] transition-colors"
+        >
+          Sort
+          <ChevronDown className="w-4 h-4" />
+        </button>
+
+        {/* Filter pills */}
+        <div className="flex items-center gap-2 shrink-0">
+          {filterLabels.map((label) => (
+            <Button
+              key={label}
+              variant="outline"
+              size="sm"
+              className={`rounded-full h-8 px-4 ${
+                activeFilter === label
+                  ? 'bg-[#3761B0] text-white border-[#3761B0] hover:bg-[#3761B0] hover:text-white'
+                  : 'bg-white text-black font-bold border-[#3761B0] border-2 hover:bg-blue-100 hover:text-[#3761B0]'
+              }`}
+              onClick={() => onFilterChange(label)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Mobile layout ── */}
+      <div className="flex md:hidden items-center">
         {/* Scrollable filter pills with right fade */}
         <div className="relative flex-1 min-w-0 overflow-hidden">
           <div className="overflow-x-auto scrollbar-hide scroll-smooth [-webkit-overflow-scrolling:touch] pl-4 pb-2">
@@ -72,12 +117,12 @@ export default function FilterBar({
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-linear-to-r from-transparent to-white pointer-events-none" />
         </div>
 
-        {/* Action buttons — always in-line with pills */}
+        {/* Mobile action buttons */}
         <div className="flex items-center gap-1.5 px-3 pb-2 shrink-0">
           <button
             type="button"
             onClick={onSearchToggle}
-            className={`hidden md:flex h-8 w-8 shrink-0 rounded-full items-center justify-center transition-colors ${
+            className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-colors ${
               showSearch
                 ? 'bg-[#3761B0] text-white hover:bg-[#2a4d8a]'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -105,9 +150,9 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* Add filter input */}
+      {/* Mobile: Add filter input */}
       {addFilterOpen && (
-        <div className="px-4 pb-2 flex gap-2 items-center">
+        <div className="md:hidden px-4 pb-2 flex gap-2 items-center">
           <Input
             value={newFilterName}
             onChange={(e) => onNewFilterNameChange(e.target.value)}
@@ -138,9 +183,9 @@ export default function FilterBar({
         </div>
       )}
 
-      {/* Search bar — toggled */}
+      {/* Mobile: Search bar — toggled */}
       {showSearch && (
-        <div className="px-4 pb-3">
+        <div className="md:hidden px-4 pb-3">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
