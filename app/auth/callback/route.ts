@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 // The client you created from the Server-Side Auth instructions
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createUser } from "@/lib/actions/users";
+import * as usersService from "@/lib/services/users.service";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       const isLocalEnv = process.env.NODE_ENV === "development";
 
       const safeNext = next.startsWith("/") ? next : "/";
-      await createUser(data.user.id);
+      await usersService.createUser(data.user.id);
 
       if (isLocalEnv) {
         return NextResponse.redirect(`${baseUrl}${safeNext}`);

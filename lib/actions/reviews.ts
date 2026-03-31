@@ -1,5 +1,6 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import * as reviewsService from "@/lib/services/reviews.service";
 import { handleAction } from "@/lib/error/actions-handler";
 import {
@@ -7,16 +8,33 @@ import {
   InsertReviewSchema,
 } from "@/lib/validation/reviews";
 
-// TODO: ADD AUTHENTICATION TO SERVER ACTION ENDPOINTS FOR SECURITY (THIS)
+async function requireAuth() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Unauthorized");
+  return user;
+}
 
 export async function getReviews(filters: FindReviewsSchema) {
-  return await handleAction(() => reviewsService.getReviews(filters));
+  return await handleAction(async () => {
+    await requireAuth();
+    return reviewsService.getReviews(filters);
+  });
 }
 
 export async function createReview(data: InsertReviewSchema) {
-  return await handleAction(() => reviewsService.createReview(data));
+  return await handleAction(async () => {
+    await requireAuth();
+    return reviewsService.createReview(data);
+  });
 }
 
 export async function removeReview(id: string) {
-  return await handleAction(() => reviewsService.removeReview(id));
+  return await handleAction(async () => {
+    await requireAuth();
+    return reviewsService.removeReview(id);
+  });
 }
