@@ -29,7 +29,7 @@ export default function PhotoTemplate() {
 
       // Unique File Name Building System
       const fileExt = "webp";
-      const fileName = `${Math.random().toPrecision()}-${Date.now()}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("post_photos")
