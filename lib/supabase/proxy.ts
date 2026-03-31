@@ -26,6 +26,18 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  // Refresh session — IMPORTANT: do not remove, keeps session alive
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isAuthPath = request.nextUrl.pathname.startsWith("/auth");
+
+  if (!user && !isAuthPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/login";
+    return NextResponse.redirect(url);
+  }
+
   return supabaseResponse;
 }
