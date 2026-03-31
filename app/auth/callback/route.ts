@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           console.error("Cleanup failed for unauthorized user:", adminError);
         }
 
-        return NextResponse.redirect(`${baseUrl}/login/non-ateneo-email-used`);
+        return NextResponse.redirect(`${baseUrl}/auth/login/non-ateneo-email-used`);
       }
 
       // Handle successful login redirect
