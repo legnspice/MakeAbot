@@ -41,5 +41,5 @@ export async function editPost(id: string, data: UpdatePostSchema) {
     updatePayload.imgUrl = null;
   }
 
-  return await postsRepo.updatePost(id, data);
+  return await postsRepo.updatePost(id, updatePayload);
 }
