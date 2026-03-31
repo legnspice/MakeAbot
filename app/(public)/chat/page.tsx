@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft } from 'lucide-react';
 import Navbar from '@/components/ui/navbar';
@@ -19,7 +19,7 @@ type ConversationEntry = {
   otherId: string;
 };
 
-export default function ChatPage() {
+function ChatPageInner() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -41,48 +41,59 @@ export default function ChatPage() {
 
     // Posts I own → bids on them (others requested my offer)
     const myPostsResult = await getPosts({ user_id: currentUser.id });
+    const myPostBidsResult = await getPostBids({ bidder_id: currentUser.id });
+    const myRequestsResult = await getRequests({ user_id: currentUser.id });
+    const myReqBidsResult = await getRequestBids({ bidder_id: currentUser.id });
+
+    // Collect all user IDs we need to look up
+    const userIds = new Set<string>();
+
     for (const post of myPostsResult.data ?? []) {
       const bidsResult = await getPostBids({ post_id: post.id });
       for (const bid of bidsResult.data ?? []) {
-        const userResult = await getUsers({ id: bid.bidder_id });
-        const name = userResult.data?.[0]?.name ?? 'User';
-        items.push({ bidId: bid.id, kind: 'offer', title: post.title, otherName: name, otherId: bid.bidder_id });
+        userIds.add(bid.bidder_id);
+        items.push({ bidId: bid.id, kind: 'offer', title: post.title, otherName: '', otherId: bid.bidder_id });
       }
     }
 
-    // Bids I made on others' posts
-    const myPostBidsResult = await getPostBids({ bidder_id: currentUser.id });
     for (const bid of myPostBidsResult.data ?? []) {
       const postResult = await getPosts({ id: bid.post_id });
       const post = postResult.data?.[0];
       if (post && post.user_id) {
-        const userResult = await getUsers({ id: post.user_id });
-        const name = userResult.data?.[0]?.name ?? 'User';
-        items.push({ bidId: bid.id, kind: 'offer', title: post.title, otherName: name, otherId: post.user_id });
+        userIds.add(post.user_id);
+        items.push({ bidId: bid.id, kind: 'offer', title: post.title, otherName: '', otherId: post.user_id });
       }
     }
 
-    // Requests I own → bids on them (others offered to help)
-    const myRequestsResult = await getRequests({ user_id: currentUser.id });
     for (const req of myRequestsResult.data ?? []) {
       const bidsResult = await getRequestBids({ request_id: req.id });
       for (const bid of bidsResult.data ?? []) {
-        const userResult = await getUsers({ id: bid.bidder_id });
-        const name = userResult.data?.[0]?.name ?? 'User';
-        items.push({ bidId: bid.id, kind: 'request', title: req.title, otherName: name, otherId: bid.bidder_id });
+        userIds.add(bid.bidder_id);
+        items.push({ bidId: bid.id, kind: 'request', title: req.title, otherName: '', otherId: bid.bidder_id });
       }
     }
 
-    // Bids I made on others' requests
-    const myReqBidsResult = await getRequestBids({ bidder_id: currentUser.id });
     for (const bid of myReqBidsResult.data ?? []) {
       const reqResult = await getRequests({ id: bid.request_id });
       const req = reqResult.data?.[0];
       if (req && req.user_id) {
-        const userResult = await getUsers({ id: req.user_id });
-        const name = userResult.data?.[0]?.name ?? 'User';
-        items.push({ bidId: bid.id, kind: 'request', title: req.title, otherName: name, otherId: req.user_id });
+        userIds.add(req.user_id);
+        items.push({ bidId: bid.id, kind: 'request', title: req.title, otherName: '', otherId: req.user_id });
       }
+    }
+
+    // Batch fetch all users at once
+    const usersMap = new Map<string, string>();
+    if (userIds.size > 0) {
+      const usersResult = await getUsers({ ids: Array.from(userIds) });
+      for (const u of usersResult.data ?? []) {
+        usersMap.set(u.id, u.name ?? 'User');
+      }
+    }
+
+    // Fill in names
+    for (const item of items) {
+      item.otherName = usersMap.get(item.otherId) ?? 'User';
     }
 
     setConversations(items);
@@ -229,5 +240,13 @@ export default function ChatPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center text-gray-400 text-sm">Loading…</div>}>
+      <ChatPageInner />
+    </Suspense>
   );
 }
