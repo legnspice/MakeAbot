@@ -77,56 +77,66 @@ export default function Home() {
       getRequests({}),
     ]);
 
-    const mapped: ListItem[] = [];
+    const userIds = new Set<string>();
+    for (const post of postsResult.data ?? []) {
+      if (post.user_id && post.user_id !== currentUser.id) userIds.add(post.user_id);
+    }
+    for (const req of requestsResult.data ?? []) {
+      if (req.user_id && req.user_id !== currentUser.id) userIds.add(req.user_id);
+    }
 
-    if (postsResult.data) {
-      for (const post of postsResult.data) {
-        let posterName = currentUser.name ?? "You";
-        if (post.user_id !== currentUser.id) {
-          const userResult = await getUsers({ id: post.user_id ?? "" });
-          posterName = userResult.data?.[0]?.name ?? "User";
-        }
-        mapped.push({
-          id: post.id,
-          itemDbId: post.id,
-          userId: post.user_id ?? "",
-          variant: "lent",
-          requestedBy: `Offered by: ${posterName}`,
-          price: formatPrice(post.price),
-          detail: {
-            title: post.title,
-            lentBy: posterName,
-            quantity: 1,
-            price: formatPrice(post.price),
-            description: post.description ?? undefined,
-          },
-        });
+    const usersMap = new Map<string, string>();
+    if (userIds.size > 0) {
+      const usersResult = await getUsers({ ids: Array.from(userIds) });
+      for (const u of usersResult.data ?? []) {
+        usersMap.set(u.id, u.name ?? "User");
       }
     }
 
-    if (requestsResult.data) {
-      for (const req of requestsResult.data) {
-        let posterName = currentUser.name ?? "You";
-        if (req.user_id !== currentUser.id) {
-          const userResult = await getUsers({ id: req.user_id ?? "" });
-          posterName = userResult.data?.[0]?.name ?? "User";
-        }
-        mapped.push({
-          id: req.id,
-          itemDbId: req.id,
-          userId: req.user_id ?? "",
-          variant: "requested",
-          requestedBy: `Requested by: ${posterName}`,
+    const mapped: ListItem[] = [];
+
+    for (const post of postsResult.data ?? []) {
+      const posterName =
+        post.user_id === currentUser.id
+          ? currentUser.name ?? "You"
+          : usersMap.get(post.user_id ?? "") ?? "User";
+      mapped.push({
+        id: post.id,
+        itemDbId: post.id,
+        userId: post.user_id ?? "",
+        variant: "lent",
+        requestedBy: `Offered by: ${posterName}`,
+        price: formatPrice(post.price),
+        detail: {
+          title: post.title,
+          lentBy: posterName,
+          quantity: 1,
+          price: formatPrice(post.price),
+          description: post.description ?? undefined,
+        },
+      });
+    }
+
+    for (const req of requestsResult.data ?? []) {
+      const posterName =
+        req.user_id === currentUser.id
+          ? currentUser.name ?? "You"
+          : usersMap.get(req.user_id ?? "") ?? "User";
+      mapped.push({
+        id: req.id,
+        itemDbId: req.id,
+        userId: req.user_id ?? "",
+        variant: "requested",
+        requestedBy: `Requested by: ${posterName}`,
+        price: formatPrice(req.fee),
+        detail: {
+          title: req.title,
+          requestedBy: posterName,
+          quantity: 1,
           price: formatPrice(req.fee),
-          detail: {
-            title: req.title,
-            requestedBy: posterName,
-            quantity: 1,
-            price: formatPrice(req.fee),
-            description: req.description ?? undefined,
-          },
-        });
-      }
+          description: req.description ?? undefined,
+        },
+      });
     }
 
     setItems(mapped);

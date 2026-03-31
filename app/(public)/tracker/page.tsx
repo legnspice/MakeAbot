@@ -66,54 +66,61 @@ export default function TrackerPage() {
       getRequests({ user_id: currentUser.id }),
     ]);
 
-    // Load offers with bidders
-    const offerList: TrackerOffer[] = [];
-    if (postsResult.data) {
-      for (const post of postsResult.data) {
-        const bidsResult = await getPostBids({ post_id: post.id });
-        const bids = bidsResult.data ?? [];
+    // Fetch all bids in parallel
+    const postBidFetches = (postsResult.data ?? []).map((post) =>
+      getPostBids({ post_id: post.id }).then((r) => ({ post, bids: r.data ?? [] }))
+    );
+    const reqBidFetches = (requestsResult.data ?? []).map((req) =>
+      getRequestBids({ request_id: req.id }).then((r) => ({ req, bids: r.data ?? [] }))
+    );
+    const [postBidGroups, reqBidGroups] = await Promise.all([
+      Promise.all(postBidFetches),
+      Promise.all(reqBidFetches),
+    ]);
 
-        const requesters: { id: string; name: string; bidId: string }[] = [];
-        for (const bid of bids) {
-          const userResult = await getUsers({ id: bid.bidder_id });
-          const name = userResult.data?.[0]?.name ?? 'User';
-          requesters.push({ id: bid.bidder_id, name, bidId: bid.id });
-        }
+    // Collect all bidder IDs for a single batch lookup
+    const userIds = new Set<string>();
+    for (const { bids } of postBidGroups) {
+      for (const bid of bids) userIds.add(bid.bidder_id);
+    }
+    for (const { bids } of reqBidGroups) {
+      for (const bid of bids) userIds.add(bid.bidder_id);
+    }
 
-        offerList.push({
-          id: post.id,
-          itemName: post.title,
-          requesterCount: bids.length,
-          requesters,
-        });
+    const usersMap = new Map<string, string>();
+    if (userIds.size > 0) {
+      const usersResult = await getUsers({ ids: Array.from(userIds) });
+      for (const u of usersResult.data ?? []) {
+        usersMap.set(u.id, u.name ?? 'User');
       }
     }
+
+    // Build offer list
+    const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
+      id: post.id,
+      itemName: post.title,
+      requesterCount: bids.length,
+      requesters: bids.map((bid) => ({
+        id: bid.bidder_id,
+        name: usersMap.get(bid.bidder_id) ?? 'User',
+        bidId: bid.id,
+      })),
+    }));
     setOffers(offerList);
 
-    // Load requests with bidders
-    const requestList: TrackerRequest[] = [];
-    if (requestsResult.data) {
-      for (const req of requestsResult.data) {
-        const bidsResult = await getRequestBids({ request_id: req.id });
-        const bids = bidsResult.data ?? [];
-
-        const bidders: { id: string; name: string; bidId: string }[] = [];
-        for (const bid of bids) {
-          const userResult = await getUsers({ id: bid.bidder_id });
-          const name = userResult.data?.[0]?.name ?? 'User';
-          bidders.push({ id: bid.bidder_id, name, bidId: bid.id });
-        }
-
-        requestList.push({
-          id: req.id,
-          itemName: req.title,
-          status: req.status,
-          price: formatPrice(req.fee),
-          bidders,
-          notificationCount: bids.length > 0 ? bids.length : undefined,
-        });
-      }
-    }
+    // Build request list
+    const requestList: TrackerRequest[] = reqBidGroups.map(({ req, bids }) => ({
+      id: req.id,
+      itemName: req.title,
+      status: req.status,
+      price: formatPrice(req.fee),
+      bidders: bids.map((bid) => ({
+        id: bid.bidder_id,
+        name: usersMap.get(bid.bidder_id) ?? 'User',
+        bidId: bid.id,
+      })),
+      notificationCount: bids.length > 0 ? bids.length : undefined,
+    }));
     setRequests(requestList);
   }, [currentUser.id]);
 

@@ -39,50 +39,75 @@ export default function NotificationsPage() {
   const loadNotifications = useCallback(async () => {
     const items: NotificationItem[] = [];
 
+    // Fetch all data in parallel
+    const [postsResult, requestsResult, messagesResult] = await Promise.all([
+      getPosts({ user_id: currentUser.id }),
+      getRequests({ user_id: currentUser.id }),
+      getMessages({ receiver_id: currentUser.id }),
+    ]);
+
+    // Fetch all bids in parallel
+    const postBidFetches = (postsResult.data ?? []).map((post) =>
+      getPostBids({ post_id: post.id }).then((r) => ({ post, bids: r.data ?? [] }))
+    );
+    const reqBidFetches = (requestsResult.data ?? []).map((req) =>
+      getRequestBids({ request_id: req.id }).then((r) => ({ req, bids: r.data ?? [] }))
+    );
+    const [postBidGroups, reqBidGroups] = await Promise.all([
+      Promise.all(postBidFetches),
+      Promise.all(reqBidFetches),
+    ]);
+
+    // Collect all user IDs to batch-fetch
+    const userIds = new Set<string>();
+    for (const { bids } of postBidGroups) {
+      for (const bid of bids) userIds.add(bid.bidder_id);
+    }
+    for (const { bids } of reqBidGroups) {
+      for (const bid of bids) userIds.add(bid.bidder_id);
+    }
+    const unread = (messagesResult.data ?? []).filter((m) => !m.is_read);
+    for (const msg of unread) userIds.add(msg.sender_id);
+
+    const usersMap = new Map<string, string>();
+    if (userIds.size > 0) {
+      const usersResult = await getUsers({ ids: Array.from(userIds) });
+      for (const u of usersResult.data ?? []) {
+        usersMap.set(u.id, u.name ?? 'Someone');
+      }
+    }
+
     // 1. New bids on my posts (someone wants my offer)
-    const postsResult = await getPosts({ user_id: currentUser.id });
-    if (postsResult.data) {
-      for (const post of postsResult.data) {
-        const bidsResult = await getPostBids({ post_id: post.id });
-        for (const bid of bidsResult.data ?? []) {
-          const userResult = await getUsers({ id: bid.bidder_id });
-          const name = userResult.data?.[0]?.name ?? 'Someone';
-          items.push({
-            id: `post-bid-${bid.id}`,
-            title: `New request for ${post.title}`,
-            body: `by ${name}`,
-            meta: formatTime(bid.created_at),
-            href: `/chat?bidId=${bid.id}&kind=offer&title=${encodeURIComponent(post.title)}&otherId=${bid.bidder_id}`,
-          });
-        }
+    for (const { post, bids } of postBidGroups) {
+      for (const bid of bids) {
+        const name = usersMap.get(bid.bidder_id) ?? 'Someone';
+        items.push({
+          id: `post-bid-${bid.id}`,
+          title: `New request for ${post.title}`,
+          body: `by ${name}`,
+          meta: formatTime(bid.created_at),
+          href: `/chat?bidId=${bid.id}&kind=offer&title=${encodeURIComponent(post.title)}&otherId=${bid.bidder_id}`,
+        });
       }
     }
 
     // 2. New bids on my requests (someone offered to help)
-    const requestsResult = await getRequests({ user_id: currentUser.id });
-    if (requestsResult.data) {
-      for (const req of requestsResult.data) {
-        const bidsResult = await getRequestBids({ request_id: req.id });
-        for (const bid of bidsResult.data ?? []) {
-          const userResult = await getUsers({ id: bid.bidder_id });
-          const name = userResult.data?.[0]?.name ?? 'Someone';
-          items.push({
-            id: `req-bid-${bid.id}`,
-            title: `New offer for ${req.title}`,
-            body: `by ${name}`,
-            meta: formatTime(bid.created_at),
-            href: `/chat?bidId=${bid.id}&kind=request&title=${encodeURIComponent(req.title)}&otherId=${bid.bidder_id}`,
-          });
-        }
+    for (const { req, bids } of reqBidGroups) {
+      for (const bid of bids) {
+        const name = usersMap.get(bid.bidder_id) ?? 'Someone';
+        items.push({
+          id: `req-bid-${bid.id}`,
+          title: `New offer for ${req.title}`,
+          body: `by ${name}`,
+          meta: formatTime(bid.created_at),
+          href: `/chat?bidId=${bid.id}&kind=request&title=${encodeURIComponent(req.title)}&otherId=${bid.bidder_id}`,
+        });
       }
     }
 
     // 3. Unread messages
-    const messagesResult = await getMessages({ receiver_id: currentUser.id });
-    const unread = (messagesResult.data ?? []).filter((m) => !m.is_read);
     for (const msg of unread) {
-      const userResult = await getUsers({ id: msg.sender_id });
-      const name = userResult.data?.[0]?.name ?? 'Someone';
+      const name = usersMap.get(msg.sender_id) ?? 'Someone';
       items.push({
         id: `msg-${msg.id}`,
         title: `New message from ${name}`,
@@ -90,7 +115,6 @@ export default function NotificationsPage() {
         meta: formatTime(msg.timestamp),
       });
     }
-
 
     setNotifications(items);
     setLoading(false);

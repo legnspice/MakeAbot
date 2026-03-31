@@ -12,7 +12,12 @@ export const userSchema = z.object({
 
 // export const CurrentUserData = z.object({ supabaseUser, publicUser });
 
-export const findUserSchema = userSchema.omit({ phone_number: true }).partial();
+export const findUserSchema = userSchema
+  .omit({ phone_number: true })
+  .partial()
+  .extend({
+    ids: z.array(z.string().uuid()).optional(),
+  });
 export const updateUserSchema = userSchema.omit({ id: true }).partial();
 export type FindUserSchema = z.infer<typeof findUserSchema>;
 export type UpdateUserSchema = z.infer<typeof updateUserSchema>;
