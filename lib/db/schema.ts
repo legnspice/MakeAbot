@@ -12,6 +12,7 @@ import {
   postStatusEnum,
   requestStatusEnum,
   bidStatusEnum,
+  typeEnum,
 } from "./enums";
 
 const authSchema = pgSchema("auth");
@@ -28,6 +29,7 @@ export const users = pgTable("users", {
   name: text("name"),
   id_number: integer("id_number"),
   phone_number: text("phone_number"),
+  description: text("description"),
   contributions: integer("contributions").notNull().default(0),
 });
 
@@ -54,8 +56,8 @@ export const reviews = pgTable("reviews", {
   creator_id: uuid("creator_id")
     .notNull()
     .references(() => users.id),
-  request_bid_id: uuid("request_bid_id").references(() => requests.id),
-  post_bid_id: uuid("post_bid_id").references(() => posts.id),
+  request_bid_id: uuid("request_bid_id").references(() => request_bids.id),
+  post_bid_id: uuid("post_bid_id").references(() => post_bids.id),
   comment: text("comment"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   rating: integer("rating").notNull(),
@@ -71,7 +73,7 @@ export const requests = pgTable("requests", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
   urgency: urgencyEnum("urgency").notNull().default("Now"),
-  type: text(),
+  type: typeEnum("type").notNull().default("Unknown"),
   status: requestStatusEnum("status").notNull().default("Active"),
 });
 
@@ -85,6 +87,7 @@ export const posts = pgTable("posts", {
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
+  type: typeEnum("type").notNull().default("Unknown"),
   status: postStatusEnum("status").notNull().default("Active"),
 });
 
