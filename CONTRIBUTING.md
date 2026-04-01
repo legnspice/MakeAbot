@@ -6,7 +6,7 @@ To keep our collaboration smooth and organized, we follow a **feature → dev �
 
 ### 🧱 Branch Structure
 
-- `master`: Production-ready code (used for deployment - **Niles** will be handling this).
+- `prod`: Production-ready code (used for deployment - **Niles** will be handling this).
 - `dev`: Development branch where features are integrated.
 - `feature/xyz`: One branch per task or page (e.g., `feature/announcements-page`).
 

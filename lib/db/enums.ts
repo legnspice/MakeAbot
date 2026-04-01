@@ -1,6 +1,12 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
+// Type
+export const TYPE_VALUES = ["Item", "Service", "Unknown"] as const;
+export const typeEnum = pgEnum("type", TYPE_VALUES);
+export const TypeEnum = z.enum(TYPE_VALUES);
+export type Type = z.infer<typeof TypeEnum>;
+
 // Urgency
 export const URGENCY_VALUES = [
   "Now",
