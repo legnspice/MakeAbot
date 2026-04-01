@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import * as requestsService from "@/lib/services/requests.service";
 import { handleAction } from "@/lib/error/actions-handler";
+import { AppError } from "@/lib/error/app-error";
 import {
   FindRequestsSchema,
   FindRequestBidsSchema,
@@ -17,7 +18,7 @@ async function requireAuth() {
     data: { user },
     error,
   } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Unauthorized");
+  if (error || !user) throw new AppError("Unauthorized", 401);
   return user;
 }
 
