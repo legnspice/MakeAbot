@@ -1,26 +1,39 @@
+import Image from "next/image";
 import { googleLogin } from "./actions";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex flex-col items-center justify-center px-6">
-      {/* Logo / App name */}
-      <div className="flex flex-col items-center gap-2 mb-5">
-        <h1 className="text-blue text-6xl md:text-7xl font-black tracking-tight mt-3">MakeAbot</h1>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 gap-6">
+      {/* M. monogram */}
+      <Image
+        src="/logo.svg"
+        alt="MakeAbot logo"
+        width={80}
+        height={72}
+        priority
+      />
+
+      {/* Wordmark */}
+      <div className="flex flex-col items-center gap-1">
+        <h1 className="text-5xl md:text-6xl font-black tracking-tight text-[#3761B0]">
+          MakeAbot
+        </h1>
         <p className="text-[#3761B0] text-sm text-center max-w-xs">
-          The campus marketplace for borrowing, lending, and getting things done.
+          A lending app for the Ateneo community
         </p>
       </div>
 
-      {/* Sign in card */}
-
-        <form action={googleLogin}>
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-3 rounded-xl py-3 px-4 bg-[#3761B0] shadow-sm"
-          >
-            <span className="text-white font-semibold text-sm">  Login in with your Ateneo account</span>
-          </button>
-        </form>
+      {/* Login button */}
+      <form action={googleLogin} className="w-full max-w-xs">
+        <button
+          type="submit"
+          className="w-full flex items-center justify-center gap-3 rounded-xl py-3 px-4 bg-[#3761B0] shadow-sm hover:bg-[#2a4d8a] transition-colors"
+        >
+          <span className="text-white font-semibold text-sm">
+            Login with your Ateneo Account
+          </span>
+        </button>
+      </form>
     </div>
   );
 }
