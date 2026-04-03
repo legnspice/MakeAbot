@@ -22,7 +22,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
   return (
     <>
       <nav className="flex justify-between items-center px-5 py-3 bg-white border-b border-gray-100">
-        <Link href="/" className="text-4xl sm:text-5xl font-bold tracking-tight">
+        <Link href="/" className="text-4xl sm:text-5xl font-black tracking-tight text-[#3761B0]">
           MakeAbot
         </Link>
 
