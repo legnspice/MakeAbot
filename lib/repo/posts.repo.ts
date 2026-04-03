@@ -7,7 +7,6 @@ import {
   FindPostBidsSchema,
   InsertPostBidSchema,
   InsertPostSchema,
-  UpdatePostSchema,
 } from "../validation/posts";
 
 export async function findPosts(filters: FindPostsSchema) {
@@ -59,14 +58,25 @@ export async function insertPostBid(data: InsertPostBidSchema) {
   return await db.insert(post_bids).values(data);
 }
 
-export async function deletePost(id: string) {
-  return await db.delete(posts).where(eq(posts.id, id));
+export async function deletePost(id: string, userId: string) {
+  return await db
+    .delete(posts)
+    .where(and(eq(posts.id, id), eq(posts.user_id, userId)));
 }
 
-export async function deletePostBid(id: string) {
-  return await db.delete(post_bids).where(eq(post_bids.id, id));
+export async function deletePostBid(id: string, userId: string) {
+  return await db
+    .delete(post_bids)
+    .where(and(eq(post_bids.id, id), eq(post_bids.bidder_id, userId)));
 }
 
-export async function updatePost(id: string, data: UpdatePostSchema) {
-  return await db.update(posts).set(data).where(eq(posts.id, id));
+export async function updatePost(
+  id: string,
+  data: Partial<typeof posts.$inferInsert>,
+  userId: string,
+) {
+  return await db
+    .update(posts)
+    .set(data)
+    .where(and(eq(posts.id, id), eq(posts.user_id, userId)));
 }

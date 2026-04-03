@@ -17,6 +17,6 @@ export async function createMessage(data: InsertMessageSchema) {
   return await messagesRepo.insertMessage(data);
 }
 
-export async function removeMessage(id: string) {
-  return await messagesRepo.deleteMessage(id);
+export async function removeMessage(id: string, userId: string) {
+  return await messagesRepo.deleteMessage(id, userId);
 }

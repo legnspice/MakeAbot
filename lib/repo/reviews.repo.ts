@@ -46,6 +46,8 @@ export async function insertReview(data: InsertReviewSchema) {
   return await db.insert(reviews).values(data).returning();
 }
 
-export async function deleteReview(id: string) {
-  return await db.delete(reviews).where(eq(reviews.id, id));
+export async function deleteReview(id: string, userId: string) {
+  return await db
+    .delete(reviews)
+    .where(and(eq(reviews.id, id), eq(reviews.creator_id, userId)));
 }

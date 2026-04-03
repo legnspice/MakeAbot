@@ -23,14 +23,18 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
   return await requestsRepo.insertRequestBid(data);
 }
 
-export async function removeRequest(id: string) {
-  return await requestsRepo.deleteRequest(id);
+export async function removeRequest(id: string, userId: string) {
+  return await requestsRepo.deleteRequest(id, userId);
 }
 
-export async function removeRequestBid(id: string) {
-  return await requestsRepo.deleteRequestBid(id);
+export async function removeRequestBid(id: string, userId: string) {
+  return await requestsRepo.deleteRequestBid(id, userId);
 }
 
-export async function editRequest(id: string, data: UpdateRequestSchema) {
-  return await requestsRepo.updateRequest(id, data);
+export async function editRequest(
+  id: string,
+  data: UpdateRequestSchema,
+  userId: string,
+) {
+  return await requestsRepo.updateRequest(id, data, userId);
 }

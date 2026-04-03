@@ -70,6 +70,8 @@ export async function insertMessage(data: InsertMessageSchema) {
   return await db.insert(messages).values(data);
 }
 
-export async function deleteMessage(id: string) {
-  return await db.delete(messages).where(eq(messages.id, id));
+export async function deleteMessage(id: string, userId: string) {
+  return await db
+    .delete(messages)
+    .where(and(eq(messages.id, id), eq(messages.sender_id, userId)));
 }

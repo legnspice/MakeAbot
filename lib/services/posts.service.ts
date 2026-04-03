@@ -24,22 +24,24 @@ export async function createPostBid(data: InsertPostBidSchema) {
   return await postsRepo.insertPostBid(data);
 }
 
-export async function removePost(id: string) {
-  return await postsRepo.deletePost(id);
+export async function removePost(id: string, userId: string) {
+  return await postsRepo.deletePost(id, userId);
 }
 
-export async function removePostBid(id: string) {
-  return await postsRepo.deletePostBid(id);
+export async function removePostBid(id: string, userId: string) {
+  return await postsRepo.deletePostBid(id, userId);
 }
 
-export async function editPost(id: string, data: UpdatePostSchema) {
-  const updatePayload: Partial<typeof posts.$inferInsert> = {
-    ...data,
-  };
+export async function editPost(
+  id: string,
+  data: UpdatePostSchema,
+  userId: string,
+) {
+  const updatePayload: Partial<typeof posts.$inferInsert> = { ...data };
 
   if (data.status === "Closed") {
     updatePayload.imgUrl = null;
   }
 
-  return await postsRepo.updatePost(id, updatePayload);
+  return await postsRepo.updatePost(id, updatePayload, userId);
 }
