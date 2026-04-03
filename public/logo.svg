@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 72" fill="none">
+  <!-- Bold M letterform -->
+  <path
+    d="M4 64V8h12l24 36L64 8h12v56H64V30L40 64 16 30v34H4Z"
+    fill="#3761B0"
+  />
+  <!-- Dot -->
+  <circle cx="70" cy="66" r="6" fill="#E5A550" />
+</svg>
