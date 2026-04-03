@@ -7,12 +7,24 @@ import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ItemRequestCard from "@/components/ui/item";
-import ItemDetailModal, { type ItemDetailData } from "@/components/ui/item-detail-modal";
+import ItemDetailModal, {
+  type ItemDetailData,
+} from "@/components/ui/item-detail-modal";
 import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
 import { Plus, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { getPosts, createPost, getPostBids, createPostBid } from "@/lib/actions/posts";
-import { getRequests, createRequest, getRequestBids, createRequestBid } from "@/lib/actions/requests";
+import {
+  getPosts,
+  createPost,
+  getPostBids,
+  createPostBid,
+} from "@/lib/actions/posts";
+import {
+  getRequests,
+  createRequest,
+  getRequestBids,
+  createRequestBid,
+} from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 
 type ListItem = {
@@ -24,6 +36,7 @@ type ListItem = {
   section?: string;
   time?: string;
   price: string;
+  typeBadge?: string;
   detail: ItemDetailData;
 };
 
@@ -79,10 +92,12 @@ export default function Home() {
 
     const userIds = new Set<string>();
     for (const post of postsResult.data ?? []) {
-      if (post.user_id && post.user_id !== currentUser.id) userIds.add(post.user_id);
+      if (post.user_id && post.user_id !== currentUser.id)
+        userIds.add(post.user_id);
     }
     for (const req of requestsResult.data ?? []) {
-      if (req.user_id && req.user_id !== currentUser.id) userIds.add(req.user_id);
+      if (req.user_id && req.user_id !== currentUser.id)
+        userIds.add(req.user_id);
     }
 
     const usersMap = new Map<string, string>();
@@ -98,8 +113,8 @@ export default function Home() {
     for (const post of postsResult.data ?? []) {
       const posterName =
         post.user_id === currentUser.id
-          ? currentUser.name ?? "You"
-          : usersMap.get(post.user_id ?? "") ?? "User";
+          ? (currentUser.name ?? "You")
+          : (usersMap.get(post.user_id ?? "") ?? "User");
       mapped.push({
         id: post.id,
         itemDbId: post.id,
@@ -107,6 +122,7 @@ export default function Home() {
         variant: "lent",
         requestedBy: `Offered by: ${posterName}`,
         price: formatPrice(post.price),
+        typeBadge: "Offer",
         detail: {
           title: post.title,
           lentBy: posterName,
@@ -120,8 +136,8 @@ export default function Home() {
     for (const req of requestsResult.data ?? []) {
       const posterName =
         req.user_id === currentUser.id
-          ? currentUser.name ?? "You"
-          : usersMap.get(req.user_id ?? "") ?? "User";
+          ? (currentUser.name ?? "You")
+          : (usersMap.get(req.user_id ?? "") ?? "User");
       mapped.push({
         id: req.id,
         itemDbId: req.id,
@@ -129,6 +145,7 @@ export default function Home() {
         variant: "requested",
         requestedBy: `Requested by: ${posterName}`,
         price: formatPrice(req.fee),
+        typeBadge: "Request",
         detail: {
           title: req.title,
           requestedBy: posterName,
@@ -253,7 +270,10 @@ export default function Home() {
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
       } else {
-        await createPostBid({ post_id: item.itemDbId, bidder_id: currentUser.id });
+        await createPostBid({
+          post_id: item.itemDbId,
+          bidder_id: currentUser.id,
+        });
         const created = await getPostBids({
           post_id: item.itemDbId,
           bidder_id: currentUser.id,
@@ -268,7 +288,10 @@ export default function Home() {
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
       } else {
-        await createRequestBid({ request_id: item.itemDbId, bidder_id: currentUser.id });
+        await createRequestBid({
+          request_id: item.itemDbId,
+          bidder_id: currentUser.id,
+        });
         const created = await getRequestBids({
           request_id: item.itemDbId,
           bidder_id: currentUser.id,
@@ -286,7 +309,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar onSearchToggle={() => setSearchOpen((o) => !o)} searchOpen={searchOpen} />
+      <Navbar
+        onSearchToggle={() => setSearchOpen((o) => !o)}
+        searchOpen={searchOpen}
+      />
 
       <div className="relative">
         <FilterBar
@@ -318,6 +344,7 @@ export default function Home() {
                 section={item.section}
                 time={item.time}
                 price={item.price}
+                typeBadge={item.typeBadge}
                 detail={item.detail}
                 onClick={() => setSelectedItem(item)}
               />
@@ -348,207 +375,234 @@ export default function Home() {
             {/* Backdrop */}
             <div
               className="fixed inset-0 z-20 bg-black/40"
-              onClick={() => { setIsCreateOpen(false); resetForm(); }}
+              onClick={() => {
+                setIsCreateOpen(false);
+                resetForm();
+              }}
               aria-hidden
             />
             {/* Modal panel: leaves navbar + bottom nav visible on mobile */}
             <div className="fixed inset-x-0 top-32 bottom-36 md:inset-0 md:flex md:items-center md:justify-center z-30">
               <div className="bg-white rounded-2xl md:shadow-2xl md:w-full md:max-w-lg md:max-h-[85vh] border border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.16)] overflow-hidden flex flex-col h-full md:h-auto mx-4 md:mx-0">
-            <div className="max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide w-full">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false);
-                    resetForm();
-                  }}
-                  className="relative z-10 shrink-0 p-2 rounded-full hover:bg-gray-100"
-                  aria-label="Close create item form"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-
-                <div className="flex-1 flex items-center justify-center gap-2 -ml-8">
-                  <span className="text-sm font-semibold text-gray-800">
-                    Create an
-                  </span>
-                  <div className="inline-flex rounded-full bg-gray-100 p-1">
+                <div className="max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide w-full">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setCreateType("offer")}
-                      className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
-                        createType === "offer"
-                          ? "bg-gray-700 text-white font-medium"
-                          : "text-gray-600 hover:bg-gray-200"
-                      }`}
+                      onClick={() => {
+                        setIsCreateOpen(false);
+                        resetForm();
+                      }}
+                      className="relative z-10 shrink-0 p-2 rounded-full hover:bg-gray-100"
+                      aria-label="Close create item form"
                     >
-                      Offer
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreateType("request")}
-                      className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
-                        createType === "request"
-                          ? "bg-gray-700 text-white font-medium"
-                          : "text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      Request
-                    </button>
+
+                    <div className="flex-1 flex items-center justify-center gap-2 -ml-8">
+                      <span className="text-sm font-semibold text-gray-800">
+                        Create an
+                      </span>
+                      <div className="inline-flex rounded-full bg-gray-100 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setCreateType("offer")}
+                          className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
+                            createType === "offer"
+                              ? "bg-gray-700 text-white font-medium"
+                              : "text-gray-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          Offer
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCreateType("request")}
+                          className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
+                            createType === "request"
+                              ? "bg-gray-700 text-white font-medium"
+                              : "text-gray-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          Request
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="w-9" />
+                  </div>
+
+                  {/* Form */}
+                  <div className="px-4 pt-1 pb-4 space-y-2">
+                    {/* Type: Item / Service */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 shrink-0 text-sm text-gray-600">
+                        Type
+                      </div>
+                      <div className="inline-flex rounded-full bg-gray-100 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setItemKind("item")}
+                          className={`px-3 py-1.5 text-sm rounded-full ${
+                            itemKind === "item"
+                              ? "bg-white text-black font-semibold shadow-sm"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          Item
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setItemKind("service")}
+                          className={`px-3 py-1.5 text-sm rounded-full ${
+                            itemKind === "service"
+                              ? "bg-white text-black font-semibold shadow-sm"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          Service
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Item name */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 shrink-0 text-sm text-gray-600">
+                        Item
+                      </div>
+                      <Input
+                        value={form.itemName}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, itemName: e.target.value }))
+                        }
+                        placeholder="What do you need?"
+                        className="flex-1 rounded-xl bg-gray-100 border-0"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
+                        Description
+                      </div>
+                      <textarea
+                        value={form.description}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            description: e.target.value,
+                          }))
+                        }
+                        rows={4}
+                        className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
+                        placeholder="Add more details about your item or request..."
+                      />
+                    </div>
+
+                    {/* Count */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 shrink-0 text-sm text-gray-600">
+                        Count
+                      </div>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={form.count}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            count: Math.max(
+                              1,
+                              parseInt(e.target.value, 10) || 1,
+                            ),
+                          }))
+                        }
+                        className="w-24 rounded-xl bg-gray-100 border-0"
+                      />
+                    </div>
+
+                    {/* Preferred Time and Venue */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
+                        Preferred Time and Venue
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2">
+                        <Input
+                          value={form.preferredTime}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              preferredTime: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Today, 5 PM"
+                          className="w-full rounded-xl bg-gray-100 border-0"
+                        />
+                        <Input
+                          value={form.preferredVenue}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              preferredVenue: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. SEC-A206"
+                          className="w-full rounded-xl bg-gray-100 border-0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Monetary Incentive */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 shrink-0 text-sm text-gray-600">
+                        {createType === "offer" ? "Price (₱)" : "Fee (₱)"}
+                      </div>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={form.monetaryIncentive}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            monetaryIncentive: e.target.value,
+                          }))
+                        }
+                        placeholder="Leave empty for FREE"
+                        className="flex-1 rounded-xl bg-gray-100 border-0"
+                      />
+                    </div>
+
+                    {/* Notes for renter */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
+                        Notes
+                      </div>
+                      <textarea
+                        value={form.notesForRenter}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            notesForRenter: e.target.value,
+                          }))
+                        }
+                        rows={2}
+                        className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
+                        placeholder="Anything else they should know?"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        onClick={handlePost}
+                        disabled={isPosting}
+                        className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
+                      >
+                        {isPosting ? "Posting..." : "POST!"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="w-9" />
-              </div>
-
-              {/* Form */}
-              <div className="px-4 pt-1 pb-4 space-y-2">
-                {/* Type: Item / Service */}
-                <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">Type</div>
-                  <div className="inline-flex rounded-full bg-gray-100 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setItemKind("item")}
-                      className={`px-3 py-1.5 text-sm rounded-full ${
-                        itemKind === "item"
-                          ? "bg-white text-black font-semibold shadow-sm"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      Item
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setItemKind("service")}
-                      className={`px-3 py-1.5 text-sm rounded-full ${
-                        itemKind === "service"
-                          ? "bg-white text-black font-semibold shadow-sm"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      Service
-                    </button>
-                  </div>
-                </div>
-
-                {/* Item name */}
-                <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">Item</div>
-                  <Input
-                    value={form.itemName}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, itemName: e.target.value }))
-                    }
-                    placeholder="What do you need?"
-                    className="flex-1 rounded-xl bg-gray-100 border-0"
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="flex items-start gap-3">
-                  <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                    Description
-                  </div>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, description: e.target.value }))
-                    }
-                    rows={4}
-                    className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
-                    placeholder="Add more details about your item or request..."
-                  />
-                </div>
-
-                {/* Count */}
-                <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">Count</div>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={form.count}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        count: Math.max(1, parseInt(e.target.value, 10) || 1),
-                      }))
-                    }
-                    className="w-24 rounded-xl bg-gray-100 border-0"
-                  />
-                </div>
-
-                {/* Preferred Time and Venue */}
-                <div className="flex items-start gap-3">
-                  <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                    Preferred Time and Venue
-                  </div>
-                  <div className="flex-1 flex flex-col gap-2">
-                    <Input
-                      value={form.preferredTime}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, preferredTime: e.target.value }))
-                      }
-                      placeholder="e.g. Today, 5 PM"
-                      className="w-full rounded-xl bg-gray-100 border-0"
-                    />
-                    <Input
-                      value={form.preferredVenue}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, preferredVenue: e.target.value }))
-                      }
-                      placeholder="e.g. SEC-A206"
-                      className="w-full rounded-xl bg-gray-100 border-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Monetary Incentive */}
-                <div className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-sm text-gray-600">
-                    {createType === "offer" ? "Price (₱)" : "Fee (₱)"}
-                  </div>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={form.monetaryIncentive}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, monetaryIncentive: e.target.value }))
-                    }
-                    placeholder="Leave empty for FREE"
-                    className="flex-1 rounded-xl bg-gray-100 border-0"
-                  />
-                </div>
-
-                {/* Notes for renter */}
-                <div className="flex items-start gap-3">
-                  <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                    Notes
-                  </div>
-                  <textarea
-                    value={form.notesForRenter}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, notesForRenter: e.target.value }))
-                    }
-                    rows={2}
-                    className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
-                    placeholder="Anything else they should know?"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    type="button"
-                    onClick={handlePost}
-                    disabled={isPosting}
-                    className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
-                  >
-                    {isPosting ? "Posting..." : "POST!"}
-                  </Button>
-                </div>
-              </div>
-            </div>
               </div>
             </div>
           </>

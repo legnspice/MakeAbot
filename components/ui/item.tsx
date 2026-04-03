@@ -7,7 +7,7 @@ export interface ItemRequestCardProps {
   time?: string;
   price?: string;
   variant?: "lent" | "requested";
-  /** Full item data for the detail modal when card is clicked */
+  typeBadge?: string;
   detail?: ItemDetailData;
   onClick?: () => void;
 }
@@ -18,6 +18,7 @@ export default function ItemRequestCard({
   time,
   price = "$$$",
   variant = "requested",
+  typeBadge,
   detail,
   onClick,
 }: ItemRequestCardProps) {
@@ -30,6 +31,11 @@ export default function ItemRequestCard({
       onClick={onClick}
       className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
     >
+      {typeBadge && (
+        <span className="inline-block mb-2 text-xs font-bold uppercase tracking-wider text-[#3761B0] bg-blue-50 px-2 py-0.5 rounded">
+          {typeBadge}
+        </span>
+      )}
       <div className="flex flex-col gap-1.5">
         <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
           {detail?.title ?? "Item"}
