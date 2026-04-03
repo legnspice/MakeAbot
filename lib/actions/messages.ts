@@ -1,23 +1,13 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import * as messagesService from "@/lib/services/messages.service";
 import { handleAction } from "@/lib/error/actions-handler";
+import { requireAuth } from "@/lib/actions/auth";
 import {
   FindConversationSchema,
   FindMessagesSchema,
   InsertMessageSchema,
 } from "@/lib/validation/messages";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Unauthorized");
-  return user;
-}
 
 export async function getMessages(filters: FindMessagesSchema) {
   return await handleAction(async () => {
@@ -35,14 +25,14 @@ export async function getConversation(filters: FindConversationSchema) {
 
 export async function createMessage(data: InsertMessageSchema) {
   return await handleAction(async () => {
-    await requireAuth();
-    return messagesService.createMessage(data);
+    const user = await requireAuth();
+    return messagesService.createMessage({ ...data, sender_id: user.id });
   });
 }
 
 export async function removeMessage(id: string) {
   return await handleAction(async () => {
-    await requireAuth();
-    return messagesService.removeMessage(id);
+    const user = await requireAuth();
+    return messagesService.removeMessage(id, user.id);
   });
 }

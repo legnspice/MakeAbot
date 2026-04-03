@@ -1,8 +1,8 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import * as postsService from "@/lib/services/posts.service";
 import { handleAction } from "@/lib/error/actions-handler";
+import { requireAuth } from "@/lib/actions/auth";
 import {
   FindPostsSchema,
   FindPostBidsSchema,
@@ -10,16 +10,6 @@ import {
   InsertPostSchema,
   UpdatePostSchema,
 } from "@/lib/validation/posts";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Unauthorized");
-  return user;
-}
 
 export async function getPosts(filters: FindPostsSchema) {
   return await handleAction(async () => {
@@ -37,35 +27,35 @@ export async function getPostBids(filters: FindPostBidsSchema) {
 
 export async function createPost(data: InsertPostSchema) {
   return await handleAction(async () => {
-    await requireAuth();
-    return postsService.createPost(data);
+    const user = await requireAuth();
+    return postsService.createPost({ ...data, user_id: user.id });
   });
 }
 
 export async function createPostBid(data: InsertPostBidSchema) {
   return await handleAction(async () => {
-    await requireAuth();
-    return postsService.createPostBid(data);
+    const user = await requireAuth();
+    return postsService.createPostBid({ ...data, bidder_id: user.id });
   });
 }
 
 export async function removePost(id: string) {
   return await handleAction(async () => {
-    await requireAuth();
-    return postsService.removePost(id);
+    const user = await requireAuth();
+    return postsService.removePost(id, user.id);
   });
 }
 
 export async function removePostBid(id: string) {
   return await handleAction(async () => {
-    await requireAuth();
-    return postsService.removePostBid(id);
+    const user = await requireAuth();
+    return postsService.removePostBid(id, user.id);
   });
 }
 
 export async function editPost(id: string, data: UpdatePostSchema) {
   return await handleAction(async () => {
-    await requireAuth();
-    return postsService.editPost(id, data);
+    const user = await requireAuth();
+    return postsService.editPost(id, data, user.id);
   });
 }

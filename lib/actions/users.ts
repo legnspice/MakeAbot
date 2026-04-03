@@ -1,19 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import * as usersService from "@/lib/services/users.service";
 import { handleAction } from "@/lib/error/actions-handler";
+import { requireAuth } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/server";
 import { FindUserSchema, UpdateUserSchema } from "@/lib/validation/users";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Unauthorized");
-  return user;
-}
+import { AppError } from "@/lib/error/app-error";
 
 export async function getUsers(filters: FindUserSchema) {
   return await handleAction(async () => {
@@ -24,7 +16,8 @@ export async function getUsers(filters: FindUserSchema) {
 
 export async function editUser(id: string, data: UpdateUserSchema) {
   return await handleAction(async () => {
-    await requireAuth();
+    const user = await requireAuth();
+    if (user.id !== id) throw new AppError("Forbidden", 403);
     return usersService.editUser(id, data);
   });
 }
