@@ -27,22 +27,29 @@ export async function GET(request: NextRequest) {
     });
 
     if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
-      const email = user?.email?.toLowerCase() || "";
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        await supabase.auth.signOut();
+        redirectTo.pathname = "/error";
+        return NextResponse.redirect(redirectTo);
+      }
+
+      const email = user.email?.toLowerCase() ?? "";
       const acceptedDomain = "@student.ateneo.edu";
 
       if (!email.endsWith(acceptedDomain)) {
         try {
           const supabaseAdmin = await createAdminClient();
-          if (user?.id) {
-            await supabaseAdmin.auth.admin.deleteUser(user.id);
-          }
+          await supabaseAdmin.auth.admin.deleteUser(user.id);
           await supabase.auth.signOut();
         } catch (adminError) {
           console.error("Cleanup failed for unauthorized user:", adminError);
         }
         return NextResponse.redirect(
-          `${baseUrl}/auth/login/non-ateneo-email-used`
+          `${baseUrl}/auth/login/non-ateneo-email-used`,
         );
       }
 
