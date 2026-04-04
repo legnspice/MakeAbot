@@ -33,7 +33,7 @@ export function DisclaimerModal() {
   return (
     <Dialog open={true}>
       <DialogContent
-        hideCloseButton
+        showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         className="max-w-md"
