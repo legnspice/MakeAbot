@@ -17,7 +17,10 @@ export async function findUsers(filters: FindUserSchema) {
 }
 
 export async function insertUser(id: string) {
-  return await db.insert(users).values({ id });
+  return await db
+    .insert(users)
+    .values({ id })
+    .onConflictDoNothing({ target: users.id });
 }
 
 export async function updateUser(id: string, data: UpdateUserSchema) {
