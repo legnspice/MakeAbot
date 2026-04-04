@@ -19,6 +19,7 @@ import {
   createRequestBid,
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
+import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
 
 type ListItem = {
   id: string;
@@ -62,6 +63,7 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<ListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isTypePickerOpen, setIsTypePickerOpen] = useState(false);
 
@@ -140,6 +142,7 @@ export default function Home() {
     }
 
     setItems(mapped);
+    setIsLoading(false);
   }, [currentUser.id, currentUser.name]);
 
   useEffect(() => {
@@ -263,23 +266,27 @@ export default function Home() {
           onSearchQueryChange={setSearchQuery}
         />
 
-        <main className="px-4 py-6 pb-28 md:pb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-            {filteredItems.map((item) => (
-              <ItemRequestCard
-                key={item.id}
-                variant={item.variant}
-                requestedBy={item.requestedBy}
-                section={item.section}
-                time={item.time}
-                price={item.price}
-                typeBadge={item.typeBadge}
-                detail={item.detail}
-                onClick={() => setSelectedItem(item)}
-              />
-            ))}
-          </div>
-        </main>
+        {isLoading ? (
+          <HomePageSkeleton />
+        ) : (
+          <main className="px-4 py-6 pb-28 md:pb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
+              {filteredItems.map((item) => (
+                <ItemRequestCard
+                  key={item.id}
+                  variant={item.variant}
+                  requestedBy={item.requestedBy}
+                  section={item.section}
+                  time={item.time}
+                  price={item.price}
+                  typeBadge={item.typeBadge}
+                  detail={item.detail}
+                  onClick={() => setSelectedItem(item)}
+                />
+              ))}
+            </div>
+          </main>
+        )}
 
         {/* Item detail modal */}
         <ItemDetailModal

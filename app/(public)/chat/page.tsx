@@ -7,6 +7,7 @@ import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import { ChatRoom } from '@/components/chat-room';
 import { useAuth } from '@/contexts/auth-context';
+import { ChatSidebarSkeleton } from '@/components/ui/skeletons/chat-skeleton';
 import { getPosts, getPostBids } from '@/lib/actions/posts';
 import { getRequests, getRequestBids } from '@/lib/actions/requests';
 import { getUsers } from '@/lib/actions/users';
@@ -181,7 +182,7 @@ function ChatPageInner() {
         {/* Sidebar */}
         <div className="w-96 border-r border-gray-200 overflow-y-auto shrink-0">
           {loading ? (
-            <p className="text-center text-gray-400 text-sm pt-10">Loading…</p>
+            <ChatSidebarSkeleton />
           ) : conversations.length === 0 ? (
             <p className="text-center text-gray-400 text-sm pt-10">No conversations yet</p>
           ) : (
@@ -248,9 +249,11 @@ function ChatPageInner() {
   );
 }
 
+import { PageShellSkeleton } from '@/components/ui/page-shell-skeleton';
+
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center text-gray-400 text-sm">Loading…</div>}>
+    <Suspense fallback={<PageShellSkeleton />}>
       <ChatPageInner />
     </Suspense>
   );

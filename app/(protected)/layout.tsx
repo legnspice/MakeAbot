@@ -4,6 +4,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
+import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 
 // Layout level auth requirement for accessing protected pages
 export default function ProtectedLayout({
@@ -22,7 +23,7 @@ export default function ProtectedLayout({
 
   // Show loading state while checking auth
   if (currentUserDataLoading) {
-    return <div>Authentication Loading...</div>;
+    return <PageShellSkeleton />;
   }
 
   // Redirect handled by useEffect, show nothing while redirecting

@@ -4,6 +4,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
+import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 
 export default function PublicLayout({
   children,
@@ -20,7 +21,7 @@ export default function PublicLayout({
   }, [userData, currentUserDataLoading, router]);
 
   if (currentUserDataLoading) {
-    return <div>Loading...</div>;
+    return <PageShellSkeleton />;
   }
 
   if (!userData) {

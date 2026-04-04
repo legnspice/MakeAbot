@@ -6,6 +6,7 @@ import Navbar from '@/components/ui/navbar';
 import BottomNav from '@/components/ui/bottomnavbar';
 import FilterBar, { type SortOption } from '@/components/ui/filter-bar';
 import { useAuth } from '@/contexts/auth-context';
+import { TrackerPageSkeleton } from '@/components/ui/skeletons/tracker-skeleton';
 import { getPosts, getPostBids } from '@/lib/actions/posts';
 import { getRequests, getRequestBids } from '@/lib/actions/requests';
 import { getUsers } from '@/lib/actions/users';
@@ -57,6 +58,7 @@ export default function TrackerPage() {
   const [newFilterName, setNewFilterName] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
 
@@ -122,6 +124,7 @@ export default function TrackerPage() {
       notificationCount: bids.length > 0 ? bids.length : undefined,
     }));
     setRequests(requestList);
+    setIsLoading(false);
   }, [currentUser.id]);
 
   useEffect(() => {
@@ -202,31 +205,35 @@ export default function TrackerPage() {
         onSearchQueryChange={setSearchQuery}
       />
 
-      <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
-        <section aria-label="Tracker">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-            {sortedCards.map((card) =>
-              card.type === 'offer' ? (
-                <OfferCard
-                  key={`offer-${card.data.id}`}
-                  offer={card.data}
-                  onRequesterClick={(bidId, otherId) =>
-                    goToChat(bidId, 'offer', card.data.itemName, otherId)
-                  }
-                />
-              ) : (
-                <RequestCard
-                  key={`request-${card.data.id}`}
-                  request={card.data}
-                  onBidderClick={(bidId, otherId) =>
-                    goToChat(bidId, 'request', card.data.itemName, otherId)
-                  }
-                />
-              )
-            )}
-          </div>
-        </section>
-      </main>
+      {isLoading ? (
+        <TrackerPageSkeleton />
+      ) : (
+        <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
+          <section aria-label="Tracker">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
+              {sortedCards.map((card) =>
+                card.type === 'offer' ? (
+                  <OfferCard
+                    key={`offer-${card.data.id}`}
+                    offer={card.data}
+                    onRequesterClick={(bidId, otherId) =>
+                      goToChat(bidId, 'offer', card.data.itemName, otherId)
+                    }
+                  />
+                ) : (
+                  <RequestCard
+                    key={`request-${card.data.id}`}
+                    request={card.data}
+                    onBidderClick={(bidId, otherId) =>
+                      goToChat(bidId, 'request', card.data.itemName, otherId)
+                    }
+                  />
+                )
+              )}
+            </div>
+          </section>
+        </main>
+      )}
 
       <BottomNav />
     </div>
