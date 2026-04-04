@@ -5,23 +5,16 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import ItemRequestCard from "@/components/ui/item";
 import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
 import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
-import { Plus, ChevronLeft } from "lucide-react";
+import { Plus, Tag, HelpCircle, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  getPosts,
-  createPost,
-  getPostBids,
-  createPostBid,
-} from "@/lib/actions/posts";
+import { getPosts, getPostBids, createPostBid } from "@/lib/actions/posts";
 import {
   getRequests,
-  createRequest,
   getRequestBids,
   createRequestBid,
 } from "@/lib/actions/requests";
@@ -70,19 +63,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<ListItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createType, setCreateType] = useState<"offer" | "request">("request");
-  const [itemKind, setItemKind] = useState<"item" | "service">("item");
-  const [isPosting, setIsPosting] = useState(false);
-  const [form, setForm] = useState({
-    itemName: "",
-    description: "",
-    count: 1,
-    preferredTime: "",
-    preferredVenue: "",
-    monetaryIncentive: "",
-    notesForRenter: "",
-  });
+  const [isTypePickerOpen, setIsTypePickerOpen] = useState(false);
 
   const loadItems = useCallback(async () => {
     const [postsResult, requestsResult] = await Promise.all([
@@ -129,6 +110,7 @@ export default function Home() {
           quantity: 1,
           price: formatPrice(post.price),
           description: post.description ?? undefined,
+          imageUrl: post.imgUrl ?? undefined,
         },
       });
     }
@@ -152,6 +134,7 @@ export default function Home() {
           quantity: 1,
           price: formatPrice(req.fee),
           description: req.description ?? undefined,
+          imageUrl: req.imgUrl ?? undefined,
         },
       });
     }
@@ -202,64 +185,10 @@ export default function Home() {
 
   const allFilterLabels = ["All", "Offers", "Requests", ...customFilters];
 
-  const resetForm = () => {
-    setForm({
-      itemName: "",
-      description: "",
-      count: 1,
-      preferredTime: "",
-      preferredVenue: "",
-      monetaryIncentive: "",
-      notesForRenter: "",
-    });
-    setCreateType("request");
-    setItemKind("item");
-  };
-
-  const handlePost = async () => {
-    const title =
-      form.itemName.trim() ||
-      (createType === "offer" ? "New offer" : "New request");
-    const prefix = itemKind === "service" ? "[Service] " : "";
-    const fullTitle = prefix + title;
-    const priceValue = form.monetaryIncentive.trim()
-      ? parseInt(form.monetaryIncentive.trim(), 10) || null
-      : null;
-
-    setIsPosting(true);
-    try {
-      if (createType === "offer") {
-        await createPost({
-          user_id: currentUser.id,
-          title: fullTitle,
-          price: priceValue,
-          description: form.description.trim() || null,
-          imgUrl: null,
-          status: "Active",
-        });
-      } else {
-        await createRequest({
-          user_id: currentUser.id,
-          title: fullTitle,
-          fee: priceValue,
-          description: form.description.trim() || null,
-          urgency: "Now",
-          status: "Active",
-        });
-      }
-      await loadItems();
-      setIsCreateOpen(false);
-      resetForm();
-    } finally {
-      setIsPosting(false);
-    }
-  };
-
   const handleInquire = async (item: ListItem) => {
     const kind = item.variant === "lent" ? "offer" : "request";
     const title = item.detail.title ?? "ITEM";
 
-    // Find or create a bid
     let bidId: string | null = null;
 
     if (kind === "offer") {
@@ -369,239 +298,79 @@ export default function Home() {
           }}
         />
 
-        {/* Create request/offer modal */}
-        {isCreateOpen && (
+        {/* Type picker modal */}
+        {isTypePickerOpen && (
           <>
-            {/* Backdrop */}
             <div
               className="fixed inset-0 z-20 bg-black/40"
-              onClick={() => {
-                setIsCreateOpen(false);
-                resetForm();
-              }}
+              onClick={() => setIsTypePickerOpen(false)}
               aria-hidden
             />
-            {/* Modal panel: leaves navbar + bottom nav visible on mobile */}
-            <div className="fixed inset-x-0 top-32 bottom-36 md:inset-0 md:flex md:items-center md:justify-center z-30">
-              <div className="bg-white rounded-2xl md:shadow-2xl md:w-full md:max-w-lg md:max-h-[85vh] border border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.16)] overflow-hidden flex flex-col h-full md:h-auto mx-4 md:mx-0">
-                <div className="max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide w-full">
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCreateOpen(false);
-                        resetForm();
-                      }}
-                      className="relative z-10 shrink-0 p-2 rounded-full hover:bg-gray-100"
-                      aria-label="Close create item form"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
+            <div className="fixed inset-x-0 bottom-[68px] md:bottom-auto md:inset-0 md:flex md:items-center md:justify-center z-30 pointer-events-none">
+              <div className="pointer-events-auto bg-white rounded-t-3xl md:rounded-2xl md:shadow-2xl md:w-full md:max-w-sm mx-0 md:mx-0 px-6 pt-5 pb-10 md:pb-8">
+                {/* Drag handle — mobile only */}
+                <div className="md:hidden w-10 h-1 rounded-full bg-gray-300 mx-auto mb-5" />
 
-                    <div className="flex-1 flex items-center justify-center gap-2 -ml-8">
-                      <span className="text-sm font-semibold text-gray-800">
-                        Create an
-                      </span>
-                      <div className="inline-flex rounded-full bg-gray-100 p-1">
-                        <button
-                          type="button"
-                          onClick={() => setCreateType("offer")}
-                          className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
-                            createType === "offer"
-                              ? "bg-gray-700 text-white font-medium"
-                              : "text-gray-600 hover:bg-gray-200"
-                          }`}
-                        >
-                          Offer
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCreateType("request")}
-                          className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
-                            createType === "request"
-                              ? "bg-gray-700 text-white font-medium"
-                              : "text-gray-600 hover:bg-gray-200"
-                          }`}
-                        >
-                          Request
-                        </button>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    What are you creating?
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsTypePickerOpen(false)}
+                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Options */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Offer */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTypePickerOpen(false);
+                      router.push("/home/create-offer");
+                    }}
+                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#E5A550] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center transition-colors">
+                      <Tag className="w-6 h-6 text-[#E5A550]" />
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-gray-800 text-sm">
+                        Offer
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        I have something to share
                       </div>
                     </div>
+                  </button>
 
-                    <div className="w-9" />
-                  </div>
-
-                  {/* Form */}
-                  <div className="px-4 pt-1 pb-4 space-y-2">
-                    {/* Type: Item / Service */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 shrink-0 text-sm text-gray-600">
-                        Type
+                  {/* Request */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTypePickerOpen(false);
+                      router.push("/home/create-request");
+                    }}
+                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#3761B0] hover:bg-blue-50 active:bg-blue-100 transition-colors group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
+                      <HelpCircle className="w-6 h-6 text-[#3761B0]" />
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-gray-800 text-sm">
+                        Request
                       </div>
-                      <div className="inline-flex rounded-full bg-gray-100 p-1">
-                        <button
-                          type="button"
-                          onClick={() => setItemKind("item")}
-                          className={`px-3 py-1.5 text-sm rounded-full ${
-                            itemKind === "item"
-                              ? "bg-white text-black font-semibold shadow-sm"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Item
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setItemKind("service")}
-                          className={`px-3 py-1.5 text-sm rounded-full ${
-                            itemKind === "service"
-                              ? "bg-white text-black font-semibold shadow-sm"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          Service
-                        </button>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        I need something
                       </div>
                     </div>
-
-                    {/* Item name */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 shrink-0 text-sm text-gray-600">
-                        Item
-                      </div>
-                      <Input
-                        value={form.itemName}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, itemName: e.target.value }))
-                        }
-                        placeholder="What do you need?"
-                        className="flex-1 rounded-xl bg-gray-100 border-0"
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                        Description
-                      </div>
-                      <textarea
-                        value={form.description}
-                        onChange={(e) =>
-                          setForm((f) => ({
-                            ...f,
-                            description: e.target.value,
-                          }))
-                        }
-                        rows={4}
-                        className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
-                        placeholder="Add more details about your item or request..."
-                      />
-                    </div>
-
-                    {/* Count */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 shrink-0 text-sm text-gray-600">
-                        Count
-                      </div>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={form.count}
-                        onChange={(e) =>
-                          setForm((f) => ({
-                            ...f,
-                            count: Math.max(
-                              1,
-                              parseInt(e.target.value, 10) || 1,
-                            ),
-                          }))
-                        }
-                        className="w-24 rounded-xl bg-gray-100 border-0"
-                      />
-                    </div>
-
-                    {/* Preferred Time and Venue */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                        Preferred Time and Venue
-                      </div>
-                      <div className="flex-1 flex flex-col gap-2">
-                        <Input
-                          value={form.preferredTime}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              preferredTime: e.target.value,
-                            }))
-                          }
-                          placeholder="e.g. Today, 5 PM"
-                          className="w-full rounded-xl bg-gray-100 border-0"
-                        />
-                        <Input
-                          value={form.preferredVenue}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              preferredVenue: e.target.value,
-                            }))
-                          }
-                          placeholder="e.g. SEC-A206"
-                          className="w-full rounded-xl bg-gray-100 border-0"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Monetary Incentive */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 shrink-0 text-sm text-gray-600">
-                        {createType === "offer" ? "Price (₱)" : "Fee (₱)"}
-                      </div>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={form.monetaryIncentive}
-                        onChange={(e) =>
-                          setForm((f) => ({
-                            ...f,
-                            monetaryIncentive: e.target.value,
-                          }))
-                        }
-                        placeholder="Leave empty for FREE"
-                        className="flex-1 rounded-xl bg-gray-100 border-0"
-                      />
-                    </div>
-
-                    {/* Notes for renter */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-28 shrink-0 pt-2 text-sm text-gray-600">
-                        Notes
-                      </div>
-                      <textarea
-                        value={form.notesForRenter}
-                        onChange={(e) =>
-                          setForm((f) => ({
-                            ...f,
-                            notesForRenter: e.target.value,
-                          }))
-                        }
-                        rows={2}
-                        className="flex-1 rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
-                        placeholder="Anything else they should know?"
-                      />
-                    </div>
-
-                    <div className="pt-2">
-                      <Button
-                        type="button"
-                        onClick={handlePost}
-                        disabled={isPosting}
-                        className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
-                      >
-                        {isPosting ? "Posting..." : "POST!"}
-                      </Button>
-                    </div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -609,16 +378,14 @@ export default function Home() {
         )}
 
         {/* Floating action button */}
-        {!isCreateOpen && (
-          <Button
-            size="icon"
-            className="fixed bottom-30 md:bottom-6 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-30 p-0 flex items-center justify-center"
-            aria-label="Add item"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
-          </Button>
-        )}
+        <Button
+          size="icon"
+          className="fixed bottom-30 md:bottom-6 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-10 p-0 flex items-center justify-center"
+          aria-label="Create item"
+          onClick={() => setIsTypePickerOpen(true)}
+        >
+          <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
+        </Button>
       </div>
 
       <BottomNav />

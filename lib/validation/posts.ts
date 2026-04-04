@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PostStatusEnum } from "../db/enums";
+import { PostStatusEnum, TypeEnum } from "../db/enums";
 
 export const postSchema = z.object({
   id: z.string().uuid({}),
@@ -9,6 +9,7 @@ export const postSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   created_at: z.date(),
+  type: TypeEnum.optional(),
   status: PostStatusEnum.optional(),
 });
 
@@ -37,6 +38,7 @@ export const insertPostSchema = postSchema.pick({
   description: true,
   imgUrl: true,
   status: true,
+  type: true,
 });
 
 export const updatePostSchema = postSchema
@@ -46,6 +48,7 @@ export const updatePostSchema = postSchema
     description: true,
     status: true,
     imgUrl: true,
+    type: true,
   })
   .partial();
 

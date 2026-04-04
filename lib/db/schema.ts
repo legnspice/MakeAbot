@@ -66,6 +66,7 @@ export const reviews = pgTable("reviews", {
 export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  imgUrl: text("imgUrl"),
   // For currency we use the smallest unit: Php in cents
   fee: integer("fee"),
   title: text("title").notNull(),
