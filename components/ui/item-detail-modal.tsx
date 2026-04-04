@@ -57,7 +57,7 @@ export default function ItemDetailModal({
         aria-modal="true"
         aria-labelledby="item-detail-title"
       >
-        <div className="h-full max-h-80 md:max-h-96 w-full max-w-sm flex flex-col rounded-2xl bg-white shadow-xl overflow-hidden">
+        <div className="h-full max-h-[28rem] md:max-h-[32rem] w-full max-w-sm flex flex-col rounded-2xl bg-white shadow-xl overflow-hidden">
           {/* Back button */}
           <div className="shrink-0 p-3">
             <Button
@@ -72,6 +72,21 @@ export default function ItemDetailModal({
             </Button>
           </div>
 
+          {/* Image */}
+          <div className="shrink-0 w-full h-40 bg-gray-100 overflow-hidden flex items-center justify-center">
+            {item.imageUrl ? (
+              <img
+                src={item.imageUrl}
+                alt={item.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-gray-300 text-xs uppercase tracking-widest font-medium">
+                No image
+              </span>
+            )}
+          </div>
+
           {/* Content */}
           <div className="flex-1 min-h-0 px-4 py-3">
             <div className="flex items-start justify-between gap-3 mb-1">
@@ -81,9 +96,17 @@ export default function ItemDetailModal({
               >
                 {item.title}
               </h1>
-              <div className="flex items-center gap-2 shrink-0 text-[#3761B0] text-sm font-medium">
-                {item.quantity != null && <span>{item.quantity}x</span>}
-                <span>{item.price}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {item.quantity != null && <span className="text-[#3761B0] text-sm font-medium">{item.quantity}x</span>}
+                <span
+                  className={`font-semibold text-sm px-2 py-0.5 rounded ${
+                    item.price === "FREE"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "text-[#3761B0]"
+                  }`}
+                >
+                  {item.price}
+                </span>
               </div>
             </div>
             {item.lentBy && (
