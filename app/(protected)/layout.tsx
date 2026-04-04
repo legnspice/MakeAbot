@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
-import { DisclaimerModal } from "@/components/disclaimer-modal";
-import { AppFooter } from "@/components/app-footer";
-
 // Layout level auth requirement for accessing protected pages
 export default function ProtectedLayout({
   children,
@@ -34,13 +31,5 @@ export default function ProtectedLayout({
   }
 
   // Wrap children with AuthProvider, passing the guaranteed non-null userData
-  return (
-    <AuthProvider userData={userData}>
-      <div className="flex flex-col min-h-screen">
-        <DisclaimerModal />
-        <div className="flex-1">{children}</div>
-        <AppFooter />
-      </div>
-    </AuthProvider>
-  );
+  return <AuthProvider userData={userData}>{children}</AuthProvider>;
 }
