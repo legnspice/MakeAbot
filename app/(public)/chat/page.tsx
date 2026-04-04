@@ -206,15 +206,20 @@ function ChatPageInner() {
           {selectedConv ? (
             <>
               {/* Header */}
-              <header className="bg-[#E8ECFF] flex items-center px-5 py-3 gap-3 shrink-0">
-                <div className="w-10 h-10 rounded-full bg-gray-300 shrink-0" />
-                <span className="font-semibold text-gray-900 flex-1 leading-tight">
-                  {selectedConv.otherName || selectedConv.title}
-                </span>
+              <header className="bg-[#E8ECFF] flex items-center px-5 py-3 gap-3 shrink-0 border-b border-blue-100">
+                <div className="w-9 h-9 rounded bg-[#8B5E52] shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">
+                    {selectedConv.kind === 'offer' ? 'OFFER' : 'REQUEST'}
+                    {' | '}
+                    {selectedConv.otherName || selectedConv.title}
+                  </p>
+                  <p className="text-xs text-gray-500 leading-tight truncate">{selectedConv.title}</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setSelectedConv(null)}
-                  className="text-[#3761B0] hover:text-[#2a4d8a] transition-colors"
+                  className="text-[#3761B0] hover:text-[#2a4d8a] transition-colors p-1 rounded-full hover:bg-blue-50"
                   aria-label="Close"
                 >
                   <ArrowLeft className="w-5 h-5" />
