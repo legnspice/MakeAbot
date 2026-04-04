@@ -34,6 +34,14 @@ export default function LoginPage() {
           </span>
         </button>
       </form>
+
+      <p className="text-xs text-gray-400 text-center max-w-xs leading-relaxed">
+        MakeAbot is an independent student project, not an official university
+        platform. We provide a space for students to connect, but all
+        transactions are made at your own risk. The creators are not liable for
+        any damages, scams, losses, or disputes that arise from using this app.
+        Transact safely and responsibly!
+      </p>
     </div>
   );
 }
