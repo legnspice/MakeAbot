@@ -35,10 +35,11 @@ export default function ProfilePage() {
   const [name, setName] = useState(currentUser.name ?? googleName);
   const [idNumber, setIdNumber] = useState(currentUser.id_number?.toString() ?? '');
   const [phoneNumber, setPhoneNumber] = useState(currentUser.phone_number ?? '');
+  const [description, setDescription] = useState(currentUser.description ?? '');
 
   // Edit modal state
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', idNumber: '', phoneNumber: '' });
+  const [editForm, setEditForm] = useState({ name: '', idNumber: '', phoneNumber: '', description: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -54,6 +55,7 @@ export default function ProfilePage() {
       setName(u.name ?? googleName);
       setIdNumber(u.id_number?.toString() ?? '');
       setPhoneNumber(u.phone_number ?? '');
+      setDescription(u.description ?? '');
     }
 
     if (reviewsResult.data && reviewsResult.data.length > 0) {
@@ -72,7 +74,7 @@ export default function ProfilePage() {
   }, [loadData]);
 
   const openEdit = () => {
-    setEditForm({ name, idNumber, phoneNumber });
+    setEditForm({ name, idNumber, phoneNumber, description });
     setEditOpen(true);
   };
 
@@ -84,6 +86,7 @@ export default function ProfilePage() {
         name: editForm.name.trim() || null,
         id_number: editForm.idNumber ? parseInt(editForm.idNumber, 10) : null,
         phone_number: editForm.phoneNumber.trim() || null,
+        description: editForm.description.trim() || null,
       });
       if (result.error) {
         setSaveError(result.error);
@@ -92,6 +95,7 @@ export default function ProfilePage() {
       setName(editForm.name.trim());
       setIdNumber(editForm.idNumber);
       setPhoneNumber(editForm.phoneNumber.trim());
+      setDescription(editForm.description.trim());
       setEditOpen(false);
     } finally {
       setIsSaving(false);
@@ -146,6 +150,11 @@ export default function ProfilePage() {
                 {phoneNumber && <span>{phoneNumber}</span>}
                 {idNumber && <span>ID: {idNumber}</span>}
               </div>
+              {description && (
+                <p className="mt-3 text-sm text-gray-700 leading-relaxed max-w-xl">
+                  &quot;{description}&quot;
+                </p>
+              )}
             </div>
           </div>
 
@@ -250,6 +259,11 @@ export default function ProfilePage() {
                 <span className="text-sm text-gray-400 italic">No reviews yet</span>
               )}
             </div>
+            {description && (
+              <p className="text-sm text-gray-700 leading-relaxed">
+                &quot;{description}&quot;
+              </p>
+            )}
           </div>
 
           <Button
@@ -342,6 +356,17 @@ export default function ProfilePage() {
                   onChange={(e) => setEditForm((f) => ({ ...f, phoneNumber: e.target.value }))}
                   placeholder="e.g. 09171234567"
                   className="rounded-xl bg-gray-100 border-0"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-600 font-medium">Bio</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Tell others about yourself..."
+                  rows={3}
+                  className="rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
                 />
               </div>
             </div>
