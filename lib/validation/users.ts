@@ -7,6 +7,7 @@ export const userSchema = z.object({
   name: z.string().min(1, "Name is required").nullable(),
   id_number: z.int().nullable(),
   phone_number: z.string().nullable(),
+  description: z.string().nullable(),
   contributions: z.int(),
 });
 
