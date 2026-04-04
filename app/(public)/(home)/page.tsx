@@ -387,11 +387,11 @@ export default function Home() {
         {/* Floating action button */}
         <Button
           size="icon"
-          className="fixed bottom-30 md:bottom-6 right-6 w-14 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-10 p-0 flex items-center justify-center"
+          className="font-bold fixed bottom-30 md:bottom-6 right-6 w-30 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-10 p-0 flex items-center justify-center"
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen(true)}
         >
-          <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
+          Create <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
         </Button>
       </div>
 
