@@ -103,7 +103,7 @@ export function TutorialModal() {
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-5">
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-5 min-h-[4rem]">
           {current.body}
         </p>
 
