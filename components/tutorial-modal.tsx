@@ -9,10 +9,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, Plus, MessageCircle, ListChecks, Bell } from "lucide-react";
+import { Sparkles, LayoutGrid, Plus, MessageCircle, ListChecks, Bell } from "lucide-react";
 import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 
 const STEPS = [
+  {
+    icon: Sparkles,
+    iconBg: "bg-amber-100",
+    iconColor: "text-[#E5A550]",
+    title: "Welcome to MakeAbot!",
+    body: "Your student marketplace for sharing and finding items within the Ateneo community. Here's a quick tour to get you started.",
+  },
   {
     icon: LayoutGrid,
     iconBg: "bg-blue-100",
