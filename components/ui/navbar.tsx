@@ -2,8 +2,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, Search } from "lucide-react";
+import { User, Search, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { useTutorial } from "@/contexts/tutorial-context";
 import NotificationsPanel from "@/components/ui/notifications-panel";
 
 type NavbarProps = {
@@ -21,6 +22,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
     "Profile") as string;
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { openTutorial } = useTutorial();
 
   return (
     <>
@@ -53,6 +55,15 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           >
             Tracker
           </Link>
+          <button
+            type="button"
+            onClick={openTutorial}
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            aria-label="Help"
+          >
+            <HelpCircle className="w-4 h-4" strokeWidth={2.5} />
+            Help
+          </button>
           <Link
             href="/profile"
             className="flex items-center ml-5 gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
@@ -85,6 +96,14 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
             aria-label="Search"
           >
             <Search className="w-5 h-5 text-black" strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            className="w-12 h-12 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+            onClick={openTutorial}
+            aria-label="Help"
+          >
+            <HelpCircle className="w-5 h-5 text-black" strokeWidth={2.5} />
           </button>
           <Link
             href="/profile"
