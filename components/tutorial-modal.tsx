@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -9,14 +10,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutGrid, Plus, MessageCircle, ListChecks, Bell } from "lucide-react";
+import { LayoutGrid, Plus, MessageCircle, ListChecks, Bell } from "lucide-react";
 import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 
 const STEPS = [
   {
-    icon: Sparkles,
-    iconBg: "bg-amber-100",
-    iconColor: "text-[#E5A550]",
+    icon: LayoutGrid,
+    iconBg: "bg-blue-100",
+    iconColor: "text-[#3761B0]",
     title: "Welcome to MakeAbot!",
     body: "Your student marketplace for sharing and finding items within the Ateneo community. Here's a quick tour to get you started.",
   },
@@ -100,11 +101,15 @@ export function TutorialModal() {
         </div>
 
         <DialogHeader className="items-center gap-3">
-          <div
-            className={`w-16 h-16 rounded-full ${current.iconBg} flex items-center justify-center`}
-          >
-            <Icon className={`w-8 h-8 ${current.iconColor}`} strokeWidth={2} />
-          </div>
+          {step === 0 ? (
+            <Image src="/logo.svg" alt="MakeAbot" width={80} height={80} />
+          ) : (
+            <div
+              className={`w-16 h-16 rounded-full ${current.iconBg} flex items-center justify-center`}
+            >
+              <Icon className={`w-8 h-8 ${current.iconColor}`} strokeWidth={2} />
+            </div>
+          )}
           <DialogTitle className="text-center text-lg font-bold text-gray-800">
             {current.title}
           </DialogTitle>
