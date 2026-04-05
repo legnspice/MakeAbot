@@ -8,6 +8,7 @@ import {
   updateNotificationPreferences,
 } from "@/lib/actions/notifications";
 import type { SelectNotificationPreferences } from "@/lib/db/schema";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
 
 const EVENT_LABELS: Record<
   keyof Omit<SelectNotificationPreferences, "user_id">,
@@ -24,6 +25,7 @@ export default function NotificationSettingsPage() {
   const [prefs, setPrefs] = useState<SelectNotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const { permission, isSubscribed, requestPermissionAndSubscribe, unsubscribe } = usePushSubscription();
 
   useEffect(() => {
     getNotificationPreferences().then((result) => {
@@ -46,6 +48,38 @@ export default function NotificationSettingsPage() {
       <Navbar />
       <main className="flex-1 max-w-md md:max-w-2xl mx-auto w-full px-4 pt-6 pb-28 md:pb-6">
         <h1 className="text-lg font-semibold text-gray-900 mb-6">Notification Settings</h1>
+
+        {/* Push notification subscribe/unsubscribe */}
+        <div className="mb-6 p-4 rounded-lg border border-gray-200 bg-gray-50">
+          <p className="text-sm font-medium text-gray-900 mb-1">Browser push notifications</p>
+          {permission === "denied" ? (
+            <p className="text-xs text-gray-500">
+              Push notifications are blocked in your browser settings.
+            </p>
+          ) : isSubscribed ? (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">Push notifications are enabled on this device.</p>
+              <button
+                type="button"
+                onClick={unsubscribe}
+                className="text-xs text-red-500 hover:underline ml-4"
+              >
+                Disable
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">Get notified even when the app is closed.</p>
+              <button
+                type="button"
+                onClick={requestPermissionAndSubscribe}
+                className="text-xs text-[#3761B0] hover:underline ml-4"
+              >
+                Enable
+              </button>
+            </div>
+          )}
+        </div>
 
         {loading ? (
           <p className="text-sm text-gray-400">Loading…</p>
