@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getUsers } from "@/app/actions/users";
+import { getUsers } from "@/lib/actions/users";
 import { ChatRoom } from "@/components/chat-room";
 
 export default function ChatTemplate() {
