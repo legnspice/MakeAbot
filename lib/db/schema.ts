@@ -6,6 +6,7 @@ import {
   uuid,
   timestamp,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import {
   urgencyEnum,
@@ -14,6 +15,7 @@ import {
   bidStatusEnum,
   typeEnum,
 } from "./enums";
+import { sql } from "drizzle-orm";
 
 const authSchema = pgSchema("auth");
 
@@ -119,18 +121,29 @@ export const post_bids = pgTable("post_bids", {
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const notifications = pgTable("notifications", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  type: text("type").notNull(),
-  title: text("title").notNull(),
-  body: text("body"),
-  url: text("url"),
-  is_read: boolean("is_read").notNull().default(false),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-});
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    context_id: text("context_id"),
+    message_count: integer("message_count").notNull().default(1),
+    title: text("title").notNull(),
+    body: text("body"),
+    url: text("url"),
+    is_read: boolean("is_read").notNull().default(false),
+    created_at: timestamp("created_at").notNull().defaultNow(),
+    updated_at: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("notifications_msg_coalesce_idx")
+      .on(t.user_id, t.type, t.context_id)
+      .where(sql`${t.context_id} IS NOT NULL`),
+  ],
+);
 
 export const push_subscriptions = pgTable("push_subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -152,6 +165,7 @@ export const notification_preferences = pgTable("notification_preferences", {
   bid_accepted: boolean("bid_accepted").notNull().default(true),
   bid_rejected: boolean("bid_rejected").notNull().default(true),
   new_review: boolean("new_review").notNull().default(true),
+  new_request: boolean("new_request").notNull().default(true),
 });
 
 export type InsertUser = typeof users.$inferInsert;
