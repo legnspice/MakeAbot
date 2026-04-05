@@ -61,7 +61,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           </button>
           <Link
             href="/profile"
-            className="flex items-center ml-5 gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             {/* {displayName} */}
             <div className="relative w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">
