@@ -102,7 +102,9 @@ export function TutorialModal() {
 
         <DialogHeader className="items-center gap-3">
           {step === 0 ? (
-            <Image src="/logo.svg" alt="MakeAbot" width={80} height={80} />
+            <div className="w-16 h-16 flex items-center justify-center">
+              <Image src="/logo.svg" alt="MakeAbot" width={64} height={64} />
+            </div>
           ) : (
             <div
               className={`w-16 h-16 rounded-full ${current.iconBg} flex items-center justify-center`}
