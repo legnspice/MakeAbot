@@ -16,11 +16,15 @@ export async function getConversation(filters: FindConversationSchema) {
 
 export async function createMessage(data: InsertMessageSchema) {
   const result = await messagesRepo.insertMessage(data);
+  const contextId = data.request_bid_id ?? data.post_bid_id ?? null;
   // fire-and-forget — failure must not throw
   sendPushToUser(data.receiver_id, "new_message", {
     title: "New message",
     body: data.content.length > 60 ? data.content.slice(0, 60) + "…" : data.content,
-    url: "/notifications",
+    url: contextId
+      ? `/chat?bidId=${contextId}&otherId=${data.sender_id}`
+      : "/notifications",
+    contextId,
   }).catch(() => {});
   return result;
 }
