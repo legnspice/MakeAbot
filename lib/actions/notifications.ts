@@ -39,3 +39,10 @@ export async function updateNotificationPreferences(data: UpdatePreferencesSchem
     return notificationsService.updatePreferences(user.id, data);
   });
 }
+
+export async function markChatNotificationRead(contextId: string) {
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return notificationsService.markChatRead(user.id, contextId);
+  });
+}

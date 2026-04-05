@@ -71,6 +71,23 @@ export async function markAllNotificationsRead(userId: string) {
     .where(and(eq(notifications.user_id, userId), eq(notifications.is_read, false)));
 }
 
+export async function markMessageNotificationReadByContext(
+  userId: string,
+  contextId: string,
+) {
+  return await db
+    .update(notifications)
+    .set({ is_read: true })
+    .where(
+      and(
+        eq(notifications.user_id, userId),
+        eq(notifications.type, "new_message"),
+        eq(notifications.context_id, contextId),
+        eq(notifications.is_read, false),
+      ),
+    );
+}
+
 // --- Push Subscriptions ---
 
 export async function findSubscriptionsForUser(userId: string) {

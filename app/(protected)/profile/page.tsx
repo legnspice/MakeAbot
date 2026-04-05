@@ -154,10 +154,11 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={openEdit}
-                  className="ml-auto w-8 h-8 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors shrink-0"
+                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors shrink-0"
                   aria-label="Edit profile"
                 >
-                  <SquarePen className="w-4 h-4" />
+                  Edit Profile
+                  <SquarePen className="ml-2 w-4 h-4" />
                 </button>
               </div>
 

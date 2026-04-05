@@ -2,7 +2,7 @@
 
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -15,28 +15,42 @@ type Props = {
   className?: string;
 };
 
-export default function NotificationsBell({ asLink = false, onClick, className = "" }: Props) {
+export default function NotificationsBell({
+  asLink = false,
+  onClick,
+  className = "",
+}: Props) {
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
-  const channelName = useRef(`notifications-bell-${userId}-${Math.random().toString(36).slice(2)}`);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchUnreadCount = useCallback(async () => {
-    const supabase = createClient();
-    const { count } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("is_read", false);
-    setUnreadCount(count ?? 0);
-  }, [userId]);
-
   useEffect(() => {
-    fetchUnreadCount();
+    if (!userId) return;
 
+    let isMounted = true;
     const supabase = createClient();
+
+    // 1. Define the fetch function inside the effect
+    const loadUnreadCount = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("is_read", false);
+
+      // 2. Only update state if the component is still mounted
+      if (isMounted) {
+        setUnreadCount(count ?? 0);
+      }
+    };
+
+    // 3. Call it with `void` to explicitly tell the linter it's an async fire-and-forget
+    void loadUnreadCount();
+
+    const channelName = `notifications-bell-${userId}-${Math.random().toString(36).slice(2)}`;
+
     const channel = supabase
-      .channel(channelName.current)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -45,7 +59,9 @@ export default function NotificationsBell({ asLink = false, onClick, className =
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => setUnreadCount((c) => c + 1)
+        () => {
+          if (isMounted) setUnreadCount((c) => c + 1);
+        },
       )
       .on(
         "postgres_changes",
@@ -55,15 +71,18 @@ export default function NotificationsBell({ asLink = false, onClick, className =
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => fetchUnreadCount()
+        () => {
+          void loadUnreadCount();
+        },
       )
       .subscribe();
 
     return () => {
+      isMounted = false; // Prevent state updates on unmounted component
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [userId, fetchUnreadCount]);
+  }, [userId]);
 
   const badge =
     unreadCount > 0 ? (
@@ -73,7 +92,9 @@ export default function NotificationsBell({ asLink = false, onClick, className =
     ) : null;
 
   const inner = (
-    <span className={`relative inline-flex items-center justify-center ${className}`}>
+    <span
+      className={`relative inline-flex items-center justify-center ${className}`}
+    >
       <Bell className="w-5 h-5" strokeWidth={2} />
       {badge}
     </span>

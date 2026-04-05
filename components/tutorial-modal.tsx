@@ -70,7 +70,7 @@ const STEPS = [
     iconBg: "bg-amber-100",
     iconColor: "text-[#E5A550]",
     title: "Profile",
-    body: "",
+    body: "Build trust and rapport with others by having your profile information up to date. Go into the Profile tab and click the edit profile button there.",
   },
   {
     icon: MailQuestionMark,

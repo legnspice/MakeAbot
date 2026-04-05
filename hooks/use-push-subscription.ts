@@ -1,12 +1,22 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function usePushSubscription() {
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof Notification !== "undefined" ? Notification.permission : "default",
   );
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+  // Check actual browser subscription state on mount so the UI reflects reality
+  // after a page reload (hook initializes isSubscribed=false by default).
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker
+      .getRegistration("/sw.js")
+      .then((reg) => reg?.pushManager.getSubscription())
+      .then((sub) => { if (sub) setIsSubscribed(true); });
+  }, []);
 
   const requestPermissionAndSubscribe = useCallback(async () => {
     if (typeof Notification === "undefined" || !("serviceWorker" in navigator))

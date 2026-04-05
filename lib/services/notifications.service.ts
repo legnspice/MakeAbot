@@ -24,3 +24,7 @@ export async function getPreferences(userId: string) {
 export async function updatePreferences(userId: string, data: UpdatePreferencesSchema) {
   return await notificationsRepo.updatePreferences(userId, data);
 }
+
+export async function markChatRead(userId: string, contextId: string) {
+  return await notificationsRepo.markMessageNotificationReadByContext(userId, contextId);
+}

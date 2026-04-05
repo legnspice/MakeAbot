@@ -2,6 +2,7 @@
 
 import { RealtimeChat } from "@/components/realtime-chat";
 import { createMessage, getConversation } from "@/lib/actions/messages";
+import { markChatNotificationRead } from "@/lib/actions/notifications";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
@@ -35,6 +36,13 @@ export const ChatRoom = ({
 
   const { userData } = useAuth();
   const publicUser = userData.publicUser;
+
+  // Mark the coalesced message notification as read when the user opens this chat.
+  useEffect(() => {
+    const contextId = request_bid_id ?? post_bid_id;
+    if (!contextId) return;
+    void markChatNotificationRead(contextId);
+  }, [request_bid_id, post_bid_id]);
 
   useEffect(() => {
     async function loadData() {
