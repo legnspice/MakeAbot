@@ -164,6 +164,7 @@ function ChatPageInner() {
           title: titleParam,
           otherName: "",
           otherId: otherIdParam,
+          lastMessageAt: null,
         },
       );
     });
