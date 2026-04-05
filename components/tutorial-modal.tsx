@@ -10,8 +10,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, Plus, MessageCircle, ListChecks, Bell } from "lucide-react";
+import {
+  LayoutGrid,
+  Plus,
+  MessageCircle,
+  ListChecks,
+  Bell,
+  MailQuestionMark,
+} from "lucide-react";
 import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
+import Link from "next/link";
 
 const STEPS = [
   {
@@ -19,7 +27,7 @@ const STEPS = [
     iconBg: "bg-blue-100",
     iconColor: "text-[#3761B0]",
     title: "Welcome to MakeAbot!",
-    body: "Your student marketplace for sharing and finding items within the Ateneo community. Here's a quick tour to get you started.",
+    body: "Your student app for sharing and finding items within the Ateneo community. Here's a quick tour to get you started.",
   },
   {
     icon: LayoutGrid,
@@ -33,7 +41,7 @@ const STEPS = [
     iconBg: "bg-amber-100",
     iconColor: "text-[#E5A550]",
     title: "Create a Post",
-    body: "Tap the amber Create button to post something you want to offer or something you need.",
+    body: "Tap the Create button below to post something you want to offer or something you need.",
   },
   {
     icon: MessageCircle,
@@ -55,6 +63,13 @@ const STEPS = [
     iconColor: "text-[#E5A550]",
     title: "Notifications",
     body: "You'll be notified when someone inquires on your post or sends you a message. Check the notification bell to stay up to date.",
+  },
+  {
+    icon: MailQuestionMark,
+    iconBg: "bg-amber-100",
+    iconColor: "text-[#E5A550]",
+    title: "Contact Us!",
+    body: "",
   },
 ] as const;
 
@@ -109,7 +124,10 @@ export function TutorialModal() {
             <div
               className={`w-16 h-16 rounded-full ${current.iconBg} flex items-center justify-center`}
             >
-              <Icon className={`w-8 h-8 ${current.iconColor}`} strokeWidth={2} />
+              <Icon
+                className={`w-8 h-8 ${current.iconColor}`}
+                strokeWidth={2}
+              />
             </div>
           )}
           <DialogTitle className="text-center text-lg font-bold text-gray-800">
@@ -117,9 +135,22 @@ export function TutorialModal() {
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-5 min-h-[4rem]">
-          {current.body}
-        </p>
+        <div className="text-sm text-muted-foreground max-w-xs mx-auto mb-5 min-h-[4rem]">
+          {isLastStep ? (
+            <div>
+              Need more help or have any specific concerns? Message us at{" "}
+              <Link
+                href="https://www.facebook.com/people/MakeAbot/61575401159655/"
+                className="font-bold text-blue-500"
+              >
+                Facebook
+              </Link>{" "}
+              or send an email to niles.tristan.cabrera@student.ateneo.edu!
+            </div>
+          ) : (
+            current.body
+          )}
+        </div>
 
         <DialogFooter className="flex flex-row items-center justify-between sm:justify-between">
           <button
