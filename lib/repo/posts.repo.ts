@@ -9,6 +9,12 @@ import {
   InsertPostSchema,
 } from "../validation/posts";
 
+export async function findPostById(id: string) {
+  return await db.query.posts.findFirst({
+    where: eq(posts.id, id),
+  });
+}
+
 export async function findPosts(filters: FindPostsSchema) {
   const { id, user_id, price, title, status, created_at } = filters;
   const conditions = [];
@@ -55,7 +61,8 @@ export async function insertPost(data: InsertPostSchema) {
 }
 
 export async function insertPostBid(data: InsertPostBidSchema) {
-  return await db.insert(post_bids).values(data);
+  const [bid] = await db.insert(post_bids).values(data).returning();
+  return bid;
 }
 
 export async function deletePost(id: string, userId: string) {
