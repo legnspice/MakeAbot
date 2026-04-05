@@ -21,6 +21,34 @@ function formatTime(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+type Category = "Messages" | "Activity";
+
+const CATEGORY_MAP: Record<string, Category> = {
+  new_message: "Messages",
+  new_bid: "Activity",
+  bid_accepted: "Activity",
+  bid_rejected: "Activity",
+  new_review: "Activity",
+};
+
+function groupNotifications(items: SelectNotification[]) {
+  const groups: Partial<Record<Category, SelectNotification[]>> = {};
+  for (const n of items) {
+    const cat = CATEGORY_MAP[n.type] ?? "Activity";
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat]!.push(n);
+  }
+  const order: Category[] = ["Messages", "Activity"];
+  return order.flatMap((cat) =>
+    groups[cat]
+      ? [
+          { type: "header" as const, label: cat },
+          ...groups[cat]!.map((n) => ({ type: "item" as const, n })),
+        ]
+      : [],
+  );
+}
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -118,27 +146,39 @@ export default function NotificationsPanel({ open, onClose }: Props) {
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => handleClick(n)}
-                  className={`w-full text-left px-5 py-4 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 transition-colors ${n.is_read ? "opacity-60" : ""}`}
-                >
-                  {!n.is_read && (
-                    <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2 mb-0.5" />
-                  )}
-                  <p className="text-sm font-semibold text-gray-900 leading-snug inline">
-                    {n.title}
-                  </p>
-                  {n.body && (
-                    <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>
-                  )}
-                  <p className="mt-1 text-xs text-gray-400">
-                    {formatTime(new Date(n.created_at))}
-                  </p>
-                </button>
-              ))}
+              {groupNotifications(notifications).map((entry) => {
+                if (entry.type === "header") {
+                  return (
+                    <div key={`header-${entry.label}`} className="px-5 pt-4 pb-1">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        {entry.label}
+                      </p>
+                    </div>
+                  );
+                }
+                const n = entry.n;
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => handleClick(n)}
+                    className={`w-full text-left px-5 py-4 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 transition-colors ${n.is_read ? "opacity-60" : ""}`}
+                  >
+                    {!n.is_read && (
+                      <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2 mb-0.5" />
+                    )}
+                    <p className="text-sm font-semibold text-gray-900 leading-snug inline">
+                      {n.title}
+                    </p>
+                    {n.body && (
+                      <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-400">
+                      {formatTime(new Date(n.created_at))}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
