@@ -1,4 +1,4 @@
-import { and, eq, lte, gte, desc, ilike, asc, or } from "drizzle-orm";
+import { and, eq, lte, gte, desc, ilike, asc, or, inArray, max } from "drizzle-orm";
 import { db } from "../db";
 import { messages } from "../db/schema";
 import { getDayRange } from "./helper";
@@ -68,6 +68,37 @@ export async function findMessages(filters: FindMessagesSchema) {
 
 export async function insertMessage(data: InsertMessageSchema) {
   return await db.insert(messages).values(data);
+}
+
+/** Returns a map of bidId → latest timestamp for the given bid IDs. */
+export async function findLatestTimestampsForBids(
+  postBidIds: string[],
+  requestBidIds: string[],
+): Promise<Map<string, Date>> {
+  const result = new Map<string, Date>();
+
+  const [postRows, reqRows] = await Promise.all([
+    postBidIds.length > 0
+      ? db
+          .select({ bidId: messages.post_bid_id, latest: max(messages.timestamp) })
+          .from(messages)
+          .where(inArray(messages.post_bid_id, postBidIds))
+          .groupBy(messages.post_bid_id)
+      : [],
+    requestBidIds.length > 0
+      ? db
+          .select({ bidId: messages.request_bid_id, latest: max(messages.timestamp) })
+          .from(messages)
+          .where(inArray(messages.request_bid_id, requestBidIds))
+          .groupBy(messages.request_bid_id)
+      : [],
+  ]);
+
+  for (const row of [...postRows, ...reqRows]) {
+    if (row.bidId && row.latest) result.set(row.bidId, row.latest);
+  }
+
+  return result;
 }
 
 export async function deleteMessage(id: string, userId: string) {

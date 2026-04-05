@@ -11,6 +11,7 @@ import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
+import { getLatestTimestampsForBids } from "@/lib/actions/messages";
 
 type ConversationEntry = {
   bidId: string;
@@ -18,6 +19,7 @@ type ConversationEntry = {
   title: string;
   otherName: string;
   otherId: string;
+  lastMessageAt: Date | null;
 };
 
 function ChatPageInner() {
@@ -61,6 +63,7 @@ function ChatPageInner() {
           title: post.title,
           otherName: "",
           otherId: bid.bidder_id,
+          lastMessageAt: null,
         });
       }
     }
@@ -76,6 +79,7 @@ function ChatPageInner() {
           title: post.title,
           otherName: "",
           otherId: post.user_id,
+          lastMessageAt: null,
         });
       }
     }
@@ -90,6 +94,7 @@ function ChatPageInner() {
           title: req.title,
           otherName: "",
           otherId: bid.bidder_id,
+          lastMessageAt: null,
         });
       }
     }
@@ -105,23 +110,39 @@ function ChatPageInner() {
           title: req.title,
           otherName: "",
           otherId: req.user_id,
+          lastMessageAt: null,
         });
       }
     }
 
-    // Batch fetch all users at once
+    // Batch fetch all users and last-message timestamps at once
+    const postBidIds = items.filter((i) => i.kind === "offer").map((i) => i.bidId);
+    const reqBidIds = items.filter((i) => i.kind === "request").map((i) => i.bidId);
+
+    const [usersResult, timestampsResult] = await Promise.all([
+      userIds.size > 0 ? getUsers({ ids: Array.from(userIds) }) : { data: [] },
+      getLatestTimestampsForBids(postBidIds, reqBidIds),
+    ]);
+
     const usersMap = new Map<string, string>();
-    if (userIds.size > 0) {
-      const usersResult = await getUsers({ ids: Array.from(userIds) });
-      for (const u of usersResult.data ?? []) {
-        usersMap.set(u.id, u.name ?? "User");
-      }
+    for (const u of usersResult.data ?? []) {
+      usersMap.set(u.id, u.name ?? "User");
     }
 
-    // Fill in names
+    const timestamps = timestampsResult.data ?? new Map<string, Date>();
+
     for (const item of items) {
       item.otherName = usersMap.get(item.otherId) ?? "User";
+      item.lastMessageAt = timestamps.get(item.bidId) ?? null;
     }
+
+    // Sort by most recent message first; conversations with no messages go last
+    items.sort((a, b) => {
+      if (!a.lastMessageAt && !b.lastMessageAt) return 0;
+      if (!a.lastMessageAt) return 1;
+      if (!b.lastMessageAt) return -1;
+      return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
+    });
 
     setConversations(items);
     setLoading(false);

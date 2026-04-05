@@ -30,6 +30,16 @@ export async function createMessage(data: InsertMessageSchema) {
   });
 }
 
+export async function getLatestTimestampsForBids(
+  postBidIds: string[],
+  requestBidIds: string[],
+) {
+  return await handleAction(async () => {
+    await requireAuth();
+    return messagesService.getLatestTimestampsForBids(postBidIds, requestBidIds);
+  });
+}
+
 export async function removeMessage(id: string) {
   return await handleAction(async () => {
     const user = await requireAuth();

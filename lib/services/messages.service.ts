@@ -25,6 +25,13 @@ export async function createMessage(data: InsertMessageSchema) {
   return result;
 }
 
+export async function getLatestTimestampsForBids(
+  postBidIds: string[],
+  requestBidIds: string[],
+) {
+  return await messagesRepo.findLatestTimestampsForBids(postBidIds, requestBidIds);
+}
+
 export async function removeMessage(id: string, userId: string) {
   return await messagesRepo.deleteMessage(id, userId);
 }

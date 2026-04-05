@@ -68,7 +68,6 @@ export const RealtimeChat = ({
   }, [allMessages, onMessage]);
 
   useEffect(() => {
-    // Scroll to bottom whenever messages change
     scrollToBottom();
   }, [allMessages, scrollToBottom]);
 

@@ -10,6 +10,7 @@ import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton"
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
+import { MessageCircle, X } from "lucide-react";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -263,6 +264,69 @@ export default function TrackerPage() {
   );
 }
 
+function ChatListModal({
+  title,
+  people,
+  accentClass,
+  avatarClass,
+  iconClass,
+  onSelect,
+  onClose,
+}: {
+  title: string;
+  people: { id: string; name: string; bidId: string }[];
+  accentClass: string;
+  avatarClass: string;
+  iconClass: string;
+  onSelect: (bidId: string, id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 max-h-[70vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-bold text-gray-900 truncate pr-4">{title}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <ul className="overflow-y-auto space-y-2">
+          {people.map((p) => (
+            <li key={p.bidId}>
+              <button
+                type="button"
+                onClick={() => { onSelect(p.bidId, p.id); onClose(); }}
+                className={`w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`w-7 h-7 shrink-0 rounded-full ${avatarClass} flex items-center justify-center text-xs font-semibold`}>
+                    {p.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 truncate">
+                    {p.name}
+                  </span>
+                </div>
+                <MessageCircle className={`w-4 h-4 shrink-0 ${iconClass}`} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function OfferCard({
   offer,
   onRequesterClick,
@@ -270,33 +334,37 @@ function OfferCard({
   offer: TrackerOffer;
   onRequesterClick: (bidId: string, otherId: string) => void;
 }) {
+  const [modalOpen, setModalOpen] = useState(false);
+
   return (
-    <div className="relative w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      <h3 className="text-lg font-bold text-gray-900 pr-8">{offer.itemName}</h3>
-      <p className="text-sm text-gray-600 mt-1">Offer</p>
-      <div className="mt-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-900">
-          {offer.requesterCount}{" "}
-          {offer.requesterCount === 1 ? "requester" : "requesters"}
-        </span>
-        <div className="flex -space-x-2">
-          {offer.requesters.slice(0, 5).map((r) => (
-            <button
-              key={r.bidId}
-              type="button"
-              onClick={() => onRequesterClick(r.bidId, r.id)}
-              className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-gray-600 text-xs font-medium hover:bg-gray-400 transition-colors"
-              title={`Chat with ${r.name}`}
-            >
-              {r.name.charAt(0).toUpperCase()}
-            </button>
-          ))}
-        </div>
+    <>
+      <div className="w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <h3 className="text-lg font-bold text-gray-900">{offer.itemName}</h3>
+        <p className="text-sm text-gray-600 mt-1">Offer</p>
+        {offer.requesterCount === 0 ? (
+          <p className="mt-3 text-xs text-gray-400 italic">No requesters yet</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="mt-3 text-sm font-medium text-gray-700 hover:text-gray-900 underline underline-offset-2 transition-colors"
+          >
+            {offer.requesterCount} {offer.requesterCount === 1 ? "requester" : "requesters"}
+          </button>
+        )}
       </div>
-      {offer.requesters.length === 0 && (
-        <p className="mt-2 text-xs text-gray-400 italic">No requesters yet</p>
+      {modalOpen && (
+        <ChatListModal
+          title={offer.itemName}
+          people={offer.requesters}
+          accentClass="bg-gray-50 hover:bg-gray-100"
+          avatarClass="bg-gray-300 text-gray-600"
+          iconClass="text-gray-400"
+          onSelect={onRequesterClick}
+          onClose={() => setModalOpen(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -307,36 +375,46 @@ function RequestCard({
   request: TrackerRequest;
   onBidderClick: (bidId: string, otherId: string) => void;
 }) {
+  const [modalOpen, setModalOpen] = useState(false);
+
   return (
-    <div className="relative w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      {request.notificationCount != null && request.notificationCount > 0 && (
-        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
-          {request.notificationCount}
-        </div>
-      )}
-      <h3 className="text-lg font-bold text-gray-900 pr-8">
-        {request.itemName}
-      </h3>
-      <p className="text-sm text-gray-600 mt-1">{request.status}</p>
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex -space-x-2">
-          {request.bidders.slice(0, 5).map((b) => (
-            <button
-              key={b.bidId}
-              type="button"
-              onClick={() => onBidderClick(b.bidId, b.id)}
-              className="w-8 h-8 rounded-full bg-blue-200 border-2 border-white flex items-center justify-center text-blue-700 text-xs font-medium hover:bg-blue-300 transition-colors"
-              title={`Chat with ${b.name}`}
-            >
-              {b.name.charAt(0).toUpperCase()}
-            </button>
-          ))}
-        </div>
-        <span className="text-[#3761B0] font-semibold">{request.price}</span>
+    <>
+      <div className="relative w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        {request.notificationCount != null && request.notificationCount > 0 && (
+          <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
+            {request.notificationCount}
+          </div>
+        )}
+        <h3 className="text-lg font-bold text-gray-900 pr-8">
+          {request.itemName}
+        </h3>
+        <p className="text-sm text-gray-600 mt-1">
+          {request.status} &middot;{" "}
+          <span className="text-[#3761B0] font-semibold">{request.price}</span>
+        </p>
+        {request.bidders.length === 0 ? (
+          <p className="mt-3 text-xs text-gray-400 italic">No providers yet</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="mt-3 text-sm font-medium text-[#3761B0] hover:text-[#2a4d8a] underline underline-offset-2 transition-colors"
+          >
+            {request.bidders.length} {request.bidders.length === 1 ? "provider" : "providers"}
+          </button>
+        )}
       </div>
-      {request.bidders.length === 0 && (
-        <p className="mt-2 text-xs text-gray-400 italic">No providers yet</p>
+      {modalOpen && (
+        <ChatListModal
+          title={request.itemName}
+          people={request.bidders}
+          accentClass="bg-blue-50 hover:bg-blue-100"
+          avatarClass="bg-blue-200 text-blue-700"
+          iconClass="text-blue-400"
+          onSelect={onBidderClick}
+          onClose={() => setModalOpen(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
