@@ -19,53 +19,71 @@ const EMAIL_EVENTS = new Set<NotificationType>([
   "new_review",
 ]);
 
+async function sendToSubscriptions(
+  subscriptions: { id: string; endpoint: string; p256dh: string; auth: string }[],
+  payload: { title: string; body: string; url: string; tag?: string },
+) {
+  await Promise.allSettled(
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          JSON.stringify(payload),
+          payload.tag ? { TTL: 3600, topic: payload.tag } : { TTL: 3600 },
+        );
+      } catch (err: unknown) {
+        const status = (err as { statusCode?: number }).statusCode;
+        if (status === 410 || status === 404) {
+          await notificationsRepo.deleteSubscriptionById(sub.id);
+        }
+      }
+    }),
+  );
+}
+
 export async function sendPushToUser(
   userId: string,
   type: NotificationType,
-  payload: { title: string; body: string; url: string }
+  payload: { title: string; body: string; url: string; contextId?: string | null },
 ): Promise<void> {
-  // 1. Always write to in-app tracker (unconditional)
+  const { contextId, ...pushPayload } = payload;
+
+  // 1. Write to in-app tracker
   try {
-    await notificationsRepo.insertNotification({
-      user_id: userId,
-      type,
-      title: payload.title,
-      body: payload.body,
-      url: payload.url,
-    });
+    if (type === "new_message" && contextId) {
+      await notificationsRepo.upsertMessageNotification({
+        user_id: userId,
+        type,
+        context_id: contextId,
+        title: pushPayload.title,
+        body: pushPayload.body,
+        url: pushPayload.url,
+      });
+    } else {
+      await notificationsRepo.insertNotification({
+        user_id: userId,
+        type,
+        title: pushPayload.title,
+        body: pushPayload.body,
+        url: pushPayload.url,
+      });
+    }
   } catch {
-    // DB insert failure — in-app tracker unavailable, continue to push/email
+    // DB failure — in-app tracker unavailable, continue to push/email
   }
 
-  // 2. Check preferences — if this event type is disabled, stop here
+  // 2. Check preferences
   const prefs = await notificationsRepo.findPreferences(userId);
   if (prefs && prefs[type as keyof typeof prefs] === false) return;
 
-  // 3. Send Web Push to all registered devices
+  // 3. Send Web Push
   const subscriptions = await notificationsRepo.findSubscriptionsForUser(userId);
   if (subscriptions.length > 0) {
-    await Promise.allSettled(
-      subscriptions.map(async (sub) => {
-        try {
-          await webpush.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: { p256dh: sub.p256dh, auth: sub.auth },
-            },
-            JSON.stringify({ title: payload.title, body: payload.body, url: payload.url })
-          );
-        } catch (err: unknown) {
-          const status = (err as { statusCode?: number }).statusCode;
-          if (status === 410 || status === 404) {
-            // Stale subscription — delete immediately
-            await notificationsRepo.deleteSubscriptionById(sub.id);
-          }
-        }
-      })
-    );
+    const tag = type === "new_message" && contextId ? `chat_${contextId}` : undefined;
+    await sendToSubscriptions(subscriptions, { ...pushPayload, tag });
   }
 
-  // 4. Send email for qualifying event types
+  // 4. Send email for qualifying events
   if (EMAIL_EVENTS.has(type)) {
     try {
       const adminClient = await createAdminClient();
@@ -75,12 +93,22 @@ export async function sendPushToUser(
         await resend.emails.send({
           from: process.env.RESEND_FROM!,
           to: email,
-          subject: payload.title,
-          text: `${payload.body ?? ""}\n\nView: ${process.env.NEXT_PUBLIC_SITE_URL}${payload.url}`,
+          subject: pushPayload.title,
+          text: `${pushPayload.body ?? ""}\n\nView: ${process.env.NEXT_PUBLIC_SITE_URL}${pushPayload.url}`,
         });
       }
     } catch {
       // Email failure must never block the caller
     }
   }
+}
+
+export async function sendPushToAllUsers(
+  excludeUserId: string,
+  payload: { title: string; body: string; url: string },
+): Promise<void> {
+  // No in-app row — broadcast push only
+  const subscriptions = await notificationsRepo.findSubscriptionsForBroadcast(excludeUserId);
+  if (subscriptions.length === 0) return;
+  await sendToSubscriptions(subscriptions, payload);
 }
