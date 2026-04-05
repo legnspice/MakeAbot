@@ -17,6 +17,7 @@ import {
   ListChecks,
   Bell,
   MailQuestionMark,
+  UserPen,
 } from "lucide-react";
 import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 import Link from "next/link";
@@ -63,6 +64,13 @@ const STEPS = [
     iconColor: "text-[#E5A550]",
     title: "Notifications",
     body: "You'll be notified when someone inquires on your post or sends you a message. Check the notification bell to stay up to date.",
+  },
+  {
+    icon: UserPen,
+    iconBg: "bg-amber-100",
+    iconColor: "text-[#E5A550]",
+    title: "Profile",
+    body: "",
   },
   {
     icon: MailQuestionMark,

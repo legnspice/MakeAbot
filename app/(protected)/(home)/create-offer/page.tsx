@@ -11,6 +11,7 @@ import { ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { createPost } from "@/lib/actions/posts";
 import { createClient } from "@/lib/supabase/client";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
 
 export default function CreateOffer() {
@@ -18,6 +19,8 @@ export default function CreateOffer() {
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { requestPermissionAndSubscribe } = usePushSubscription();
 
   const [itemKind, setItemKind] = useState<"Item" | "Service">("Item");
   const [isPosting, setIsPosting] = useState(false);
@@ -86,6 +89,7 @@ export default function CreateOffer() {
         status: "Active",
         type: itemKind,
       });
+      requestPermissionAndSubscribe().catch(() => {});
       router.push("/");
     } finally {
       setIsPosting(false);

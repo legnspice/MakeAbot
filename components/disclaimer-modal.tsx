@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CircleAlert } from "lucide-react";
+import { CircleAlert, TriangleAlert } from "lucide-react";
 
 const STORAGE_KEY = "disclaimer_accepted_v1";
 
@@ -47,7 +47,7 @@ export function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
       >
         <DialogHeader>
           <DialogTitle className="text-center flex flex-col justify-center items-center">
-            <CircleAlert />
+            <TriangleAlert className="mb-3" />
             Just a quick disclaimer...
           </DialogTitle>
         </DialogHeader>
