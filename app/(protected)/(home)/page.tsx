@@ -49,7 +49,10 @@ function getPriceRank(price: string): number {
   return 4;
 }
 
-async function fetchHomeItems(userId: string, userName: string | null | undefined) {
+async function fetchHomeItems(
+  userId: string,
+  userName: string | null | undefined,
+) {
   const [postsResult, requestsResult] = await Promise.all([
     getPosts({}),
     getRequests({}),
@@ -64,28 +67,57 @@ async function fetchHomeItems(userId: string, userName: string | null | undefine
   const usersMap = new Map<string, string>();
   if (userIds.size > 0) {
     const usersResult = await getUsers({ ids: Array.from(userIds) });
-    for (const u of usersResult.data ?? []) usersMap.set(u.id, u.name ?? "User");
+    for (const u of usersResult.data ?? [])
+      usersMap.set(u.id, u.name ?? "User");
   }
 
   const mapped: ListItem[] = [];
 
   for (const post of postsResult.data ?? []) {
-    const posterName = post.user_id === userId ? (userName ?? "You") : (usersMap.get(post.user_id ?? "") ?? "User");
+    const posterName =
+      post.user_id === userId
+        ? (userName ?? "You")
+        : (usersMap.get(post.user_id ?? "") ?? "User");
     mapped.push({
-      id: post.id, itemDbId: post.id, userId: post.user_id ?? "",
-      variant: "lent", requestedBy: `Offered by: ${posterName}`,
-      price: formatPrice(post.price), typeBadge: "Offer",
-      detail: { title: post.title, lentBy: posterName, quantity: 1, price: formatPrice(post.price), description: post.description ?? undefined, imageUrl: post.imgUrl ?? undefined },
+      id: post.id,
+      itemDbId: post.id,
+      userId: post.user_id ?? "",
+      variant: "lent",
+      requestedBy: `Offered by: ${posterName}`,
+      price: formatPrice(post.price),
+      typeBadge: "Offer",
+      detail: {
+        title: post.title,
+        lentBy: posterName,
+        quantity: 1,
+        price: formatPrice(post.price),
+        description: post.description ?? undefined,
+        imageUrl: post.imgUrl ?? undefined,
+      },
     });
   }
 
   for (const req of requestsResult.data ?? []) {
-    const posterName = req.user_id === userId ? (userName ?? "You") : (usersMap.get(req.user_id ?? "") ?? "User");
+    const posterName =
+      req.user_id === userId
+        ? (userName ?? "You")
+        : (usersMap.get(req.user_id ?? "") ?? "User");
     mapped.push({
-      id: req.id, itemDbId: req.id, userId: req.user_id ?? "",
-      variant: "requested", requestedBy: `Requested by: ${posterName}`,
-      price: formatPrice(req.fee), typeBadge: "Request",
-      detail: { title: req.title, requestedBy: posterName, quantity: 1, price: formatPrice(req.fee), description: req.description ?? undefined, imageUrl: req.imgUrl ?? undefined },
+      id: req.id,
+      itemDbId: req.id,
+      userId: req.user_id ?? "",
+      variant: "requested",
+      requestedBy: `Requested by: ${posterName}`,
+      price: formatPrice(req.fee),
+      typeBadge: "Request",
+      detail: {
+        title: req.title,
+        requestedBy: posterName,
+        quantity: 1,
+        price: formatPrice(req.fee),
+        description: req.description ?? undefined,
+        imageUrl: req.imgUrl ?? undefined,
+      },
     });
   }
 
@@ -118,7 +150,9 @@ export default function Home() {
         setIsLoading(false);
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser.id, currentUser.name]);
 
   const filterByCategory =
@@ -312,7 +346,7 @@ export default function Home() {
                     type="button"
                     onClick={() => {
                       setIsTypePickerOpen(false);
-                      router.push("/home/create-offer");
+                      router.push("/create-offer");
                     }}
                     className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#E5A550] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
                   >
@@ -334,7 +368,7 @@ export default function Home() {
                     type="button"
                     onClick={() => {
                       setIsTypePickerOpen(false);
-                      router.push("/home/create-request");
+                      router.push("/create-request");
                     }}
                     className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#3761B0] hover:bg-blue-50 active:bg-blue-100 transition-colors group"
                   >
