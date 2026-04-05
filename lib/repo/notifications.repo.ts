@@ -54,7 +54,7 @@ export async function upsertMessageNotification(
       updated_at    = now()
     RETURNING *
   `);
-  return result.rows[0];
+  return result[0];
 }
 
 export async function markNotificationRead(id: string, userId: string) {
