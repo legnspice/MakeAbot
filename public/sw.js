@@ -9,12 +9,28 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body ?? "",
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-192x192.png",
-      data: { url: data.url ?? "/" },
-    })
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        // Silent push: if user is already on the relevant chat page, skip OS notification.
+        // The bell badge updates automatically via Supabase Realtime.
+        if (data.tag) {
+          const bidId = data.tag.replace("chat_", "");
+          const isOnChat = windowClients.some(
+            (c) => c.focused && c.url.includes(`bidId=${bidId}`),
+          );
+          if (isOnChat) return;
+        }
+
+        return self.registration.showNotification(data.title, {
+          body: data.body ?? "",
+          icon: "/icons/icon-192x192.png",
+          badge: "/icons/icon-192x192.png",
+          tag: data.tag,       // browser collapses notifications with same tag
+          renotify: false,     // replace silently — no new sound/vibration
+          data: { url: data.url ?? "/" },
+        });
+      }),
   );
 });
 
@@ -33,6 +49,6 @@ self.addEventListener("notificationclick", (event) => {
           }
         }
         return clients.openWindow(url);
-      })
+      }),
   );
 });
