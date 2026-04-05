@@ -9,7 +9,7 @@ import ItemRequestCard from "@/components/ui/item";
 import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
-import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
+import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
 import { Plus, Tag, HelpCircle, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { getPosts, getPostBids, createPostBid } from "@/lib/actions/posts";
@@ -131,7 +131,8 @@ export default function Home() {
 
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [customFilters, setCustomFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>("date");
+  const [dateSort, setDateSort] = useState<DateSort | null>(null);
+  const [priceSort, setPriceSort] = useState<PriceSort | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [addFilterOpen, setAddFilterOpen] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
@@ -175,12 +176,18 @@ export default function Home() {
       )
     : filterByCategory;
 
-  const filteredItems =
-    sortBy === "date"
-      ? [...afterSearch]
-      : [...afterSearch].sort(
-          (a, b) => getPriceRank(a.price) - getPriceRank(b.price),
-        );
+  const filteredItems = (() => {
+    const base = afterSearch.map((item, i) => ({ item, i }));
+    base.sort((a, b) => {
+      if (priceSort) {
+        const diff = getPriceRank(a.item.price) - getPriceRank(b.item.price);
+        if (diff !== 0) return priceSort === "price-lowest" ? diff : -diff;
+      }
+      if (dateSort === "date-oldest") return b.i - a.i;
+      return a.i - b.i; // date-newest / default
+    });
+    return base.map(({ item }) => item);
+  })();
 
   const handleAddFilter = () => {
     const name = newFilterName.trim();
@@ -262,8 +269,10 @@ export default function Home() {
           newFilterName={newFilterName}
           onNewFilterNameChange={setNewFilterName}
           onAddFilter={handleAddFilter}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
+          dateSort={dateSort}
+          priceSort={priceSort}
+          onDateSortChange={setDateSort}
+          onPriceSortChange={setPriceSort}
           sortModalOpen={sortMenuOpen}
           onSortModalOpenChange={setSortMenuOpen}
           showSearch={searchOpen}

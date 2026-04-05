@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, ChevronDown, Search } from 'lucide-react';
 
-export type SortOption = 'date' | 'price';
+export type DateSort = 'date-newest' | 'date-oldest';
+export type PriceSort = 'price-highest' | 'price-lowest';
 
 export interface FilterBarProps {
   filterLabels: string[];
@@ -15,8 +16,10 @@ export interface FilterBarProps {
   newFilterName: string;
   onNewFilterNameChange: (value: string) => void;
   onAddFilter: () => void;
-  sortBy: SortOption;
-  onSortChange: (sort: SortOption) => void;
+  dateSort: DateSort | null;
+  priceSort: PriceSort | null;
+  onDateSortChange: (sort: DateSort | null) => void;
+  onPriceSortChange: (sort: PriceSort | null) => void;
   sortModalOpen: boolean;
   onSortModalOpenChange: (open: boolean) => void;
   showSearch?: boolean;
@@ -34,8 +37,10 @@ export default function FilterBar({
   newFilterName,
   onNewFilterNameChange,
   onAddFilter,
-  sortBy,
-  onSortChange,
+  dateSort,
+  priceSort,
+  onDateSortChange,
+  onPriceSortChange,
   sortModalOpen,
   onSortModalOpenChange,
   showSearch = false,
@@ -215,38 +220,46 @@ export default function FilterBar({
             aria-modal="true"
             aria-labelledby="sort-modal-title"
           >
-            <h2 id="sort-modal-title" className="text-lg font-bold text-gray-900 mb-4">
+            <h2 id="sort-modal-title" className="text-lg font-bold text-gray-900 mb-5">
               Sort by
             </h2>
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                className={`w-full rounded-xl px-4 py-3 text-left font-medium ${
-                  sortBy === 'date'
-                    ? 'bg-[#3761B0] text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                onClick={() => {
-                  onSortChange('date');
-                  onSortModalOpenChange(false);
-                }}
-              >
-                Date
-              </button>
-              <button
-                type="button"
-                className={`w-full rounded-xl px-4 py-3 text-left font-medium ${
-                  sortBy === 'price'
-                    ? 'bg-[#3761B0] text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                onClick={() => {
-                  onSortChange('price');
-                  onSortModalOpenChange(false);
-                }}
-              >
-                Price
-              </button>
+
+            {/* Date section */}
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Date</p>
+            <div className="flex gap-2 mb-5">
+              {([null, 'date-newest', 'date-oldest'] as const).map((opt) => (
+                <button
+                  key={opt ?? 'none-date'}
+                  type="button"
+                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                    dateSort === opt
+                      ? 'bg-[#3761B0] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => onDateSortChange(dateSort === opt ? null : opt)}
+                >
+                  {opt === null ? 'None' : opt === 'date-newest' ? 'Newest' : 'Oldest'}
+                </button>
+              ))}
+            </div>
+
+            {/* Price section */}
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Price</p>
+            <div className="flex gap-2">
+              {([null, 'price-lowest', 'price-highest'] as const).map((opt) => (
+                <button
+                  key={opt ?? 'none-price'}
+                  type="button"
+                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                    priceSort === opt
+                      ? 'bg-[#3761B0] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  onClick={() => onPriceSortChange(priceSort === opt ? null : opt)}
+                >
+                  {opt === null ? 'None' : opt === 'price-lowest' ? 'Lowest' : 'Highest'}
+                </button>
+              ))}
             </div>
           </div>
         </div>

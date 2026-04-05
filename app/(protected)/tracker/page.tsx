@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
-import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
+import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
 import { getPosts, getPostBids } from "@/lib/actions/posts";
@@ -108,7 +108,8 @@ export default function TrackerPage() {
 
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [customFilters, setCustomFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>("date");
+  const [dateSort, setDateSort] = useState<DateSort | null>(null);
+  const [priceSort, setPriceSort] = useState<PriceSort | null>(null);
   const [sortModalOpen, setSortModalOpen] = useState(false);
   const [addFilterOpen, setAddFilterOpen] = useState(false);
   const [newFilterName, setNewFilterName] = useState("");
@@ -163,14 +164,20 @@ export default function TrackerPage() {
     ? cards.filter((c) => c.data.itemName.toLowerCase().includes(searchLower))
     : cards;
 
-  const sortedCards =
-    sortBy === "date"
-      ? filteredCards
-      : [...filteredCards].sort((a, b) => {
-          const priceA = a.type === "offer" ? "FREE" : a.data.price;
-          const priceB = b.type === "offer" ? "FREE" : b.data.price;
-          return getPriceRank(priceA) - getPriceRank(priceB);
-        });
+  const sortedCards = (() => {
+    const base = filteredCards.map((card, i) => ({ card, i }));
+    base.sort((a, b) => {
+      if (priceSort) {
+        const pA = a.card.type === "offer" ? "FREE" : a.card.data.price;
+        const pB = b.card.type === "offer" ? "FREE" : b.card.data.price;
+        const diff = getPriceRank(pA) - getPriceRank(pB);
+        if (diff !== 0) return priceSort === "price-lowest" ? diff : -diff;
+      }
+      if (dateSort === "date-oldest") return b.i - a.i;
+      return a.i - b.i; // date-newest / default
+    });
+    return base.map(({ card }) => card);
+  })();
 
   const handleAddFilter = () => {
     const name = newFilterName.trim();
@@ -209,8 +216,10 @@ export default function TrackerPage() {
         newFilterName={newFilterName}
         onNewFilterNameChange={setNewFilterName}
         onAddFilter={handleAddFilter}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
+        dateSort={dateSort}
+        priceSort={priceSort}
+        onDateSortChange={setDateSort}
+        onPriceSortChange={setPriceSort}
         sortModalOpen={sortModalOpen}
         onSortModalOpenChange={setSortModalOpen}
         showSearch={searchOpen}
