@@ -56,7 +56,7 @@ export async function acceptRequestBid(bidId: string, requestOwnerId: string) {
   })();
 }
 
-export async function rejectRequestBid(bidId: string, requestOwnerId: string) {
+export async function rejectRequestBid(bidId: string, _requestOwnerId: string) {
   await requestsRepo.updateRequestBidStatus(bidId, "Closed");
   // fire-and-forget
   (async () => {
