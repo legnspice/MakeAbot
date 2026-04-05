@@ -1,19 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 export function usePushSubscription() {
-  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [permission, setPermission] = useState<NotificationPermission>(
+    typeof Notification !== "undefined" ? Notification.permission : "default",
+  );
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  useEffect(() => {
-    if (typeof Notification !== "undefined") {
-      setPermission(Notification.permission);
-    }
-  }, []);
-
   const requestPermissionAndSubscribe = useCallback(async () => {
-    if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator))
+      return;
     if (Notification.permission === "denied") return; // never re-prompt if denied
 
     const result = await Notification.requestPermission();
@@ -34,7 +31,9 @@ export function usePushSubscription() {
     // Subscribe
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
+      applicationServerKey: urlBase64ToUint8Array(
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      ).buffer as ArrayBuffer,
     });
 
     const { endpoint, keys } = subscription.toJSON() as {
@@ -53,7 +52,8 @@ export function usePushSubscription() {
 
   const unsubscribe = useCallback(async () => {
     if (!("serviceWorker" in navigator)) return;
-    const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+    const registration =
+      await navigator.serviceWorker.getRegistration("/sw.js");
     if (!registration) return;
     const subscription = await registration.pushManager.getSubscription();
     if (!subscription) return;
@@ -68,7 +68,12 @@ export function usePushSubscription() {
     setIsSubscribed(false);
   }, []);
 
-  return { permission, isSubscribed, requestPermissionAndSubscribe, unsubscribe };
+  return {
+    permission,
+    isSubscribed,
+    requestPermissionAndSubscribe,
+    unsubscribe,
+  };
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
