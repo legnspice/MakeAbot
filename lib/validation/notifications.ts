@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = [
   "bid_accepted",
   "bid_rejected",
   "new_review",
+  "new_request",
 ] as const;
 
 export const NotificationTypeEnum = z.enum(NOTIFICATION_TYPES);
@@ -14,6 +15,7 @@ export type NotificationType = z.infer<typeof NotificationTypeEnum>;
 export const insertNotificationSchema = z.object({
   user_id: z.string().uuid(),
   type: NotificationTypeEnum,
+  context_id: z.string().optional(),
   title: z.string().min(1),
   body: z.string().optional(),
   url: z.string().optional(),
@@ -33,5 +35,6 @@ export const updatePreferencesSchema = z.object({
   bid_accepted: z.boolean().optional(),
   bid_rejected: z.boolean().optional(),
   new_review: z.boolean().optional(),
+  new_request: z.boolean().optional(),
 });
 export type UpdatePreferencesSchema = z.infer<typeof updatePreferencesSchema>;
