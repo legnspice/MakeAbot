@@ -43,13 +43,13 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           >
             Home
           </Link>
-          <NotificationsBell onClick={() => setNotificationsOpen((v) => !v)} />
           <Link
             href="/tracker"
             className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             Tracker
           </Link>
+          <NotificationsBell onClick={() => setNotificationsOpen((v) => !v)} />
           <button
             type="button"
             onClick={openTutorial}

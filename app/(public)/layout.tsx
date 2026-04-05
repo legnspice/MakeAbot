@@ -4,7 +4,11 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
-import { TutorialProvider, useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
+import {
+  TutorialProvider,
+  useTutorial,
+  TUTORIAL_STORAGE_KEY,
+} from "@/contexts/tutorial-context";
 import { TutorialModal } from "@/components/tutorial-modal";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 import { DisclaimerModal } from "@/components/disclaimer-modal";

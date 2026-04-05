@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Navbar from '@/components/ui/navbar';
-import BottomNav from '@/components/ui/bottomnavbar';
-import FilterBar, { type SortOption } from '@/components/ui/filter-bar';
-import { useAuth } from '@/contexts/auth-context';
-import { TrackerPageSkeleton } from '@/components/ui/skeletons/tracker-skeleton';
-import { getPosts, getPostBids } from '@/lib/actions/posts';
-import { getRequests, getRequestBids } from '@/lib/actions/requests';
-import { getUsers } from '@/lib/actions/users';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Navbar from "@/components/ui/navbar";
+import BottomNav from "@/components/ui/bottomnavbar";
+import FilterBar, { type SortOption } from "@/components/ui/filter-bar";
+import { useAuth } from "@/contexts/auth-context";
+import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
+import { getPosts, getPostBids } from "@/lib/actions/posts";
+import { getRequests, getRequestBids } from "@/lib/actions/requests";
+import { getUsers } from "@/lib/actions/users";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
-  if (p === 'FREE') return 0;
-  if (p.startsWith('₱')) return parseInt(p.slice(1), 10) || 1;
-  if (p === '$') return 1;
-  if (p === '$$') return 2;
-  if (p === '$$$') return 3;
+  if (p === "FREE") return 0;
+  if (p.startsWith("₱")) return parseInt(p.slice(1), 10) || 1;
+  if (p === "$") return 1;
+  if (p === "$$") return 2;
+  if (p === "$$$") return 3;
   return 4;
 }
 
 function formatPrice(value: number | null | undefined): string {
-  if (value == null || value === 0) return 'FREE';
+  if (value == null || value === 0) return "FREE";
   return `₱${value}`;
 }
 
@@ -43,21 +43,23 @@ type TrackerRequest = {
   notificationCount?: number;
 };
 
-type TrackerCard = { type: 'offer'; data: TrackerOffer } | { type: 'request'; data: TrackerRequest };
+type TrackerCard =
+  | { type: "offer"; data: TrackerOffer }
+  | { type: "request"; data: TrackerRequest };
 
 export default function TrackerPage() {
   const router = useRouter();
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
 
-  const [activeFilter, setActiveFilter] = useState<string>('All');
+  const [activeFilter, setActiveFilter] = useState<string>("All");
   const [customFilters, setCustomFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('date');
+  const [sortBy, setSortBy] = useState<SortOption>("date");
   const [sortModalOpen, setSortModalOpen] = useState(false);
   const [addFilterOpen, setAddFilterOpen] = useState(false);
-  const [newFilterName, setNewFilterName] = useState('');
+  const [newFilterName, setNewFilterName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
@@ -70,10 +72,16 @@ export default function TrackerPage() {
 
     // Fetch all bids in parallel
     const postBidFetches = (postsResult.data ?? []).map((post) =>
-      getPostBids({ post_id: post.id }).then((r) => ({ post, bids: r.data ?? [] }))
+      getPostBids({ post_id: post.id }).then((r) => ({
+        post,
+        bids: r.data ?? [],
+      })),
     );
     const reqBidFetches = (requestsResult.data ?? []).map((req) =>
-      getRequestBids({ request_id: req.id }).then((r) => ({ req, bids: r.data ?? [] }))
+      getRequestBids({ request_id: req.id }).then((r) => ({
+        req,
+        bids: r.data ?? [],
+      })),
     );
     const [postBidGroups, reqBidGroups] = await Promise.all([
       Promise.all(postBidFetches),
@@ -93,7 +101,7 @@ export default function TrackerPage() {
     if (userIds.size > 0) {
       const usersResult = await getUsers({ ids: Array.from(userIds) });
       for (const u of usersResult.data ?? []) {
-        usersMap.set(u.id, u.name ?? 'User');
+        usersMap.set(u.id, u.name ?? "User");
       }
     }
 
@@ -104,7 +112,7 @@ export default function TrackerPage() {
       requesterCount: bids.length,
       requesters: bids.map((bid) => ({
         id: bid.bidder_id,
-        name: usersMap.get(bid.bidder_id) ?? 'User',
+        name: usersMap.get(bid.bidder_id) ?? "User",
         bidId: bid.id,
       })),
     }));
@@ -118,7 +126,7 @@ export default function TrackerPage() {
       price: formatPrice(req.fee),
       bidders: bids.map((bid) => ({
         id: bid.bidder_id,
-        name: usersMap.get(bid.bidder_id) ?? 'User',
+        name: usersMap.get(bid.bidder_id) ?? "User",
         bidId: bid.id,
       })),
       notificationCount: bids.length > 0 ? bids.length : undefined,
@@ -131,25 +139,32 @@ export default function TrackerPage() {
     loadData();
   }, [loadData]);
 
-  const allFilterLabels = ['All', 'Offers', 'Requests', ...customFilters];
+  const allFilterLabels = ["All", "Offers", "Requests", ...customFilters];
 
   const filterOffers = (list: TrackerOffer[]) =>
-    activeFilter === 'All' || activeFilter === 'Offers'
+    activeFilter === "All" || activeFilter === "Offers"
       ? list
-      : activeFilter === 'Requests'
+      : activeFilter === "Requests"
         ? []
-        : list.filter((o) => o.itemName.toLowerCase().includes(activeFilter.toLowerCase()));
+        : list.filter((o) =>
+            o.itemName.toLowerCase().includes(activeFilter.toLowerCase()),
+          );
 
   const filterRequests = (list: TrackerRequest[]) =>
-    activeFilter === 'All' || activeFilter === 'Requests'
+    activeFilter === "All" || activeFilter === "Requests"
       ? list
-      : activeFilter === 'Offers'
+      : activeFilter === "Offers"
         ? []
-        : list.filter((r) => r.itemName.toLowerCase().includes(activeFilter.toLowerCase()));
+        : list.filter((r) =>
+            r.itemName.toLowerCase().includes(activeFilter.toLowerCase()),
+          );
 
   const cards: TrackerCard[] = [
-    ...filterOffers(offers).map((data) => ({ type: 'offer' as const, data })),
-    ...filterRequests(requests).map((data) => ({ type: 'request' as const, data })),
+    ...filterOffers(offers).map((data) => ({ type: "offer" as const, data })),
+    ...filterRequests(requests).map((data) => ({
+      type: "request" as const,
+      data,
+    })),
   ];
 
   const searchLower = searchQuery.trim().toLowerCase();
@@ -158,11 +173,11 @@ export default function TrackerPage() {
     : cards;
 
   const sortedCards =
-    sortBy === 'date'
+    sortBy === "date"
       ? filteredCards
       : [...filteredCards].sort((a, b) => {
-          const priceA = a.type === 'offer' ? 'FREE' : a.data.price;
-          const priceB = b.type === 'offer' ? 'FREE' : b.data.price;
+          const priceA = a.type === "offer" ? "FREE" : a.data.price;
+          const priceB = b.type === "offer" ? "FREE" : b.data.price;
           return getPriceRank(priceA) - getPriceRank(priceB);
         });
 
@@ -171,20 +186,28 @@ export default function TrackerPage() {
     if (name && !customFilters.includes(name)) {
       setCustomFilters((prev) => [...prev, name]);
       setActiveFilter(name);
-      setNewFilterName('');
+      setNewFilterName("");
       setAddFilterOpen(false);
     }
   };
 
-  const goToChat = (bidId: string, kind: 'offer' | 'request', title: string, otherId: string) => {
+  const goToChat = (
+    bidId: string,
+    kind: "offer" | "request",
+    title: string,
+    otherId: string,
+  ) => {
     router.push(
-      `/chat?bidId=${encodeURIComponent(bidId)}&kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}&otherId=${encodeURIComponent(otherId)}`
+      `/chat?bidId=${encodeURIComponent(bidId)}&kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}&otherId=${encodeURIComponent(otherId)}`,
     );
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar onSearchToggle={() => setSearchOpen((o) => !o)} searchOpen={searchOpen} />
+      <Navbar
+        onSearchToggle={() => setSearchOpen((o) => !o)}
+        searchOpen={searchOpen}
+      />
 
       <FilterBar
         filterLabels={allFilterLabels}
@@ -212,12 +235,12 @@ export default function TrackerPage() {
           <section aria-label="Tracker">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
               {sortedCards.map((card) =>
-                card.type === 'offer' ? (
+                card.type === "offer" ? (
                   <OfferCard
                     key={`offer-${card.data.id}`}
                     offer={card.data}
                     onRequesterClick={(bidId, otherId) =>
-                      goToChat(bidId, 'offer', card.data.itemName, otherId)
+                      goToChat(bidId, "offer", card.data.itemName, otherId)
                     }
                   />
                 ) : (
@@ -225,10 +248,10 @@ export default function TrackerPage() {
                     key={`request-${card.data.id}`}
                     request={card.data}
                     onBidderClick={(bidId, otherId) =>
-                      goToChat(bidId, 'request', card.data.itemName, otherId)
+                      goToChat(bidId, "request", card.data.itemName, otherId)
                     }
                   />
-                )
+                ),
               )}
             </div>
           </section>
@@ -253,7 +276,8 @@ function OfferCard({
       <p className="text-sm text-gray-600 mt-1">Offer</p>
       <div className="mt-3 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-900">
-          {offer.requesterCount} {offer.requesterCount === 1 ? 'requester' : 'requesters'}
+          {offer.requesterCount}{" "}
+          {offer.requesterCount === 1 ? "requester" : "requesters"}
         </span>
         <div className="flex -space-x-2">
           {offer.requesters.slice(0, 5).map((r) => (
@@ -290,7 +314,9 @@ function RequestCard({
           {request.notificationCount}
         </div>
       )}
-      <h3 className="text-lg font-bold text-gray-900 pr-8">{request.itemName}</h3>
+      <h3 className="text-lg font-bold text-gray-900 pr-8">
+        {request.itemName}
+      </h3>
       <p className="text-sm text-gray-600 mt-1">{request.status}</p>
       <div className="mt-3 flex items-center justify-between">
         <div className="flex -space-x-2">
