@@ -19,6 +19,7 @@ const EVENT_LABELS: Record<
   bid_accepted: "Your bid was accepted",
   bid_rejected: "Your bid was not accepted",
   new_review: "New reviews",
+  new_request: "New requests from others",
 };
 
 export default function NotificationSettingsPage() {
