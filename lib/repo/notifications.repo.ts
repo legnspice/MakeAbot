@@ -12,7 +12,7 @@ import { InsertNotificationSchema } from "../validation/notifications";
 export async function findNotificationsForUser(userId: string) {
   return await db.query.notifications.findMany({
     where: eq(notifications.user_id, userId),
-    orderBy: [desc(notifications.created_at)],
+    orderBy: [desc(notifications.updated_at)],
   });
 }
 
@@ -32,22 +32,29 @@ export async function insertNotification(data: InsertNotificationSchema) {
 export async function upsertMessageNotification(
   data: InsertNotificationSchema & { context_id: string },
 ) {
-  const [row] = await db
-    .insert(notifications)
-    .values({ ...data, message_count: 1 })
-    .onConflictDoUpdate({
-      target: [notifications.user_id, notifications.type, notifications.context_id],
-      targetWhere: sql`${notifications.context_id} IS NOT NULL`,
-      set: {
-        message_count: sql`${notifications.message_count} + 1`,
-        body: sql`excluded.body`,
-        title: sql`excluded.title`,
-        is_read: false,
-        updated_at: sql`now()`,
-      },
-    })
-    .returning();
-  return row;
+  const result = await db.execute(sql`
+    INSERT INTO notifications (user_id, type, context_id, title, body, url, message_count, is_read, updated_at)
+    VALUES (
+      ${data.user_id},
+      ${data.type},
+      ${data.context_id},
+      ${data.title},
+      ${data.body ?? null},
+      ${data.url ?? null},
+      1,
+      false,
+      now()
+    )
+    ON CONFLICT (user_id, type, context_id) WHERE context_id IS NOT NULL
+    DO UPDATE SET
+      message_count = notifications.message_count + 1,
+      body          = excluded.body,
+      title         = excluded.title,
+      is_read       = false,
+      updated_at    = now()
+    RETURNING *
+  `);
+  return result.rows[0];
 }
 
 export async function markNotificationRead(id: string, userId: string) {

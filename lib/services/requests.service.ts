@@ -18,7 +18,7 @@ export async function getRequestBids(filters: FindRequestBidsSchema) {
 
 export async function createRequest(data: InsertRequestSchema) {
   const request = await requestsRepo.insertRequest(data);
-  if (data.user_id) {
+  if (request && data.user_id) {
     // fire-and-forget — failure must not throw
     sendPushToAllUsers(data.user_id, {
       title: "New request posted",

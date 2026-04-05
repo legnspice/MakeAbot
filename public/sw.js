@@ -17,7 +17,7 @@ self.addEventListener("push", (event) => {
         if (data.tag) {
           const bidId = data.tag.replace("chat_", "");
           const isOnChat = windowClients.some(
-            (c) => c.focused && c.url.includes(`bidId=${bidId}`),
+            (c) => c.url.includes(`bidId=${bidId}`),
           );
           if (isOnChat) return;
         }

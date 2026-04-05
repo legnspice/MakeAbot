@@ -29,6 +29,8 @@ const CATEGORY_MAP: Record<string, Category> = {
   bid_accepted: "Activity",
   bid_rejected: "Activity",
   new_review: "Activity",
+  // new_request has no in-app row today (broadcast push-only), but mapped defensively
+  new_request: "Activity",
 };
 
 function groupNotifications(items: SelectNotification[]) {
@@ -62,7 +64,12 @@ export default function NotificationsPanel({ open, onClose }: Props) {
   const loading = open && !loaded;
 
   useEffect(() => {
-    if (!open || loaded) return;
+    if (!open) {
+      // Reset so re-opening always fetches fresh data
+      setLoaded(false);
+      return;
+    }
+    if (loaded) return;
     let cancelled = false;
     getNotifications().then((result) => {
       if (!cancelled) {

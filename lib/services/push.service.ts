@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import * as notificationsRepo from "../repo/notifications.repo";
 import { createAdminClient } from "../supabase/admin";
 import { NotificationType } from "../validation/notifications";
+import type { SelectNotificationPreferences } from "../db/schema";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -74,7 +75,10 @@ export async function sendPushToUser(
 
   // 2. Check preferences
   const prefs = await notificationsRepo.findPreferences(userId);
-  if (prefs && prefs[type as keyof typeof prefs] === false) return;
+  if (prefs) {
+    const prefKey = type as keyof Omit<SelectNotificationPreferences, "user_id">;
+    if (prefKey in prefs && prefs[prefKey] === false) return;
+  }
 
   // 3. Send Web Push
   const subscriptions = await notificationsRepo.findSubscriptionsForUser(userId);
