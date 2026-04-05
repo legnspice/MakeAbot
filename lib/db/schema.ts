@@ -119,9 +119,49 @@ export const post_bids = pgTable("post_bids", {
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  url: text("url"),
+  is_read: boolean("is_read").notNull().default(false),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const push_subscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const notification_preferences = pgTable("notification_preferences", {
+  user_id: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  new_message: boolean("new_message").notNull().default(true),
+  new_bid: boolean("new_bid").notNull().default(true),
+  bid_accepted: boolean("bid_accepted").notNull().default(true),
+  bid_rejected: boolean("bid_rejected").notNull().default(true),
+  new_review: boolean("new_review").notNull().default(true),
+});
+
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
 export type SelectMessage = typeof messages.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
 export type SelectPost = typeof posts.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+export type SelectNotification = typeof notifications.$inferSelect;
+export type InsertPushSubscription = typeof push_subscriptions.$inferInsert;
+export type SelectPushSubscription = typeof push_subscriptions.$inferSelect;
+export type SelectNotificationPreferences = typeof notification_preferences.$inferSelect;

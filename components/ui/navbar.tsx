@@ -6,6 +6,7 @@ import { User, Search, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useTutorial } from "@/contexts/tutorial-context";
 import NotificationsPanel from "@/components/ui/notifications-panel";
+import NotificationsBell from "@/components/notifications-bell";
 
 type NavbarProps = {
   onSearchToggle?: () => void;
@@ -42,19 +43,13 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           >
             Home
           </Link>
-          <button
-            type="button"
-            onClick={() => setNotificationsOpen((v) => !v)}
-            className={`flex items-center gap-2 text-sm font-medium transition-colors ${notificationsOpen ? "text-[#3761B0]" : "text-gray-700 hover:text-[#3761B0]"}`}
-          >
-            Notifications
-          </button>
           <Link
             href="/tracker"
             className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             Tracker
           </Link>
+          <NotificationsBell onClick={() => setNotificationsOpen((v) => !v)} />
           <button
             type="button"
             onClick={openTutorial}
@@ -66,7 +61,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           </button>
           <Link
             href="/profile"
-            className="flex items-center ml-5 gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             {/* {displayName} */}
             <div className="relative w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">

@@ -10,6 +10,18 @@ import {
   UpdateRequestSchema,
 } from "@/lib/validation/requests";
 
+export async function findRequestById(id: string) {
+  return await db.query.requests.findFirst({
+    where: eq(requests.id, id),
+  });
+}
+
+export async function findRequestBidById(id: string) {
+  return await db.query.request_bids.findFirst({
+    where: eq(request_bids.id, id),
+  });
+}
+
 export async function findRequests(filters: FindRequestsSchema) {
   const { id, user_id, fee, title, status, urgency, created_at } = filters;
   const conditions = [];
@@ -57,7 +69,8 @@ export async function insertRequest(data: InsertRequestSchema) {
 }
 
 export async function insertRequestBid(data: InsertRequestBidSchema) {
-  return await db.insert(request_bids).values(data);
+  const [bid] = await db.insert(request_bids).values(data).returning();
+  return bid;
 }
 
 export async function deleteRequest(id: string, userId: string) {
@@ -81,4 +94,14 @@ export async function updateRequest(
     .update(requests)
     .set(data)
     .where(and(eq(requests.id, id), eq(requests.user_id, userId)));
+}
+
+export async function updateRequestBidStatus(
+  bidId: string,
+  status: "Accepted" | "Closed",
+) {
+  return await db
+    .update(request_bids)
+    .set({ status })
+    .where(eq(request_bids.id, bidId));
 }

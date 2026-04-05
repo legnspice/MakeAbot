@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -49,6 +49,49 @@ function getPriceRank(price: string): number {
   return 4;
 }
 
+async function fetchHomeItems(userId: string, userName: string | null | undefined) {
+  const [postsResult, requestsResult] = await Promise.all([
+    getPosts({}),
+    getRequests({}),
+  ]);
+
+  const userIds = new Set<string>();
+  for (const post of postsResult.data ?? [])
+    if (post.user_id && post.user_id !== userId) userIds.add(post.user_id);
+  for (const req of requestsResult.data ?? [])
+    if (req.user_id && req.user_id !== userId) userIds.add(req.user_id);
+
+  const usersMap = new Map<string, string>();
+  if (userIds.size > 0) {
+    const usersResult = await getUsers({ ids: Array.from(userIds) });
+    for (const u of usersResult.data ?? []) usersMap.set(u.id, u.name ?? "User");
+  }
+
+  const mapped: ListItem[] = [];
+
+  for (const post of postsResult.data ?? []) {
+    const posterName = post.user_id === userId ? (userName ?? "You") : (usersMap.get(post.user_id ?? "") ?? "User");
+    mapped.push({
+      id: post.id, itemDbId: post.id, userId: post.user_id ?? "",
+      variant: "lent", requestedBy: `Offered by: ${posterName}`,
+      price: formatPrice(post.price), typeBadge: "Offer",
+      detail: { title: post.title, lentBy: posterName, quantity: 1, price: formatPrice(post.price), description: post.description ?? undefined, imageUrl: post.imgUrl ?? undefined },
+    });
+  }
+
+  for (const req of requestsResult.data ?? []) {
+    const posterName = req.user_id === userId ? (userName ?? "You") : (usersMap.get(req.user_id ?? "") ?? "User");
+    mapped.push({
+      id: req.id, itemDbId: req.id, userId: req.user_id ?? "",
+      variant: "requested", requestedBy: `Requested by: ${posterName}`,
+      price: formatPrice(req.fee), typeBadge: "Request",
+      detail: { title: req.title, requestedBy: posterName, quantity: 1, price: formatPrice(req.fee), description: req.description ?? undefined, imageUrl: req.imgUrl ?? undefined },
+    });
+  }
+
+  return mapped;
+}
+
 export default function Home() {
   const router = useRouter();
   const { userData } = useAuth();
@@ -67,87 +110,16 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isTypePickerOpen, setIsTypePickerOpen] = useState(false);
 
-  const loadItems = useCallback(async () => {
-    const [postsResult, requestsResult] = await Promise.all([
-      getPosts({}),
-      getRequests({}),
-    ]);
-
-    const userIds = new Set<string>();
-    for (const post of postsResult.data ?? []) {
-      if (post.user_id && post.user_id !== currentUser.id)
-        userIds.add(post.user_id);
-    }
-    for (const req of requestsResult.data ?? []) {
-      if (req.user_id && req.user_id !== currentUser.id)
-        userIds.add(req.user_id);
-    }
-
-    const usersMap = new Map<string, string>();
-    if (userIds.size > 0) {
-      const usersResult = await getUsers({ ids: Array.from(userIds) });
-      for (const u of usersResult.data ?? []) {
-        usersMap.set(u.id, u.name ?? "User");
-      }
-    }
-
-    const mapped: ListItem[] = [];
-
-    for (const post of postsResult.data ?? []) {
-      const posterName =
-        post.user_id === currentUser.id
-          ? (currentUser.name ?? "You")
-          : (usersMap.get(post.user_id ?? "") ?? "User");
-      mapped.push({
-        id: post.id,
-        itemDbId: post.id,
-        userId: post.user_id ?? "",
-        variant: "lent",
-        requestedBy: `Offered by: ${posterName}`,
-        price: formatPrice(post.price),
-        typeBadge: "Offer",
-        detail: {
-          title: post.title,
-          lentBy: posterName,
-          quantity: 1,
-          price: formatPrice(post.price),
-          description: post.description ?? undefined,
-          imageUrl: post.imgUrl ?? undefined,
-        },
-      });
-    }
-
-    for (const req of requestsResult.data ?? []) {
-      const posterName =
-        req.user_id === currentUser.id
-          ? (currentUser.name ?? "You")
-          : (usersMap.get(req.user_id ?? "") ?? "User");
-      mapped.push({
-        id: req.id,
-        itemDbId: req.id,
-        userId: req.user_id ?? "",
-        variant: "requested",
-        requestedBy: `Requested by: ${posterName}`,
-        price: formatPrice(req.fee),
-        typeBadge: "Request",
-        detail: {
-          title: req.title,
-          requestedBy: posterName,
-          quantity: 1,
-          price: formatPrice(req.fee),
-          description: req.description ?? undefined,
-          imageUrl: req.imgUrl ?? undefined,
-        },
-      });
-    }
-
-    setItems(mapped);
-    setIsLoading(false);
-  }, [currentUser.id, currentUser.name]);
-
   useEffect(() => {
-    loadItems();
-  }, [loadItems]);
+    let cancelled = false;
+    fetchHomeItems(currentUser.id, currentUser.name).then((mapped) => {
+      if (!cancelled) {
+        setItems(mapped);
+        setIsLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [currentUser.id, currentUser.name]);
 
   const filterByCategory =
     activeFilter === "All"
@@ -313,7 +285,7 @@ export default function Home() {
               onClick={() => setIsTypePickerOpen(false)}
               aria-hidden
             />
-            <div className="fixed inset-x-0 bottom-[68px] md:bottom-auto md:inset-0 md:flex md:items-center md:justify-center z-30 pointer-events-none">
+            <div className="fixed inset-x-0 bottom-17 md:bottom-auto md:inset-0 md:flex md:items-center md:justify-center z-30 pointer-events-none">
               <div className="pointer-events-auto bg-white rounded-t-3xl md:rounded-2xl md:shadow-2xl md:w-full md:max-w-sm mx-0 md:mx-0 px-6 pt-5 pb-10 md:pb-8">
                 {/* Drag handle — mobile only */}
                 <div className="md:hidden w-10 h-1 rounded-full bg-gray-300 mx-auto mb-5" />
@@ -387,7 +359,7 @@ export default function Home() {
         {/* Floating action button */}
         <Button
           size="icon"
-          className="font-bold fixed bottom-30 md:bottom-6 right-6 w-30 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-10 p-0 flex items-center justify-center"
+          className="font-bold text-lg fixed bottom-30 md:bottom-6 right-6 w-32 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-10 p-0 flex items-center justify-center"
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen(true)}
         >

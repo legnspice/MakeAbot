@@ -4,16 +4,17 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
-import { TutorialProvider, useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
+import {
+  TutorialProvider,
+  useTutorial,
+  TUTORIAL_STORAGE_KEY,
+} from "@/contexts/tutorial-context";
 import { TutorialModal } from "@/components/tutorial-modal";
-import { DisclaimerModal } from "@/components/disclaimer-modal";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
+import { DisclaimerModal } from "@/components/disclaimer-modal";
+import { AppFooter } from "@/components/app-footer";
 
-function ProtectedContent({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function ProtectedContent({ children }: { children: React.ReactNode }) {
   const { openTutorial } = useTutorial();
 
   function handleDisclaimerAccept() {
@@ -23,15 +24,15 @@ function ProtectedContent({
   }
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <DisclaimerModal onAccept={handleDisclaimerAccept} />
       <TutorialModal />
-      {children}
-    </>
+      <div className="flex-1">{children}</div>
+      <AppFooter />
+    </div>
   );
 }
 
-// Layout level auth requirement for accessing protected pages
 export default function ProtectedLayout({
   children,
 }: Readonly<{
@@ -46,12 +47,10 @@ export default function ProtectedLayout({
     }
   }, [userData, currentUserDataLoading, router]);
 
-  // Show loading state while checking auth
   if (currentUserDataLoading) {
     return <PageShellSkeleton />;
   }
 
-  // Redirect handled by useEffect, show nothing while redirecting
   if (!userData) {
     return null;
   }

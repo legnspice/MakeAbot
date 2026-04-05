@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { ChevronLeft, ExternalLink, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { ChevronLeft, ExternalLink, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface ItemDetailData {
   imageUrl?: string;
@@ -12,7 +12,7 @@ export interface ItemDetailData {
   location?: string;
   quantity?: number;
   price: string;
-  description: string;
+  description?: string;
   note?: string;
   linkUrl?: string;
 }
@@ -37,7 +37,7 @@ export default function ItemDetailModal({
   if (!item) return null;
 
   const handleLinkClick = () => {
-    if (item.linkUrl) window.open(item.linkUrl, '_blank');
+    if (item.linkUrl) window.open(item.linkUrl, "_blank");
   };
 
   return (
@@ -49,9 +49,9 @@ export default function ItemDetailModal({
       />
       <div
         className={cn(
-          'fixed left-0 right-0 z-50 flex items-center justify-center px-4 animate-in fade-in duration-200',
-          'top-18 bottom-22 md:inset-0',
-          className
+          "fixed left-0 right-0 z-50 flex items-center justify-center px-4 animate-in fade-in duration-200",
+          "top-18 bottom-22 md:inset-0",
+          className,
         )}
         role="dialog"
         aria-modal="true"
@@ -97,7 +97,11 @@ export default function ItemDetailModal({
                 {item.title}
               </h1>
               <div className="flex items-center gap-2 shrink-0">
-                {item.quantity != null && <span className="text-[#3761B0] text-sm font-medium">{item.quantity}x</span>}
+                {item.quantity != null && (
+                  <span className="text-[#3761B0] text-sm font-medium">
+                    {item.quantity}x
+                  </span>
+                )}
                 <span
                   className={`font-semibold text-sm px-2 py-0.5 rounded ${
                     item.price === "FREE"
@@ -113,7 +117,9 @@ export default function ItemDetailModal({
               <p className="text-sm text-gray-600">Lent by {item.lentBy}</p>
             )}
             {item.requestedBy && (
-              <p className="text-sm text-gray-600">Requested by {item.requestedBy}</p>
+              <p className="text-sm text-gray-600">
+                Requested by {item.requestedBy}
+              </p>
             )}
             {item.location && (
               <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>
@@ -152,7 +158,7 @@ export default function ItemDetailModal({
               className="rounded-full w-11 h-11 border-0 bg-[#3761B0] text-white hover:bg-[#2d5199] disabled:opacity-50 disabled:pointer-events-none"
               onClick={handleLinkClick}
               disabled={!item.linkUrl}
-              aria-label={item.linkUrl ? 'Open link' : 'No link available'}
+              aria-label={item.linkUrl ? "Open link" : "No link available"}
             >
               <ExternalLink className="w-5 h-5" />
             </Button>

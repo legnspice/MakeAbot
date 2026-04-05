@@ -177,9 +177,7 @@ export default function CreateRequest() {
 
             {/* Urgency */}
             <div className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-sm text-gray-600">
-                Urgency
-              </div>
+              <div className="w-28 shrink-0 text-sm text-gray-600">Urgency</div>
               <select
                 value={urgency}
                 onChange={(e) => setUrgency(e.target.value as Urgency)}
