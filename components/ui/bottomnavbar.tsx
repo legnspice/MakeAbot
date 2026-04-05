@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, Bell } from "lucide-react";
+import { Home, Package } from "lucide-react";
+import NotificationsBell from "@/components/notifications-bell";
 
-const navItems = [
+const staticItems = [
   { href: "/", label: "Home", Icon: Home },
   { href: "/tracker", label: "Tracker", Icon: Package },
-  { href: "/notifications", label: "Notifications", Icon: Bell },
 ];
 
 export default function BottomNav() {
@@ -16,7 +16,7 @@ export default function BottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#4A6FA5] shadow-lg z-40">
       <div className="flex justify-around items-stretch gap-1 py-2 px-2 min-h-[68px]">
-        {navItems.map(({ href, label, Icon }) => {
+        {staticItems.map(({ href, label, Icon }) => {
           const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
             <Link
@@ -36,6 +36,19 @@ export default function BottomNav() {
             </Link>
           );
         })}
+
+        {/* Notifications with realtime badge */}
+        <div className="flex flex-1 flex-col items-center justify-center gap-1 min-w-0 px-1 py-2">
+          <NotificationsBell
+            asLink
+            className={`w-6 h-6 transition-colors ${pathname === "/notifications" ? "text-white" : "text-white/60"}`}
+          />
+          <span
+            className={`text-xs font-medium text-center leading-tight ${pathname === "/notifications" ? "text-white" : "text-white/60"}`}
+          >
+            Notifications
+          </span>
+        </div>
       </div>
     </nav>
   );
