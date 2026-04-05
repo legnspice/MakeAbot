@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, ReactNode, useMemo } from "react";
 
+export const TUTORIAL_STORAGE_KEY = "tutorial_seen_v1";
+
 interface TutorialContextValue {
   isOpen: boolean;
   openTutorial: () => void;

@@ -44,7 +44,7 @@ export function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
         className="max-w-sm text-center mx-auto sm:mx-3 px-8"
       >
         <DialogHeader>
-          <DialogTitle className="text-center  ">
+          <DialogTitle className="text-center">
             Just a quick disclaimer...
           </DialogTitle>
         </DialogHeader>

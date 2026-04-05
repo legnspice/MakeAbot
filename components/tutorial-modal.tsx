@@ -10,9 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Plus, MessageCircle, ListChecks, Bell } from "lucide-react";
-import { useTutorial } from "@/contexts/tutorial-context";
-
-const TUTORIAL_STORAGE_KEY = "tutorial_seen_v1";
+import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 
 const STEPS = [
   {

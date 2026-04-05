@@ -4,13 +4,10 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
-import { TutorialProvider } from "@/contexts/tutorial-context";
+import { TutorialProvider, useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 import { TutorialModal } from "@/components/tutorial-modal";
 import { DisclaimerModal } from "@/components/disclaimer-modal";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
-import { useTutorial } from "@/contexts/tutorial-context";
-
-const TUTORIAL_STORAGE_KEY = "tutorial_seen_v1";
 
 function ProtectedContent({
   children,
