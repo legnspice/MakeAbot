@@ -1,5 +1,5 @@
 import * as requestsRepo from "../repo/requests.repo";
-import { sendPushToUser } from "./push.service";
+import { sendPushToUser, sendPushToAllUsers } from "./push.service";
 import {
   FindRequestsSchema,
   FindRequestBidsSchema,
@@ -17,7 +17,16 @@ export async function getRequestBids(filters: FindRequestBidsSchema) {
 }
 
 export async function createRequest(data: InsertRequestSchema) {
-  return await requestsRepo.insertRequest(data);
+  const request = await requestsRepo.insertRequest(data);
+  if (data.user_id) {
+    // fire-and-forget — failure must not throw
+    sendPushToAllUsers(data.user_id, {
+      title: "New request posted",
+      body: data.title,
+      url: `/requests/${request.id}`,
+    }).catch(() => {});
+  }
+  return request;
 }
 
 export async function createRequestBid(data: InsertRequestBidSchema) {

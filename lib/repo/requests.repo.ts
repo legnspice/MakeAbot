@@ -65,7 +65,8 @@ export async function findRequestBids(filters: FindRequestBidsSchema) {
 }
 
 export async function insertRequest(data: InsertRequestSchema) {
-  return await db.insert(requests).values(data);
+  const [request] = await db.insert(requests).values(data).returning();
+  return request;
 }
 
 export async function insertRequestBid(data: InsertRequestBidSchema) {
