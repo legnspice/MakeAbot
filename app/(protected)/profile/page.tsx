@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import Image from 'next/image';
-import Navbar from '@/components/ui/navbar';
-import BottomNav from '@/components/ui/bottomnavbar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SquarePen, Star, X, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { getReviews } from '@/lib/actions/reviews';
-import { getPosts } from '@/lib/actions/posts';
-import { editUser, getUsers } from '@/lib/actions/users';
-import { logout } from '@/app/auth/login/actions';
-import type { SelectPost } from '@/lib/db/schema';
+import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
+import Navbar from "@/components/ui/navbar";
+import BottomNav from "@/components/ui/bottomnavbar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SquarePen, Star, X, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { getReviews } from "@/lib/actions/reviews";
+import { getPosts } from "@/lib/actions/posts";
+import { editUser, getUsers } from "@/lib/actions/users";
+import { logout } from "@/app/auth/login/actions";
+import type { SelectPost } from "@/lib/db/schema";
 
 function formatPrice(value: number | null | undefined): string {
-  if (value == null || value === 0) return 'FREE';
+  if (value == null || value === 0) return "FREE";
   return `₱${value}`;
 }
 
@@ -23,9 +23,8 @@ export default function ProfilePage() {
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
   const meta = userData.supabaseUser.user_metadata ?? {};
-  const avatarUrl = (meta.avatar_url ?? meta.picture ?? '') as string;
-  const googleName = (meta.full_name ?? meta.name ?? '') as string;
-
+  const avatarUrl = (meta.avatar_url ?? meta.picture ?? "") as string;
+  const googleName = (meta.full_name ?? meta.name ?? "") as string;
 
   const [avgRating, setAvgRating] = useState<number>(0);
   const [reviewCount, setReviewCount] = useState(0);
@@ -33,13 +32,22 @@ export default function ProfilePage() {
 
   // Local copy of editable fields so UI updates after save
   const [name, setName] = useState(currentUser.name ?? googleName);
-  const [idNumber, setIdNumber] = useState(currentUser.id_number?.toString() ?? '');
-  const [phoneNumber, setPhoneNumber] = useState(currentUser.phone_number ?? '');
-  const [description, setDescription] = useState(currentUser.description ?? '');
+  const [idNumber, setIdNumber] = useState(
+    currentUser.id_number?.toString() ?? "",
+  );
+  const [phoneNumber, setPhoneNumber] = useState(
+    currentUser.phone_number ?? "",
+  );
+  const [description, setDescription] = useState(currentUser.description ?? "");
 
   // Edit modal state
   const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', idNumber: '', phoneNumber: '', description: '' });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    idNumber: "",
+    phoneNumber: "",
+    description: "",
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -53,9 +61,9 @@ export default function ProfilePage() {
     if (userResult.data?.[0]) {
       const u = userResult.data[0];
       setName(u.name ?? googleName);
-      setIdNumber(u.id_number?.toString() ?? '');
-      setPhoneNumber(u.phone_number ?? '');
-      setDescription(u.description ?? '');
+      setIdNumber(u.id_number?.toString() ?? "");
+      setPhoneNumber(u.phone_number ?? "");
+      setDescription(u.description ?? "");
     }
 
     if (reviewsResult.data && reviewsResult.data.length > 0) {
@@ -65,9 +73,9 @@ export default function ProfilePage() {
     }
 
     if (postsResult.data) {
-      setOffers(postsResult.data.filter((p) => p.status === 'Active'));
+      setOffers(postsResult.data.filter((p) => p.status === "Active"));
     }
-  }, [currentUser.id]);
+  }, [currentUser.id, googleName]);
 
   useEffect(() => {
     loadData();
@@ -110,7 +118,6 @@ export default function ProfilePage() {
       <Navbar />
 
       <main className="flex-1 px-4 pt-6 pb-28 w-full mx-auto max-w-md md:max-w-5xl">
-
         {/* ── Desktop layout ── */}
         <div className="hidden md:block">
           {/* Header: avatar + info side by side */}
@@ -118,9 +125,14 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative w-48 h-48 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-2xl font-medium shrink-0">
               {avatarUrl ? (
-                <Image src={avatarUrl} alt="Profile" fill className="object-cover" />
+                <Image
+                  src={avatarUrl}
+                  alt="Profile"
+                  fill
+                  className="object-cover"
+                />
               ) : (
-                <span className="uppercase">{(name || 'U').charAt(0)}</span>
+                <span className="uppercase">{(name || "U").charAt(0)}</span>
               )}
             </div>
 
@@ -128,10 +140,14 @@ export default function ProfilePage() {
             <div className="flex-1 pt-2">
               {/* Name + rating + edit */}
               <div className="flex items-center gap-4">
-                <h1 className="text-4xl font-bold text-gray-900">{name || 'User'}</h1>
+                <h1 className="text-4xl font-bold text-gray-900">
+                  {name || "User"}
+                </h1>
                 {reviewCount > 0 && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-2xl font-semibold text-gray-800">{displayRating}</span>
+                    <span className="text-2xl font-semibold text-gray-800">
+                      {displayRating}
+                    </span>
                     <Star className="w-6 h-6 fill-[#E5A550] text-[#E5A550]" />
                   </div>
                 )}
@@ -164,7 +180,8 @@ export default function ProfilePage() {
               type="button"
               className="rounded-full bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium px-6"
             >
-              {currentUser.contributions} completed transaction{currentUser.contributions !== 1 ? 's' : ''}
+              {currentUser.contributions} completed transaction
+              {currentUser.contributions !== 1 ? "s" : ""}
             </Button>
             <form action={logout}>
               <Button
@@ -179,7 +196,9 @@ export default function ProfilePage() {
 
           {/* Current offers */}
           <section className="mt-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Current Offers</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Current Offers
+            </h2>
             <div className="border-t border-gray-200 pt-4">
               {offers.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">No active offers</p>
@@ -194,9 +213,11 @@ export default function ProfilePage() {
                         {offer.title}
                       </p>
                       <p className="text-sm text-gray-500 mb-4 line-clamp-3">
-                        {offer.description ?? '—'}
+                        {offer.description ?? "—"}
                       </p>
-                      <p className="font-bold text-[#3761B0]">{formatPrice(offer.price)}</p>
+                      <p className="font-bold text-[#3761B0]">
+                        {formatPrice(offer.price)}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -220,18 +241,27 @@ export default function ProfilePage() {
             {/* Profile picture */}
             <div className="relative w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-sm font-medium">
               {avatarUrl ? (
-                <Image src={avatarUrl} alt="Profile" fill className="object-cover" />
+                <Image
+                  src={avatarUrl}
+                  alt="Profile"
+                  fill
+                  className="object-cover"
+                />
               ) : (
-                <span className="uppercase">{(name || 'U').charAt(0)}</span>
+                <span className="uppercase">{(name || "U").charAt(0)}</span>
               )}
             </div>
 
             {/* Name + rating row */}
             <div className="flex items-center justify-between gap-4 w-full pr-2">
               <div className="flex flex-col items-start">
-                <h1 className="text-2xl font-bold text-gray-900">{name || 'User'}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {name || "User"}
+                </h1>
                 {phoneNumber && (
-                  <span className="text-sm text-gray-500 mt-0.5">{phoneNumber}</span>
+                  <span className="text-sm text-gray-500 mt-0.5">
+                    {phoneNumber}
+                  </span>
                 )}
                 {idNumber && (
                   <span className="text-sm text-gray-500">ID: {idNumber}</span>
@@ -245,8 +275,8 @@ export default function ProfilePage() {
                         key={n}
                         className={`w-5 h-5 ${
                           n <= filledStars
-                            ? 'fill-[#E5A550] text-[#E5A550]'
-                            : 'fill-gray-200 text-gray-200'
+                            ? "fill-[#E5A550] text-[#E5A550]"
+                            : "fill-gray-200 text-gray-200"
                         }`}
                       />
                     ))}
@@ -256,7 +286,9 @@ export default function ProfilePage() {
                   </span>
                 </div>
               ) : (
-                <span className="text-sm text-gray-400 italic">No reviews yet</span>
+                <span className="text-sm text-gray-400 italic">
+                  No reviews yet
+                </span>
               )}
             </div>
             {description && (
@@ -270,7 +302,8 @@ export default function ProfilePage() {
             type="button"
             className="w-full rounded-xl bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium py-6"
           >
-            {currentUser.contributions} completed transaction{currentUser.contributions !== 1 ? 's' : ''}
+            {currentUser.contributions} completed transaction
+            {currentUser.contributions !== 1 ? "s" : ""}
           </Button>
 
           <form action={logout}>
@@ -286,7 +319,9 @@ export default function ProfilePage() {
 
           {/* Current offers */}
           <section className="mt-4">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Current Offers</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Current Offers
+            </h2>
             {offers.length === 0 ? (
               <p className="text-sm text-gray-400 italic">No active offers</p>
             ) : (
@@ -300,9 +335,11 @@ export default function ProfilePage() {
                       {offer.title}
                     </p>
                     <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                      {offer.description ?? '—'}
+                      {offer.description ?? "—"}
                     </p>
-                    <p className="font-bold text-gray-900">{formatPrice(offer.price)}</p>
+                    <p className="font-bold text-gray-900">
+                      {formatPrice(offer.price)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -329,31 +366,43 @@ export default function ProfilePage() {
 
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-600 font-medium">Display Name</label>
+                <label className="text-sm text-gray-600 font-medium">
+                  Display Name
+                </label>
                 <Input
                   value={editForm.name}
-                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, name: e.target.value }))
+                  }
                   placeholder="Your name"
                   className="rounded-xl bg-gray-100 border-0"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-600 font-medium">Student ID Number</label>
+                <label className="text-sm text-gray-600 font-medium">
+                  Student ID Number
+                </label>
                 <Input
                   type="number"
                   value={editForm.idNumber}
-                  onChange={(e) => setEditForm((f) => ({ ...f, idNumber: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, idNumber: e.target.value }))
+                  }
                   placeholder="e.g. 202012345"
                   className="rounded-xl bg-gray-100 border-0"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-600 font-medium">Phone Number</label>
+                <label className="text-sm text-gray-600 font-medium">
+                  Phone Number
+                </label>
                 <Input
                   value={editForm.phoneNumber}
-                  onChange={(e) => setEditForm((f) => ({ ...f, phoneNumber: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, phoneNumber: e.target.value }))
+                  }
                   placeholder="e.g. 09171234567"
                   className="rounded-xl bg-gray-100 border-0"
                 />
@@ -363,7 +412,9 @@ export default function ProfilePage() {
                 <label className="text-sm text-gray-600 font-medium">Bio</label>
                 <textarea
                   value={editForm.description}
-                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, description: e.target.value }))
+                  }
                   placeholder="Tell others about yourself..."
                   rows={3}
                   className="rounded-xl bg-gray-100 border-0 px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-gray-300"
@@ -381,7 +432,7 @@ export default function ProfilePage() {
               disabled={isSaving}
               className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
             >
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>

@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
-import { getNotifications, markNotificationRead, markAllRead } from "@/lib/actions/notifications";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllRead,
+} from "@/lib/actions/notifications";
 import type { SelectNotification } from "@/lib/db/schema";
 
 function formatTime(date: Date): string {
@@ -37,7 +41,9 @@ export default function NotificationsPage() {
     if (!n.is_read) {
       await markNotificationRead(n.id);
       setNotifications((prev) =>
-        prev.map((item) => (item.id === n.id ? { ...item, is_read: true } : item))
+        prev.map((item) =>
+          item.id === n.id ? { ...item, is_read: true } : item,
+        ),
       );
     }
     if (n.url) router.push(n.url);
@@ -70,7 +76,9 @@ export default function NotificationsPage() {
         {loading ? (
           <p className="text-center text-gray-400 text-sm pt-10">Loading…</p>
         ) : notifications.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm pt-10">No notifications yet</p>
+          <p className="text-center text-gray-400 text-sm pt-10">
+            No notifications yet
+          </p>
         ) : (
           <section aria-label="Notifications">
             <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white">

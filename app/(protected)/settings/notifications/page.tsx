@@ -22,10 +22,17 @@ const EVENT_LABELS: Record<
 };
 
 export default function NotificationSettingsPage() {
-  const [prefs, setPrefs] = useState<SelectNotificationPreferences | null>(null);
+  const [prefs, setPrefs] = useState<SelectNotificationPreferences | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const { permission, isSubscribed, requestPermissionAndSubscribe, unsubscribe } = usePushSubscription();
+  const {
+    permission,
+    isSubscribed,
+    requestPermissionAndSubscribe,
+    unsubscribe,
+  } = usePushSubscription();
 
   useEffect(() => {
     getNotificationPreferences().then((result) => {
@@ -34,7 +41,9 @@ export default function NotificationSettingsPage() {
     });
   }, []);
 
-  async function handleToggle(key: keyof Omit<SelectNotificationPreferences, "user_id">) {
+  async function handleToggle(
+    key: keyof Omit<SelectNotificationPreferences, "user_id">,
+  ) {
     if (!prefs) return;
     const newValue = !prefs[key];
     setPrefs({ ...prefs, [key]: newValue });
@@ -47,18 +56,24 @@ export default function NotificationSettingsPage() {
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
       <main className="flex-1 max-w-md md:max-w-2xl mx-auto w-full px-4 pt-6 pb-28 md:pb-6">
-        <h1 className="text-lg font-semibold text-gray-900 mb-6">Notification Settings</h1>
+        <h1 className="text-lg font-semibold text-gray-900 mb-6">
+          Notification Settings
+        </h1>
 
         {/* Push notification subscribe/unsubscribe */}
         <div className="mb-6 p-4 rounded-lg border border-gray-200 bg-gray-50">
-          <p className="text-sm font-medium text-gray-900 mb-1">Browser push notifications</p>
+          <p className="text-sm font-medium text-gray-900 mb-1">
+            Browser push notifications
+          </p>
           {permission === "denied" ? (
             <p className="text-xs text-gray-500">
               Push notifications are blocked in your browser settings.
             </p>
           ) : isSubscribed ? (
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">Push notifications are enabled on this device.</p>
+              <p className="text-xs text-gray-500">
+                Push notifications are enabled on this device.
+              </p>
               <button
                 type="button"
                 onClick={unsubscribe}
@@ -69,7 +84,9 @@ export default function NotificationSettingsPage() {
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">Get notified even when the app is closed.</p>
+              <p className="text-xs text-gray-500">
+                Get notified even when the app is closed.
+              </p>
               <button
                 type="button"
                 onClick={requestPermissionAndSubscribe}
@@ -92,8 +109,13 @@ export default function NotificationSettingsPage() {
                 keyof Omit<SelectNotificationPreferences, "user_id">
               >
             ).map((key) => (
-              <div key={key} className="flex items-center justify-between px-1 py-4">
-                <span className="text-sm text-gray-800">{EVENT_LABELS[key]}</span>
+              <div
+                key={key}
+                className="flex items-center justify-between px-1 py-4"
+              >
+                <span className="text-sm text-gray-800">
+                  {EVENT_LABELS[key]}
+                </span>
                 <button
                   type="button"
                   role="switch"

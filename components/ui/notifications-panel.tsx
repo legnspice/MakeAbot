@@ -3,7 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getNotifications, markNotificationRead, markAllRead } from "@/lib/actions/notifications";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllRead,
+} from "@/lib/actions/notifications";
 import type { SelectNotification } from "@/lib/db/schema";
 
 function formatTime(date: Date): string {
@@ -46,7 +50,9 @@ export default function NotificationsPanel({ open, onClose }: Props) {
     if (!n.is_read) {
       await markNotificationRead(n.id);
       setNotifications((prev) =>
-        prev.map((item) => (item.id === n.id ? { ...item, is_read: true } : item))
+        prev.map((item) =>
+          item.id === n.id ? { ...item, is_read: true } : item,
+        ),
       );
     }
     if (n.url) {
@@ -98,7 +104,9 @@ export default function NotificationsPanel({ open, onClose }: Props) {
           {loading ? (
             <p className="text-center text-gray-400 text-sm pt-10">Loading…</p>
           ) : notifications.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm pt-10">No notifications yet</p>
+            <p className="text-center text-gray-400 text-sm pt-10">
+              No notifications yet
+            </p>
           ) : (
             <div className="divide-y divide-gray-100">
               {notifications.map((n) => (
@@ -114,7 +122,9 @@ export default function NotificationsPanel({ open, onClose }: Props) {
                   <p className="text-sm font-semibold text-gray-900 leading-snug inline">
                     {n.title}
                   </p>
-                  {n.body && <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>}
+                  {n.body && (
+                    <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>
+                  )}
                   <p className="mt-1 text-xs text-gray-400">
                     {formatTime(new Date(n.created_at))}
                   </p>
