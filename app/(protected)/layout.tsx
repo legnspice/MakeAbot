@@ -4,7 +4,36 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/auth-context";
+import { TutorialProvider } from "@/contexts/tutorial-context";
+import { TutorialModal } from "@/components/tutorial-modal";
+import { DisclaimerModal } from "@/components/disclaimer-modal";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
+import { useTutorial } from "@/contexts/tutorial-context";
+
+const TUTORIAL_STORAGE_KEY = "tutorial_seen_v1";
+
+function ProtectedContent({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { openTutorial } = useTutorial();
+
+  function handleDisclaimerAccept() {
+    if (!localStorage.getItem(TUTORIAL_STORAGE_KEY)) {
+      openTutorial();
+    }
+  }
+
+  return (
+    <>
+      <DisclaimerModal onAccept={handleDisclaimerAccept} />
+      <TutorialModal />
+      {children}
+    </>
+  );
+}
+
 // Layout level auth requirement for accessing protected pages
 export default function ProtectedLayout({
   children,
@@ -30,6 +59,11 @@ export default function ProtectedLayout({
     return null;
   }
 
-  // Wrap children with AuthProvider, passing the guaranteed non-null userData
-  return <AuthProvider userData={userData}>{children}</AuthProvider>;
+  return (
+    <TutorialProvider>
+      <AuthProvider userData={userData}>
+        <ProtectedContent>{children}</ProtectedContent>
+      </AuthProvider>
+    </TutorialProvider>
+  );
 }
