@@ -43,3 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 MAKEABOT TASKS.txt
+.claude/worktrees/frosty-solomon/
+.claude/worktrees/interesting-hopper/
+.claude/worktrees/reverent-rosalind/
