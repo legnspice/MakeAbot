@@ -1,4 +1,4 @@
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, sql, ne, or, isNull } from "drizzle-orm";
 import { db } from "../db";
 import {
   notifications,
@@ -26,6 +26,27 @@ export async function countUnreadForUser(userId: string) {
 
 export async function insertNotification(data: InsertNotificationSchema) {
   const [row] = await db.insert(notifications).values(data).returning();
+  return row;
+}
+
+export async function upsertMessageNotification(
+  data: InsertNotificationSchema & { context_id: string },
+) {
+  const [row] = await db
+    .insert(notifications)
+    .values({ ...data, message_count: 1 })
+    .onConflictDoUpdate({
+      target: [notifications.user_id, notifications.type, notifications.context_id],
+      targetWhere: sql`${notifications.context_id} IS NOT NULL`,
+      set: {
+        message_count: sql`${notifications.message_count} + 1`,
+        body: sql`excluded.body`,
+        title: sql`excluded.title`,
+        is_read: false,
+        updated_at: sql`now()`,
+      },
+    })
+    .returning();
   return row;
 }
 
@@ -72,6 +93,30 @@ export async function deleteSubscriptionByEndpoint(userId: string, endpoint: str
     .delete(push_subscriptions)
     .where(
       and(eq(push_subscriptions.user_id, userId), eq(push_subscriptions.endpoint, endpoint))
+    );
+}
+
+export async function findSubscriptionsForBroadcast(excludeUserId: string) {
+  return await db
+    .select({
+      id: push_subscriptions.id,
+      endpoint: push_subscriptions.endpoint,
+      p256dh: push_subscriptions.p256dh,
+      auth: push_subscriptions.auth,
+    })
+    .from(push_subscriptions)
+    .leftJoin(
+      notification_preferences,
+      eq(push_subscriptions.user_id, notification_preferences.user_id),
+    )
+    .where(
+      and(
+        ne(push_subscriptions.user_id, excludeUserId),
+        or(
+          isNull(notification_preferences.user_id),
+          eq(notification_preferences.new_request, true),
+        ),
+      ),
     );
 }
 
