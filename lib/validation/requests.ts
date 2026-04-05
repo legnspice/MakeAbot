@@ -1,15 +1,17 @@
 import { z } from "zod";
-import { UrgencyEnum, RequestStatusEnum } from "../db/enums";
+import { UrgencyEnum, RequestStatusEnum, TypeEnum } from "../db/enums";
 
 export const requestSchema = z.object({
   id: z.string().uuid({}),
   user_id: z.string().uuid({}),
+  imgUrl: z.string().nullable(),
   fee: z.number().int().nonnegative().nullable(),
   title: z.string().min(1),
   description: z.string().nullable(),
   created_at: z.date(),
   completed_at: z.date().nullable(),
   urgency: UrgencyEnum,
+  type: TypeEnum.optional(),
   status: RequestStatusEnum,
 });
 
@@ -39,6 +41,8 @@ export const insertRequestSchema = requestSchema.pick({
   status: true,
   description: true,
   urgency: true,
+  imgUrl: true,
+  type: true,
 });
 
 export const updateRequestSchema = requestSchema
@@ -49,6 +53,8 @@ export const updateRequestSchema = requestSchema
     status: true,
     urgency: true,
     completed_at: true,
+    imgUrl: true,
+    type: true,
   })
   .partial();
 

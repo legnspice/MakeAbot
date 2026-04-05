@@ -1,0 +1,42 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, Package, Bell } from "lucide-react";
+
+const navItems = [
+  { href: "/", label: "Home", Icon: Home },
+  { href: "/tracker", label: "Tracker", Icon: Package },
+  { href: "/notifications", label: "Notifications", Icon: Bell },
+];
+
+export default function BottomNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#4A6FA5] shadow-lg z-40">
+      <div className="flex justify-around items-stretch gap-1 py-2 px-2 min-h-[68px]">
+        {navItems.map(({ href, label, Icon }) => {
+          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-1 flex-col items-center justify-center gap-1 min-w-0 px-1 py-2"
+            >
+              <Icon
+                className={`w-6 h-6 transition-colors ${active ? "text-white" : "text-white/60"}`}
+                strokeWidth={active ? 2.5 : 1.8}
+              />
+              <span
+                className={`text-xs font-medium text-center leading-tight ${active ? "text-white" : "text-white/60"}`}
+              >
+                {label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}

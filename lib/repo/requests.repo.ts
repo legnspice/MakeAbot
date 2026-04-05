@@ -60,14 +60,25 @@ export async function insertRequestBid(data: InsertRequestBidSchema) {
   return await db.insert(request_bids).values(data);
 }
 
-export async function deleteRequest(id: string) {
-  return await db.delete(requests).where(eq(requests.id, id));
+export async function deleteRequest(id: string, userId: string) {
+  return await db
+    .delete(requests)
+    .where(and(eq(requests.id, id), eq(requests.user_id, userId)));
 }
 
-export async function deleteRequestBid(id: string) {
-  return await db.delete(request_bids).where(eq(request_bids.id, id));
+export async function deleteRequestBid(id: string, userId: string) {
+  return await db
+    .delete(request_bids)
+    .where(and(eq(request_bids.id, id), eq(request_bids.bidder_id, userId)));
 }
 
-export async function updateRequest(id: string, data: UpdateRequestSchema) {
-  return await db.update(requests).set(data).where(eq(requests.id, id));
+export async function updateRequest(
+  id: string,
+  data: UpdateRequestSchema,
+  userId: string,
+) {
+  return await db
+    .update(requests)
+    .set(data)
+    .where(and(eq(requests.id, id), eq(requests.user_id, userId)));
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 // The client you created from the Server-Side Auth instructions
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createUser } from "@/lib/actions/users";
+import * as usersService from "@/lib/services/users.service";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       const email = data.user.email?.toLowerCase() || "";
       const acceptedDomain = "@student.ateneo.edu";
 
-      if (email.endsWith(acceptedDomain)) {
+      if (!email.endsWith(acceptedDomain)) {
         try {
           const supabaseAdmin = await createAdminClient();
           // Delete the user record
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           console.error("Cleanup failed for unauthorized user:", adminError);
         }
 
-        return NextResponse.redirect(`${baseUrl}/login/non-ateneo-email-used`);
+        return NextResponse.redirect(`${baseUrl}/auth/login/non-ateneo-email-used`);
       }
 
       // Handle successful login redirect
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       const isLocalEnv = process.env.NODE_ENV === "development";
 
       const safeNext = next.startsWith("/") ? next : "/";
-      await createUser(data.user.id);
+      await usersService.createUser(data.user.id);
 
       if (isLocalEnv) {
         return NextResponse.redirect(`${baseUrl}${safeNext}`);

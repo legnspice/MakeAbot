@@ -2,26 +2,37 @@
 
 import * as messagesService from "@/lib/services/messages.service";
 import { handleAction } from "@/lib/error/actions-handler";
+import { requireAuth } from "@/lib/actions/auth";
 import {
   FindConversationSchema,
   FindMessagesSchema,
   InsertMessageSchema,
 } from "@/lib/validation/messages";
 
-// TODO: ADD AUTHENTICATION TO SERVER ACTION ENDPOINTS FOR SECURITY (THIS)
-
 export async function getMessages(filters: FindMessagesSchema) {
-  return await handleAction(() => messagesService.getMessages(filters));
+  return await handleAction(async () => {
+    await requireAuth();
+    return messagesService.getMessages(filters);
+  });
 }
 
 export async function getConversation(filters: FindConversationSchema) {
-  return await handleAction(() => messagesService.getConversation(filters));
+  return await handleAction(async () => {
+    await requireAuth();
+    return messagesService.getConversation(filters);
+  });
 }
 
 export async function createMessage(data: InsertMessageSchema) {
-  return await handleAction(() => messagesService.createMessage(data));
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return messagesService.createMessage({ ...data, sender_id: user.id });
+  });
 }
 
 export async function removeMessage(id: string) {
-  return await handleAction(() => messagesService.removeMessage(id));
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return messagesService.removeMessage(id, user.id);
+  });
 }

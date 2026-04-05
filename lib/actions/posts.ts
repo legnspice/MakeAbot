@@ -2,6 +2,7 @@
 
 import * as postsService from "@/lib/services/posts.service";
 import { handleAction } from "@/lib/error/actions-handler";
+import { requireAuth } from "@/lib/actions/auth";
 import {
   FindPostsSchema,
   FindPostBidsSchema,
@@ -10,32 +11,51 @@ import {
   UpdatePostSchema,
 } from "@/lib/validation/posts";
 
-// TODO: ADD AUTHENTICATION TO SERVER ACTION ENDPOINTS FOR SECURITY (THIS)
-
 export async function getPosts(filters: FindPostsSchema) {
-  return await handleAction(() => postsService.getPosts(filters));
+  return await handleAction(async () => {
+    await requireAuth();
+    return postsService.getPosts(filters);
+  });
 }
 
 export async function getPostBids(filters: FindPostBidsSchema) {
-  return await handleAction(() => postsService.getPostBids(filters));
+  return await handleAction(async () => {
+    await requireAuth();
+    return postsService.getPostBids(filters);
+  });
 }
 
 export async function createPost(data: InsertPostSchema) {
-  return await handleAction(() => postsService.createPost(data));
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return postsService.createPost({ ...data, user_id: user.id });
+  });
 }
 
 export async function createPostBid(data: InsertPostBidSchema) {
-  return await handleAction(() => postsService.createPostBid(data));
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return postsService.createPostBid({ ...data, bidder_id: user.id });
+  });
 }
 
 export async function removePost(id: string) {
-  return await handleAction(() => postsService.removePost(id));
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return postsService.removePost(id, user.id);
+  });
 }
 
 export async function removePostBid(id: string) {
-  return await handleAction(() => postsService.removePostBid(id));
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return postsService.removePostBid(id, user.id);
+  });
 }
 
 export async function editPost(id: string, data: UpdatePostSchema) {
-  return await postsService.editPost(id, data);
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    return postsService.editPost(id, data, user.id);
+  });
 }

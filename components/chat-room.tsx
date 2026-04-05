@@ -12,6 +12,7 @@ interface ChatMessage {
   content: string;
   user: {
     name: string;
+    userId: string;
   };
   createdAt: string;
 }
@@ -67,7 +68,7 @@ export const ChatRoom = ({
     handleMessageLogic.current = async (messages: ChatMessage[]) => {
       const newMessagesFromCurrentUser = messages.filter(
         (msg) =>
-          msg.user.name === publicUser.name &&
+          msg.user.userId === publicUser.id &&
           !processedMessageIds.current.has(msg.id),
       );
 
@@ -103,8 +104,9 @@ export const ChatRoom = ({
       user: {
         name:
           msg.sender_id === publicUser.id
-            ? publicUser.name || "You"
+            ? publicUser.name ?? "You"
             : otherUserName,
+        userId: msg.sender_id,
       },
       createdAt: msg.timestamp.toISOString(),
     }));
@@ -125,6 +127,7 @@ export const ChatRoom = ({
     <RealtimeChat
       roomName={roomName}
       username={publicUser.name || "You"}
+      currentUserId={publicUser.id}
       onMessage={handleMessage}
       messages={formattedMessages}
     />

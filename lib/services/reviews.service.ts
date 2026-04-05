@@ -9,6 +9,6 @@ export async function createReview(data: InsertReviewSchema) {
   return await reviewsRepo.insertReview(data);
 }
 
-export async function removeReview(id: string) {
-  return await reviewsRepo.deleteReview(id);
+export async function removeReview(id: string, userId: string) {
+  return await reviewsRepo.deleteReview(id, userId);
 }
