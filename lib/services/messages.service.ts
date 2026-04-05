@@ -1,4 +1,5 @@
 import * as messagesRepo from "../repo/messages.repo";
+import { sendPushToUser } from "./push.service";
 import {
   FindMessagesSchema,
   InsertMessageSchema,
@@ -14,7 +15,14 @@ export async function getConversation(filters: FindConversationSchema) {
 }
 
 export async function createMessage(data: InsertMessageSchema) {
-  return await messagesRepo.insertMessage(data);
+  const result = await messagesRepo.insertMessage(data);
+  // fire-and-forget — failure must not throw
+  sendPushToUser(data.receiver_id, "new_message", {
+    title: "New message",
+    body: data.content.length > 60 ? data.content.slice(0, 60) + "…" : data.content,
+    url: "/notifications",
+  }).catch(() => {});
+  return result;
 }
 
 export async function removeMessage(id: string, userId: string) {

@@ -1,4 +1,5 @@
 import * as postsRepo from "../repo/posts.repo";
+import { sendPushToUser } from "./push.service";
 import { posts } from "../db/schema";
 import {
   FindPostsSchema,
@@ -21,7 +22,21 @@ export async function createPost(data: InsertPostSchema) {
 }
 
 export async function createPostBid(data: InsertPostBidSchema) {
-  return await postsRepo.insertPostBid(data);
+  const bid = await postsRepo.insertPostBid(data);
+  // fire-and-forget
+  (async () => {
+    try {
+      const post = await postsRepo.findPostById(data.post_id);
+      if (post?.user_id) {
+        await sendPushToUser(post.user_id, "new_bid", {
+          title: `New request for "${post.title}"`,
+          body: "Someone wants your offer",
+          url: `/chat?bidId=${bid.id}&kind=offer&title=${encodeURIComponent(post.title)}&otherId=${data.bidder_id}`,
+        });
+      }
+    } catch {}
+  })();
+  return bid;
 }
 
 export async function removePost(id: string, userId: string) {
@@ -38,10 +53,8 @@ export async function editPost(
   userId: string,
 ) {
   const updatePayload: Partial<typeof posts.$inferInsert> = { ...data };
-
   if (data.status === "Closed") {
     updatePayload.imgUrl = null;
   }
-
   return await postsRepo.updatePost(id, updatePayload, userId);
 }
