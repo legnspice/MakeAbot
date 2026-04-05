@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -27,15 +27,16 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    const result = await getNotifications();
-    setNotifications(result.data ?? []);
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    getNotifications().then((result) => {
+      if (!cancelled) {
+        setNotifications(result.data ?? []);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleClick(n: SelectNotification) {
     if (!n.is_read) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -49,6 +49,49 @@ function getPriceRank(price: string): number {
   return 4;
 }
 
+async function fetchHomeItems(userId: string, userName: string | null | undefined) {
+  const [postsResult, requestsResult] = await Promise.all([
+    getPosts({}),
+    getRequests({}),
+  ]);
+
+  const userIds = new Set<string>();
+  for (const post of postsResult.data ?? [])
+    if (post.user_id && post.user_id !== userId) userIds.add(post.user_id);
+  for (const req of requestsResult.data ?? [])
+    if (req.user_id && req.user_id !== userId) userIds.add(req.user_id);
+
+  const usersMap = new Map<string, string>();
+  if (userIds.size > 0) {
+    const usersResult = await getUsers({ ids: Array.from(userIds) });
+    for (const u of usersResult.data ?? []) usersMap.set(u.id, u.name ?? "User");
+  }
+
+  const mapped: ListItem[] = [];
+
+  for (const post of postsResult.data ?? []) {
+    const posterName = post.user_id === userId ? (userName ?? "You") : (usersMap.get(post.user_id ?? "") ?? "User");
+    mapped.push({
+      id: post.id, itemDbId: post.id, userId: post.user_id ?? "",
+      variant: "lent", requestedBy: `Offered by: ${posterName}`,
+      price: formatPrice(post.price), typeBadge: "Offer",
+      detail: { title: post.title, lentBy: posterName, quantity: 1, price: formatPrice(post.price), description: post.description ?? undefined, imageUrl: post.imgUrl ?? undefined },
+    });
+  }
+
+  for (const req of requestsResult.data ?? []) {
+    const posterName = req.user_id === userId ? (userName ?? "You") : (usersMap.get(req.user_id ?? "") ?? "User");
+    mapped.push({
+      id: req.id, itemDbId: req.id, userId: req.user_id ?? "",
+      variant: "requested", requestedBy: `Requested by: ${posterName}`,
+      price: formatPrice(req.fee), typeBadge: "Request",
+      detail: { title: req.title, requestedBy: posterName, quantity: 1, price: formatPrice(req.fee), description: req.description ?? undefined, imageUrl: req.imgUrl ?? undefined },
+    });
+  }
+
+  return mapped;
+}
+
 export default function Home() {
   const router = useRouter();
   const { userData } = useAuth();
@@ -67,87 +110,16 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isTypePickerOpen, setIsTypePickerOpen] = useState(false);
 
-  const loadItems = useCallback(async () => {
-    const [postsResult, requestsResult] = await Promise.all([
-      getPosts({}),
-      getRequests({}),
-    ]);
-
-    const userIds = new Set<string>();
-    for (const post of postsResult.data ?? []) {
-      if (post.user_id && post.user_id !== currentUser.id)
-        userIds.add(post.user_id);
-    }
-    for (const req of requestsResult.data ?? []) {
-      if (req.user_id && req.user_id !== currentUser.id)
-        userIds.add(req.user_id);
-    }
-
-    const usersMap = new Map<string, string>();
-    if (userIds.size > 0) {
-      const usersResult = await getUsers({ ids: Array.from(userIds) });
-      for (const u of usersResult.data ?? []) {
-        usersMap.set(u.id, u.name ?? "User");
-      }
-    }
-
-    const mapped: ListItem[] = [];
-
-    for (const post of postsResult.data ?? []) {
-      const posterName =
-        post.user_id === currentUser.id
-          ? (currentUser.name ?? "You")
-          : (usersMap.get(post.user_id ?? "") ?? "User");
-      mapped.push({
-        id: post.id,
-        itemDbId: post.id,
-        userId: post.user_id ?? "",
-        variant: "lent",
-        requestedBy: `Offered by: ${posterName}`,
-        price: formatPrice(post.price),
-        typeBadge: "Offer",
-        detail: {
-          title: post.title,
-          lentBy: posterName,
-          quantity: 1,
-          price: formatPrice(post.price),
-          description: post.description ?? undefined,
-          imageUrl: post.imgUrl ?? undefined,
-        },
-      });
-    }
-
-    for (const req of requestsResult.data ?? []) {
-      const posterName =
-        req.user_id === currentUser.id
-          ? (currentUser.name ?? "You")
-          : (usersMap.get(req.user_id ?? "") ?? "User");
-      mapped.push({
-        id: req.id,
-        itemDbId: req.id,
-        userId: req.user_id ?? "",
-        variant: "requested",
-        requestedBy: `Requested by: ${posterName}`,
-        price: formatPrice(req.fee),
-        typeBadge: "Request",
-        detail: {
-          title: req.title,
-          requestedBy: posterName,
-          quantity: 1,
-          price: formatPrice(req.fee),
-          description: req.description ?? undefined,
-          imageUrl: req.imgUrl ?? undefined,
-        },
-      });
-    }
-
-    setItems(mapped);
-    setIsLoading(false);
-  }, [currentUser.id, currentUser.name]);
-
   useEffect(() => {
-    loadItems();
-  }, [loadItems]);
+    let cancelled = false;
+    fetchHomeItems(currentUser.id, currentUser.name).then((mapped) => {
+      if (!cancelled) {
+        setItems(mapped);
+        setIsLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [currentUser.id, currentUser.name]);
 
   const filterByCategory =
     activeFilter === "All"

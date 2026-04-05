@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -47,6 +47,60 @@ type TrackerCard =
   | { type: "offer"; data: TrackerOffer }
   | { type: "request"; data: TrackerRequest };
 
+async function fetchTrackerData(userId: string) {
+  const [postsResult, requestsResult] = await Promise.all([
+    getPosts({ user_id: userId }),
+    getRequests({ user_id: userId }),
+  ]);
+
+  const postBidFetches = (postsResult.data ?? []).map((post) =>
+    getPostBids({ post_id: post.id }).then((r) => ({ post, bids: r.data ?? [] })),
+  );
+  const reqBidFetches = (requestsResult.data ?? []).map((req) =>
+    getRequestBids({ request_id: req.id }).then((r) => ({ req, bids: r.data ?? [] })),
+  );
+  const [postBidGroups, reqBidGroups] = await Promise.all([
+    Promise.all(postBidFetches),
+    Promise.all(reqBidFetches),
+  ]);
+
+  const userIds = new Set<string>();
+  for (const { bids } of postBidGroups) for (const bid of bids) userIds.add(bid.bidder_id);
+  for (const { bids } of reqBidGroups) for (const bid of bids) userIds.add(bid.bidder_id);
+
+  const usersMap = new Map<string, string>();
+  if (userIds.size > 0) {
+    const usersResult = await getUsers({ ids: Array.from(userIds) });
+    for (const u of usersResult.data ?? []) usersMap.set(u.id, u.name ?? "User");
+  }
+
+  const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
+    id: post.id,
+    itemName: post.title,
+    requesterCount: bids.length,
+    requesters: bids.map((bid) => ({
+      id: bid.bidder_id,
+      name: usersMap.get(bid.bidder_id) ?? "User",
+      bidId: bid.id,
+    })),
+  }));
+
+  const requestList: TrackerRequest[] = reqBidGroups.map(({ req, bids }) => ({
+    id: req.id,
+    itemName: req.title,
+    status: req.status,
+    price: formatPrice(req.fee),
+    bidders: bids.map((bid) => ({
+      id: bid.bidder_id,
+      name: usersMap.get(bid.bidder_id) ?? "User",
+      bidId: bid.id,
+    })),
+    notificationCount: bids.length > 0 ? bids.length : undefined,
+  }));
+
+  return { offerList, requestList };
+}
+
 export default function TrackerPage() {
   const router = useRouter();
   const { userData } = useAuth();
@@ -64,80 +118,17 @@ export default function TrackerPage() {
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
 
-  const loadData = useCallback(async () => {
-    const [postsResult, requestsResult] = await Promise.all([
-      getPosts({ user_id: currentUser.id }),
-      getRequests({ user_id: currentUser.id }),
-    ]);
-
-    // Fetch all bids in parallel
-    const postBidFetches = (postsResult.data ?? []).map((post) =>
-      getPostBids({ post_id: post.id }).then((r) => ({
-        post,
-        bids: r.data ?? [],
-      })),
-    );
-    const reqBidFetches = (requestsResult.data ?? []).map((req) =>
-      getRequestBids({ request_id: req.id }).then((r) => ({
-        req,
-        bids: r.data ?? [],
-      })),
-    );
-    const [postBidGroups, reqBidGroups] = await Promise.all([
-      Promise.all(postBidFetches),
-      Promise.all(reqBidFetches),
-    ]);
-
-    // Collect all bidder IDs for a single batch lookup
-    const userIds = new Set<string>();
-    for (const { bids } of postBidGroups) {
-      for (const bid of bids) userIds.add(bid.bidder_id);
-    }
-    for (const { bids } of reqBidGroups) {
-      for (const bid of bids) userIds.add(bid.bidder_id);
-    }
-
-    const usersMap = new Map<string, string>();
-    if (userIds.size > 0) {
-      const usersResult = await getUsers({ ids: Array.from(userIds) });
-      for (const u of usersResult.data ?? []) {
-        usersMap.set(u.id, u.name ?? "User");
-      }
-    }
-
-    // Build offer list
-    const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
-      id: post.id,
-      itemName: post.title,
-      requesterCount: bids.length,
-      requesters: bids.map((bid) => ({
-        id: bid.bidder_id,
-        name: usersMap.get(bid.bidder_id) ?? "User",
-        bidId: bid.id,
-      })),
-    }));
-    setOffers(offerList);
-
-    // Build request list
-    const requestList: TrackerRequest[] = reqBidGroups.map(({ req, bids }) => ({
-      id: req.id,
-      itemName: req.title,
-      status: req.status,
-      price: formatPrice(req.fee),
-      bidders: bids.map((bid) => ({
-        id: bid.bidder_id,
-        name: usersMap.get(bid.bidder_id) ?? "User",
-        bidId: bid.id,
-      })),
-      notificationCount: bids.length > 0 ? bids.length : undefined,
-    }));
-    setRequests(requestList);
-    setIsLoading(false);
-  }, [currentUser.id]);
-
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let cancelled = false;
+    fetchTrackerData(currentUser.id).then(({ offerList, requestList }) => {
+      if (!cancelled) {
+        setOffers(offerList);
+        setRequests(requestList);
+        setIsLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [currentUser.id]);
 
   const allFilterLabels = ["All", "Offers", "Requests", ...customFilters];
 

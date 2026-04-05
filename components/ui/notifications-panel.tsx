@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -29,22 +29,23 @@ type Props = {
 export default function NotificationsPanel({ open, onClose }: Props) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
-  const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const result = await getNotifications();
-    setNotifications(result.data ?? []);
-    setLoading(false);
-    setLoaded(true);
-  }, []);
+  const loading = open && !loaded;
 
   useEffect(() => {
-    if (open && !loaded) {
-      load();
-    }
-  }, [open, loaded, load]);
+    if (!open || loaded) return;
+    let cancelled = false;
+    getNotifications().then((result) => {
+      if (!cancelled) {
+        setNotifications(result.data ?? []);
+        setLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, loaded]);
 
   async function handleClick(n: SelectNotification) {
     if (!n.is_read) {

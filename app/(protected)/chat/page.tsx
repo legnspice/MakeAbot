@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronLeft } from 'lucide-react';
-import Navbar from '@/components/ui/navbar';
-import BottomNav from '@/components/ui/bottomnavbar';
-import { ChatRoom } from '@/components/chat-room';
-import { useAuth } from '@/contexts/auth-context';
-import { ChatSidebarSkeleton } from '@/components/ui/skeletons/chat-skeleton';
-import { getPosts, getPostBids } from '@/lib/actions/posts';
-import { getRequests, getRequestBids } from '@/lib/actions/requests';
-import { getUsers } from '@/lib/actions/users';
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, ChevronLeft } from "lucide-react";
+import Navbar from "@/components/ui/navbar";
+import BottomNav from "@/components/ui/bottomnavbar";
+import { ChatRoom } from "@/components/chat-room";
+import { useAuth } from "@/contexts/auth-context";
+import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
+import { getPosts, getPostBids } from "@/lib/actions/posts";
+import { getRequests, getRequestBids } from "@/lib/actions/requests";
+import { getUsers } from "@/lib/actions/users";
 
 type ConversationEntry = {
   bidId: string;
-  kind: 'offer' | 'request';
+  kind: "offer" | "request";
   title: string;
   otherName: string;
   otherId: string;
@@ -24,16 +24,18 @@ function ChatPageInner() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const bidIdParam = params.get('bidId') ?? '';
-  const kindParam = (params.get('kind') ?? 'offer') as 'offer' | 'request';
-  const titleParam = params.get('title') ?? 'ITEM';
-  const otherIdParam = params.get('otherId') ?? '';
+  const bidIdParam = params.get("bidId") ?? "";
+  const kindParam = (params.get("kind") ?? "offer") as "offer" | "request";
+  const titleParam = params.get("title") ?? "ITEM";
+  const otherIdParam = params.get("otherId") ?? "";
 
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
 
   const [conversations, setConversations] = useState<ConversationEntry[]>([]);
-  const [selectedConv, setSelectedConv] = useState<ConversationEntry | null>(null);
+  const [selectedConv, setSelectedConv] = useState<ConversationEntry | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const initialised = useRef(false);
 
@@ -53,7 +55,13 @@ function ChatPageInner() {
       const bidsResult = await getPostBids({ post_id: post.id });
       for (const bid of bidsResult.data ?? []) {
         userIds.add(bid.bidder_id);
-        items.push({ bidId: bid.id, kind: 'offer', title: post.title, otherName: '', otherId: bid.bidder_id });
+        items.push({
+          bidId: bid.id,
+          kind: "offer",
+          title: post.title,
+          otherName: "",
+          otherId: bid.bidder_id,
+        });
       }
     }
 
@@ -62,7 +70,13 @@ function ChatPageInner() {
       const post = postResult.data?.[0];
       if (post && post.user_id) {
         userIds.add(post.user_id);
-        items.push({ bidId: bid.id, kind: 'offer', title: post.title, otherName: '', otherId: post.user_id });
+        items.push({
+          bidId: bid.id,
+          kind: "offer",
+          title: post.title,
+          otherName: "",
+          otherId: post.user_id,
+        });
       }
     }
 
@@ -70,7 +84,13 @@ function ChatPageInner() {
       const bidsResult = await getRequestBids({ request_id: req.id });
       for (const bid of bidsResult.data ?? []) {
         userIds.add(bid.bidder_id);
-        items.push({ bidId: bid.id, kind: 'request', title: req.title, otherName: '', otherId: bid.bidder_id });
+        items.push({
+          bidId: bid.id,
+          kind: "request",
+          title: req.title,
+          otherName: "",
+          otherId: bid.bidder_id,
+        });
       }
     }
 
@@ -79,7 +99,13 @@ function ChatPageInner() {
       const req = reqResult.data?.[0];
       if (req && req.user_id) {
         userIds.add(req.user_id);
-        items.push({ bidId: bid.id, kind: 'request', title: req.title, otherName: '', otherId: req.user_id });
+        items.push({
+          bidId: bid.id,
+          kind: "request",
+          title: req.title,
+          otherName: "",
+          otherId: req.user_id,
+        });
       }
     }
 
@@ -88,13 +114,13 @@ function ChatPageInner() {
     if (userIds.size > 0) {
       const usersResult = await getUsers({ ids: Array.from(userIds) });
       for (const u of usersResult.data ?? []) {
-        usersMap.set(u.id, u.name ?? 'User');
+        usersMap.set(u.id, u.name ?? "User");
       }
     }
 
     // Fill in names
     for (const item of items) {
-      item.otherName = usersMap.get(item.otherId) ?? 'User';
+      item.otherName = usersMap.get(item.otherId) ?? "User";
     }
 
     setConversations(items);
@@ -106,6 +132,7 @@ function ChatPageInner() {
     if (initialised.current) return;
     initialised.current = true;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadConversations().then((items) => {
       if (!bidIdParam) return;
       const match = items.find((c) => c.bidId === bidIdParam);
@@ -114,7 +141,7 @@ function ChatPageInner() {
           bidId: bidIdParam,
           kind: kindParam,
           title: titleParam,
-          otherName: '',
+          otherName: "",
           otherId: otherIdParam,
         },
       );
@@ -142,7 +169,7 @@ function ChatPageInner() {
             <p>No conversation selected.</p>
             <button
               type="button"
-              onClick={() => router.push('/tracker')}
+              onClick={() => router.push("/tracker")}
               className="text-[#3761B0] underline text-sm"
             >
               Go to Tracker
@@ -160,17 +187,19 @@ function ChatPageInner() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-gray-900 leading-tight line-clamp-1">{titleParam}</p>
+                <p className="font-bold text-gray-900 leading-tight line-clamp-1">
+                  {titleParam}
+                </p>
                 <p className="text-xs text-gray-500 leading-tight">
-                  {kindParam === 'offer' ? 'Offer' : 'Request'}
+                  {kindParam === "offer" ? "Offer" : "Request"}
                 </p>
               </div>
             </header>
             <div className="flex-1 min-h-0">
               <ChatRoom
                 other_user_id={otherIdParam}
-                post_bid_id={kindParam === 'offer' ? bidIdParam : null}
-                request_bid_id={kindParam === 'request' ? bidIdParam : null}
+                post_bid_id={kindParam === "offer" ? bidIdParam : null}
+                request_bid_id={kindParam === "request" ? bidIdParam : null}
               />
             </div>
           </>
@@ -184,7 +213,9 @@ function ChatPageInner() {
           {loading ? (
             <ChatSidebarSkeleton />
           ) : conversations.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm pt-10">No conversations yet</p>
+            <p className="text-center text-gray-400 text-sm pt-10">
+              No conversations yet
+            </p>
           ) : (
             conversations.map((conv) => (
               <button
@@ -192,10 +223,12 @@ function ChatPageInner() {
                 type="button"
                 onClick={() => selectConversation(conv)}
                 className={`w-full text-left px-5 py-4 border-b border-gray-100 transition-colors hover:bg-gray-50 ${
-                  selectedConv?.bidId === conv.bidId ? 'bg-gray-100' : ''
+                  selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
                 }`}
               >
-                <p className="font-bold text-gray-900 text-sm uppercase leading-tight">{conv.title}</p>
+                <p className="font-bold text-gray-900 text-sm uppercase leading-tight">
+                  {conv.title}
+                </p>
                 <p className="text-sm text-gray-500 mt-0.5">{conv.otherName}</p>
               </button>
             ))
@@ -211,11 +244,13 @@ function ChatPageInner() {
                 <div className="w-9 h-9 rounded bg-[#8B5E52] shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-sm leading-tight truncate">
-                    {selectedConv.kind === 'offer' ? 'OFFER' : 'REQUEST'}
-                    {' | '}
+                    {selectedConv.kind === "offer" ? "OFFER" : "REQUEST"}
+                    {" | "}
                     {selectedConv.otherName || selectedConv.title}
                   </p>
-                  <p className="text-xs text-gray-500 leading-tight truncate">{selectedConv.title}</p>
+                  <p className="text-xs text-gray-500 leading-tight truncate">
+                    {selectedConv.title}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -231,8 +266,12 @@ function ChatPageInner() {
               <div className="flex-1 min-h-0">
                 <ChatRoom
                   other_user_id={selectedConv.otherId}
-                  post_bid_id={selectedConv.kind === 'offer' ? selectedConv.bidId : null}
-                  request_bid_id={selectedConv.kind === 'request' ? selectedConv.bidId : null}
+                  post_bid_id={
+                    selectedConv.kind === "offer" ? selectedConv.bidId : null
+                  }
+                  request_bid_id={
+                    selectedConv.kind === "request" ? selectedConv.bidId : null
+                  }
                 />
               </div>
             </>
@@ -249,7 +288,7 @@ function ChatPageInner() {
   );
 }
 
-import { PageShellSkeleton } from '@/components/ui/page-shell-skeleton';
+import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 
 export default function ChatPage() {
   return (
