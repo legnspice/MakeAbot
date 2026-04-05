@@ -22,6 +22,7 @@
 - `components/notifications-bell.tsx` — Realtime unread badge for nav
 - `app/(protected)/notifications/page.tsx` — Notification history page (replaces `(public)` version)
 - `app/(protected)/settings/notifications/page.tsx` — Per-event preference toggles
+- `lib/services/notifications.service.ts` — Thin service wrapper over notifications repo
 - `lib/actions/notifications.ts` — Server Actions: get notifications, mark read, get/update prefs
 - `__tests__/lib/actions/notifications.test.ts` — Tests for notification actions
 
@@ -530,26 +531,11 @@ Add `updateRequestBidStatus` at the end:
 export async function updateRequestBidStatus(
   bidId: string,
   status: "Accepted" | "Closed",
-  requestOwnerId: string,
 ) {
   return await db
     .update(request_bids)
     .set({ status })
-    .where(
-      and(
-        eq(request_bids.id, bidId),
-        // Only the request owner can accept/reject bids — enforce via join
-        // We verify ownership by checking the request's user_id
-        eq(
-          request_bids.request_id,
-          db
-            .select({ id: requests.id })
-            .from(requests)
-            .where(eq(requests.user_id, requestOwnerId))
-            .limit(1),
-        )
-      )
-    );
+    .where(eq(request_bids.id, bidId));
 }
 ```
 
@@ -714,7 +700,7 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
 }
 
 export async function acceptRequestBid(bidId: string, requestOwnerId: string) {
-  await requestsRepo.updateRequestBidStatus(bidId, "Accepted", requestOwnerId);
+  await requestsRepo.updateRequestBidStatus(bidId, "Accepted");
   // fire-and-forget
   (async () => {
     try {
@@ -732,7 +718,7 @@ export async function acceptRequestBid(bidId: string, requestOwnerId: string) {
 }
 
 export async function rejectRequestBid(bidId: string, requestOwnerId: string) {
-  await requestsRepo.updateRequestBidStatus(bidId, "Closed", requestOwnerId);
+  await requestsRepo.updateRequestBidStatus(bidId, "Closed");
   // fire-and-forget
   (async () => {
     try {
