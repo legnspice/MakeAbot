@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Settings } from "lucide-react";
 import {
   getNotifications,
   markNotificationRead,
@@ -90,6 +90,14 @@ export default function NotificationsPanel({ open, onClose }: Props) {
                 Mark all read
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => { router.push("/settings/notifications"); onClose(); }}
+              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              aria-label="Notification settings"
+            >
+              <Settings className="w-5 h-5 text-gray-600" />
+            </button>
             <button
               type="button"
               onClick={onClose}

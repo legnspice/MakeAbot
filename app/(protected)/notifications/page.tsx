@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import {
@@ -63,15 +65,24 @@ export default function NotificationsPage() {
       <main className="flex-1 max-w-md md:max-w-2xl mx-auto w-full px-4 pt-4 pb-28 md:pb-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold text-gray-900">Notifications</h1>
-          {hasUnread && (
-            <button
-              type="button"
-              onClick={handleMarkAllRead}
-              className="text-xs text-[#3761B0] hover:underline"
+          <div className="flex items-center gap-3">
+            {hasUnread && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="text-xs text-[#3761B0] hover:underline"
+              >
+                Mark all read
+              </button>
+            )}
+            <Link
+              href="/settings/notifications"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
             >
-              Mark all read
-            </button>
-          )}
+              <Settings className="w-4 h-4" />
+              Settings
+            </Link>
+          </div>
         </div>
 
         {loading ? (

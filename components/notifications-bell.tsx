@@ -2,7 +2,7 @@
 
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -18,6 +18,7 @@ type Props = {
 export default function NotificationsBell({ asLink = false, onClick, className = "" }: Props) {
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
+  const channelName = useRef(`notifications-bell-${userId}-${Math.random().toString(36).slice(2)}`);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadCount = useCallback(async () => {
@@ -35,7 +36,7 @@ export default function NotificationsBell({ asLink = false, onClick, className =
 
     const supabase = createClient();
     const channel = supabase
-      .channel(`notifications-bell-${userId}`)
+      .channel(channelName.current)
       .on(
         "postgres_changes",
         {
@@ -59,6 +60,7 @@ export default function NotificationsBell({ asLink = false, onClick, className =
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [userId, fetchUnreadCount]);
