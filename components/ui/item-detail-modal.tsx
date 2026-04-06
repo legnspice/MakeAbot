@@ -129,6 +129,11 @@ export default function ItemDetailModal({
                 <span className="font-medium">Note:</span> {item.note}
               </p>
             )}
+            {item.description && (
+              <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap overflow-y-auto max-h-24">
+                {item.description}
+              </p>
+            )}
           </div>
 
           {/* Actions */}

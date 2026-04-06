@@ -46,7 +46,7 @@ export default function ItemRequestCard({
             : requestedBy}
         </p>
         {detail?.description && (
-          <p className="hidden md:block text-sm text-gray-500 line-clamp-2">
+          <p className="hidden md:block text-sm text-gray-500 line-clamp-2 whitespace-pre-wrap">
             {detail.description}
           </p>
         )}
