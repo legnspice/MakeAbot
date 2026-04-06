@@ -99,6 +99,12 @@ export function TutorialModal() {
     }
   }
 
+  function handleBack() {
+    if (step > 0) {
+      setStep((s) => s - 1);
+    }
+  }
+
   const current = STEPS[step];
   const Icon = current.icon;
   const isLastStep = step === STEPS.length - 1;
@@ -168,9 +174,16 @@ export function TutorialModal() {
           >
             Skip tutorial
           </button>
-          <Button onClick={handleNext} className="min-w-[90px]">
-            {isLastStep ? "Got it" : "Next →"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <Button variant="outline" onClick={handleBack} className="min-w-[90px]">
+                ← Back
+              </Button>
+            )}
+            <Button onClick={handleNext} className="min-w-[90px]">
+              {isLastStep ? "Got it" : "Next →"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
