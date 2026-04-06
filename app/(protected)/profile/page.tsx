@@ -58,7 +58,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const avatarFileRefDesktop = useRef<HTMLInputElement>(null);
+  const avatarFileRefMobile = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const highResAvatar = getHighResAvatarUrl(avatarUrl);
@@ -98,7 +99,8 @@ export default function ProfilePage() {
       console.error("Avatar upload failed:", err);
     } finally {
       setIsUploadingAvatar(false);
-      if (avatarFileRef.current) avatarFileRef.current.value = "";
+      if (avatarFileRefDesktop.current) avatarFileRefDesktop.current.value = "";
+      if (avatarFileRefMobile.current) avatarFileRefMobile.current.value = "";
     }
   };
 
@@ -188,7 +190,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <input
-                ref={avatarFileRef}
+                ref={avatarFileRefDesktop}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -197,7 +199,7 @@ export default function ProfilePage() {
               />
               <button
                 type="button"
-                onClick={() => avatarFileRef.current?.click()}
+                onClick={() => avatarFileRefDesktop.current?.click()}
                 disabled={isUploadingAvatar}
                 className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
                 aria-label="Change profile picture"
@@ -328,7 +330,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <input
-                ref={avatarFileRef}
+                ref={avatarFileRefMobile}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -337,7 +339,7 @@ export default function ProfilePage() {
               />
               <button
                 type="button"
-                onClick={() => avatarFileRef.current?.click()}
+                onClick={() => avatarFileRefMobile.current?.click()}
                 disabled={isUploadingAvatar}
                 className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
                 aria-label="Change profile picture"
