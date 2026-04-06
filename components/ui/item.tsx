@@ -26,10 +26,16 @@ export default function ItemRequestCard({
   const hasDate = time && time !== "—";
 
   return (
-    <button
-      type="button"
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:border-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+      className={`w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-4 transition-colors focus:outline-none ${
+        onClick
+          ? "cursor-pointer hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
+          : "opacity-75"
+      }`}
     >
       {typeBadge && (
         <span className="inline-block mb-2 text-xs font-bold uppercase tracking-wider text-[#3761B0] bg-blue-50 px-2 py-0.5 rounded">
@@ -60,6 +66,6 @@ export default function ItemRequestCard({
       <div className="mt-3 flex justify-end">
         <span className="text-[#3761B0] font-semibold">{price}</span>
       </div>
-    </button>
+    </div>
   );
 }

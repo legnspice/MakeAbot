@@ -286,19 +286,22 @@ export default function Home() {
         ) : (
           <main className="px-4 py-6 pb-28 md:pb-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-              {filteredItems.map((item) => (
-                <ItemRequestCard
-                  key={item.id}
-                  variant={item.variant}
-                  requestedBy={item.requestedBy}
-                  section={item.section}
-                  time={item.time}
-                  price={item.price}
-                  typeBadge={item.typeBadge}
-                  detail={item.detail}
-                  onClick={() => setSelectedItem(item)}
-                />
-              ))}
+              {filteredItems.map((item) => {
+                const isOwn = item.userId === currentUser.id;
+                return (
+                  <ItemRequestCard
+                    key={item.id}
+                    variant={item.variant}
+                    requestedBy={item.requestedBy}
+                    section={item.section}
+                    time={item.time}
+                    price={item.price}
+                    typeBadge={item.typeBadge}
+                    detail={item.detail}
+                    onClick={isOwn ? undefined : () => setSelectedItem(item)}
+                  />
+                );
+              })}
             </div>
           </main>
         )}
