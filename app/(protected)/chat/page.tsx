@@ -8,9 +8,11 @@ import BottomNav from "@/components/ui/bottomnavbar";
 import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
+import { Star } from "lucide-react";
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
+import { getReviews } from "@/lib/actions/reviews";
 
 type ConversationEntry = {
   bidId: string;
@@ -18,6 +20,7 @@ type ConversationEntry = {
   title: string;
   otherName: string;
   otherId: string;
+  otherRating: number | null;
 };
 
 function ChatPageInner() {
@@ -109,18 +112,34 @@ function ChatPageInner() {
       }
     }
 
-    // Batch fetch all users at once
+    // Batch fetch all users and their ratings
     const usersMap = new Map<string, string>();
+    const ratingsMap = new Map<string, number | null>();
     if (userIds.size > 0) {
-      const usersResult = await getUsers({ ids: Array.from(userIds) });
+      const idsArr = Array.from(userIds);
+      const usersResult = await getUsers({ ids: idsArr });
       for (const u of usersResult.data ?? []) {
         usersMap.set(u.id, u.name ?? "User");
       }
+      // Fetch ratings for each user
+      await Promise.all(
+        idsArr.map(async (uid) => {
+          const reviewsResult = await getReviews({ rated_user_id: uid });
+          const reviews = reviewsResult.data ?? [];
+          if (reviews.length > 0) {
+            const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+            ratingsMap.set(uid, Math.round(avg * 10) / 10);
+          } else {
+            ratingsMap.set(uid, null);
+          }
+        }),
+      );
     }
 
-    // Fill in names
+    // Fill in names and ratings
     for (const item of items) {
       item.otherName = usersMap.get(item.otherId) ?? "User";
+      item.otherRating = ratingsMap.get(item.otherId) ?? null;
     }
 
     setConversations(items);
@@ -143,6 +162,7 @@ function ChatPageInner() {
           title: titleParam,
           otherName: "",
           otherId: otherIdParam,
+          otherRating: null,
         },
       );
     });
@@ -187,9 +207,19 @@ function ChatPageInner() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-gray-900 leading-tight line-clamp-1">
-                  {titleParam}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-gray-900 leading-tight line-clamp-1">
+                    {titleParam}
+                  </p>
+                  {selectedConv?.otherRating != null ? (
+                    <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                      {selectedConv.otherRating}
+                      <Star className="w-3.5 h-3.5 fill-[#E5A550] text-[#E5A550]" />
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 leading-tight">
                   {kindParam === "offer" ? "Offer" : "Request"}
                 </p>
@@ -243,11 +273,21 @@ function ChatPageInner() {
               <header className="bg-[#E8ECFF] flex items-center px-5 py-3 gap-3 shrink-0 border-b border-blue-100">
                 <div className="w-9 h-9 rounded bg-[#8B5E52] shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">
-                    {selectedConv.kind === "offer" ? "OFFER" : "REQUEST"}
-                    {" | "}
-                    {selectedConv.otherName || selectedConv.title}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-gray-900 text-sm leading-tight truncate">
+                      {selectedConv.kind === "offer" ? "OFFER" : "REQUEST"}
+                      {" | "}
+                      {selectedConv.otherName || selectedConv.title}
+                    </p>
+                    {selectedConv.otherRating != null ? (
+                      <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                        {selectedConv.otherRating}
+                        <Star className="w-3.5 h-3.5 fill-[#E5A550] text-[#E5A550]" />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 leading-tight truncate">
                     {selectedConv.title}
                   </p>
