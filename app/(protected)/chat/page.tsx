@@ -21,6 +21,7 @@ type ConversationEntry = {
   otherName: string;
   otherId: string;
   otherRating: number | null;
+  completed: boolean;
 };
 
 function ChatPageInner() {
@@ -40,6 +41,7 @@ function ChatPageInner() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [chatTab, setChatTab] = useState<"active" | "completed">("active");
   const initialised = useRef(false);
 
   const loadConversations = useCallback(async () => {
@@ -64,6 +66,7 @@ function ChatPageInner() {
           title: post.title,
           otherName: "",
           otherId: bid.bidder_id,
+          completed: post.status === "Closed",
         });
       }
     }
@@ -79,6 +82,7 @@ function ChatPageInner() {
           title: post.title,
           otherName: "",
           otherId: post.user_id,
+          completed: post.status === "Closed",
         });
       }
     }
@@ -93,6 +97,7 @@ function ChatPageInner() {
           title: req.title,
           otherName: "",
           otherId: bid.bidder_id,
+          completed: req.status === "Completed",
         });
       }
     }
@@ -108,6 +113,7 @@ function ChatPageInner() {
           title: req.title,
           otherName: "",
           otherId: req.user_id,
+          completed: req.status === "Completed",
         });
       }
     }
@@ -163,6 +169,7 @@ function ChatPageInner() {
           otherName: "",
           otherId: otherIdParam,
           otherRating: null,
+          completed: false,
         },
       );
     });
@@ -179,11 +186,11 @@ function ChatPageInner() {
   const mobileInvalid = !bidIdParam || !otherIdParam;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
       <Navbar />
 
       {/* ── Mobile layout ── */}
-      <div className="flex md:hidden flex-1 min-h-0 flex-col pb-16">
+      <div className="flex md:hidden flex-1 min-h-0 flex-col">
         {mobileInvalid ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
             <p>No conversation selected.</p>
@@ -239,30 +246,68 @@ function ChatPageInner() {
       {/* ── Desktop layout ── */}
       <div className="hidden md:flex flex-1 min-h-0">
         {/* Sidebar */}
-        <div className="w-96 border-r border-gray-200 overflow-y-auto shrink-0">
-          {loading ? (
-            <ChatSidebarSkeleton />
-          ) : conversations.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm pt-10">
-              No conversations yet
-            </p>
-          ) : (
-            conversations.map((conv) => (
-              <button
-                key={conv.bidId}
-                type="button"
-                onClick={() => selectConversation(conv)}
-                className={`w-full text-left px-5 py-4 border-b border-gray-100 transition-colors hover:bg-gray-50 ${
-                  selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
-                }`}
-              >
-                <p className="font-bold text-gray-900 text-sm uppercase leading-tight">
-                  {conv.title}
+        <div className="w-96 border-r border-gray-200 flex flex-col shrink-0">
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setChatTab("active")}
+              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
+                chatTab === "active"
+                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => setChatTab("completed")}
+              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
+                chatTab === "completed"
+                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Completed
+            </button>
+          </div>
+
+          {/* Conversation list */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <ChatSidebarSkeleton />
+            ) : (() => {
+              const filtered = conversations.filter((c) =>
+                chatTab === "completed" ? c.completed : !c.completed,
+              );
+              return filtered.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm pt-10">
+                  {chatTab === "completed"
+                    ? "No completed chats"
+                    : "No active chats"}
                 </p>
-                <p className="text-sm text-gray-500 mt-0.5">{conv.otherName}</p>
-              </button>
-            ))
-          )}
+              ) : (
+                filtered.map((conv) => (
+                  <button
+                    key={conv.bidId}
+                    type="button"
+                    onClick={() => selectConversation(conv)}
+                    className={`w-full text-left px-5 py-4 border-b border-gray-100 transition-colors hover:bg-gray-50 ${
+                      selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
+                    }`}
+                  >
+                    <p className="font-bold text-gray-900 text-sm uppercase leading-tight">
+                      {conv.title}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {conv.otherName}
+                    </p>
+                  </button>
+                ))
+              );
+            })()}
+          </div>
         </div>
 
         {/* Chat panel */}
@@ -323,7 +368,7 @@ function ChatPageInner() {
         </div>
       </div>
 
-      <BottomNav />
+      {mobileInvalid && <BottomNav />}
     </div>
   );
 }
