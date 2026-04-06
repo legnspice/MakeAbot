@@ -49,32 +49,82 @@ type TrackerCard =
   | { type: "request"; data: TrackerRequest };
 
 async function fetchTrackerData(userId: string) {
-  const [postsResult, requestsResult] = await Promise.all([
-    getPosts({ user_id: userId }),
-    getRequests({ user_id: userId }),
-  ]);
+  const [postsResult, requestsResult, myPostBidsResult, myReqBidsResult] =
+    await Promise.all([
+      getPosts({ user_id: userId }),
+      getRequests({ user_id: userId }),
+      getPostBids({ bidder_id: userId }),
+      getRequestBids({ bidder_id: userId }),
+    ]);
 
+  // Bids on my posts
   const postBidFetches = (postsResult.data ?? []).map((post) =>
-    getPostBids({ post_id: post.id }).then((r) => ({ post, bids: r.data ?? [] })),
+    getPostBids({ post_id: post.id }).then((r) => ({
+      post,
+      bids: r.data ?? [],
+    })),
   );
+  // Bids on my requests
   const reqBidFetches = (requestsResult.data ?? []).map((req) =>
-    getRequestBids({ request_id: req.id }).then((r) => ({ req, bids: r.data ?? [] })),
+    getRequestBids({ request_id: req.id }).then((r) => ({
+      req,
+      bids: r.data ?? [],
+    })),
   );
-  const [postBidGroups, reqBidGroups] = await Promise.all([
-    Promise.all(postBidFetches),
-    Promise.all(reqBidFetches),
-  ]);
 
+  // Posts I bid on (fetch each post)
+  const myPostBids = myPostBidsResult.data ?? [];
+  const bidPostFetches = myPostBids.map((bid) =>
+    getPosts({ id: bid.post_id }).then((r) => ({
+      bid,
+      post: r.data?.[0] ?? null,
+    })),
+  );
+
+  // Requests I bid on (fetch each request)
+  const myReqBids = myReqBidsResult.data ?? [];
+  const bidReqFetches = myReqBids.map((bid) =>
+    getRequests({ id: bid.request_id }).then((r) => ({
+      bid,
+      req: r.data?.[0] ?? null,
+    })),
+  );
+
+  const [postBidGroups, reqBidGroups, bidPostGroups, bidReqGroups] =
+    await Promise.all([
+      Promise.all(postBidFetches),
+      Promise.all(reqBidFetches),
+      Promise.all(bidPostFetches),
+      Promise.all(bidReqFetches),
+    ]);
+
+  // Collect all user IDs we need names for
   const userIds = new Set<string>();
-  for (const { bids } of postBidGroups) for (const bid of bids) userIds.add(bid.bidder_id);
-  for (const { bids } of reqBidGroups) for (const bid of bids) userIds.add(bid.bidder_id);
+  for (const { bids } of postBidGroups)
+    for (const bid of bids) userIds.add(bid.bidder_id);
+  for (const { bids } of reqBidGroups)
+    for (const bid of bids) userIds.add(bid.bidder_id);
+  for (const { post } of bidPostGroups)
+    if (post?.user_id) userIds.add(post.user_id);
+  for (const { req } of bidReqGroups)
+    if (req?.user_id) userIds.add(req.user_id);
 
   const usersMap = new Map<string, string>();
   if (userIds.size > 0) {
     const usersResult = await getUsers({ ids: Array.from(userIds) });
-    for (const u of usersResult.data ?? []) usersMap.set(u.id, u.name ?? "User");
+    for (const u of usersResult.data ?? [])
+      usersMap.set(u.id, u.name ?? "User");
   }
 
+  // My own post IDs (to avoid duplicates)
+  const myPostIds = new Set(
+    (postsResult.data ?? []).map((p) => p.id),
+  );
+  const myRequestIds = new Set(
+    (requestsResult.data ?? []).map((r) => r.id),
+  );
+
+  // Cards for my offers (posts I own)
   const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
     id: post.id,
     itemName: post.title,
@@ -86,6 +136,24 @@ async function fetchTrackerData(userId: string) {
     })),
   }));
 
+  // Cards for posts I bid on (not my own)
+  for (const { bid, post } of bidPostGroups) {
+    if (!post || !post.user_id || myPostIds.has(post.id)) continue;
+    offerList.push({
+      id: `bid-${bid.id}`,
+      itemName: post.title,
+      requesterCount: 1,
+      requesters: [
+        {
+          id: post.user_id,
+          name: usersMap.get(post.user_id) ?? "User",
+          bidId: bid.id,
+        },
+      ],
+    });
+  }
+
+  // Cards for my requests (requests I own)
   const requestList: TrackerRequest[] = reqBidGroups.map(({ req, bids }) => ({
     id: req.id,
     itemName: req.title,
@@ -98,6 +166,24 @@ async function fetchTrackerData(userId: string) {
     })),
     notificationCount: bids.length > 0 ? bids.length : undefined,
   }));
+
+  // Cards for requests I bid on (not my own)
+  for (const { bid, req } of bidReqGroups) {
+    if (!req || !req.user_id || myRequestIds.has(req.id)) continue;
+    requestList.push({
+      id: `bid-${bid.id}`,
+      itemName: req.title,
+      status: req.status,
+      price: formatPrice(req.fee),
+      bidders: [
+        {
+          id: req.user_id,
+          name: usersMap.get(req.user_id) ?? "User",
+          bidId: bid.id,
+        },
+      ],
+    });
+  }
 
   return { offerList, requestList };
 }

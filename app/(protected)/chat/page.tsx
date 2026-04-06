@@ -8,10 +8,12 @@ import BottomNav from "@/components/ui/bottomnavbar";
 import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
+import { Star } from "lucide-react";
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { getLatestTimestampsForBids } from "@/lib/actions/messages";
+import { getReviews } from "@/lib/actions/reviews";
 
 type ConversationEntry = {
   bidId: string;
@@ -20,6 +22,8 @@ type ConversationEntry = {
   otherName: string;
   otherId: string;
   lastMessageAt: Date | null;
+  otherRating: number | null;
+  completed: boolean;
 };
 
 function ChatPageInner() {
@@ -39,6 +43,7 @@ function ChatPageInner() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [chatTab, setChatTab] = useState<"active" | "completed">("active");
   const initialised = useRef(false);
 
   const loadConversations = useCallback(async () => {
@@ -64,6 +69,8 @@ function ChatPageInner() {
           otherName: "",
           otherId: bid.bidder_id,
           lastMessageAt: null,
+          otherRating: null,
+          completed: post.status === "Closed",
         });
       }
     }
@@ -80,6 +87,8 @@ function ChatPageInner() {
           otherName: "",
           otherId: post.user_id,
           lastMessageAt: null,
+          otherRating: null,
+          completed: post.status === "Closed",
         });
       }
     }
@@ -95,6 +104,8 @@ function ChatPageInner() {
           otherName: "",
           otherId: bid.bidder_id,
           lastMessageAt: null,
+          otherRating: null,
+          completed: req.status === "Completed",
         });
       }
     }
@@ -111,16 +122,24 @@ function ChatPageInner() {
           otherName: "",
           otherId: req.user_id,
           lastMessageAt: null,
+          otherRating: null,
+          completed: req.status === "Completed",
         });
       }
     }
 
-    // Batch fetch all users and last-message timestamps at once
-    const postBidIds = items.filter((i) => i.kind === "offer").map((i) => i.bidId);
-    const reqBidIds = items.filter((i) => i.kind === "request").map((i) => i.bidId);
+    // Prepare arrays for batch fetching
+    const postBidIds = items
+      .filter((i) => i.kind === "offer")
+      .map((i) => i.bidId);
+    const reqBidIds = items
+      .filter((i) => i.kind === "request")
+      .map((i) => i.bidId);
+    const idsArr = Array.from(userIds);
 
+    // 1. Batch fetch users and last-message timestamps
     const [usersResult, timestampsResult] = await Promise.all([
-      userIds.size > 0 ? getUsers({ ids: Array.from(userIds) }) : { data: [] },
+      idsArr.length > 0 ? getUsers({ ids: idsArr }) : { data: [] },
       getLatestTimestampsForBids(postBidIds, reqBidIds),
     ]);
 
@@ -129,11 +148,31 @@ function ChatPageInner() {
       usersMap.set(u.id, u.name ?? "User");
     }
 
-    const timestamps = timestampsResult.data ?? new Map<string, Date>();
+    const timestampsMap = timestampsResult.data ?? new Map<string, Date>();
 
+    // 2. Batch fetch ratings for each user
+    const ratingsMap = new Map<string, number | null>();
+    if (idsArr.length > 0) {
+      await Promise.all(
+        idsArr.map(async (uid) => {
+          const reviewsResult = await getReviews({ rated_user_id: uid });
+          const reviews = reviewsResult.data ?? [];
+          if (reviews.length > 0) {
+            const avg =
+              reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+            ratingsMap.set(uid, Math.round(avg * 10) / 10);
+          } else {
+            ratingsMap.set(uid, null);
+          }
+        }),
+      );
+    }
+
+    // 3. Fill in names, timestamps, and ratings
     for (const item of items) {
       item.otherName = usersMap.get(item.otherId) ?? "User";
-      item.lastMessageAt = timestamps.get(item.bidId) ?? null;
+      item.lastMessageAt = timestampsMap.get(item.bidId) ?? null;
+      item.otherRating = ratingsMap.get(item.otherId) ?? null;
     }
 
     // Sort by most recent message first; conversations with no messages go last
@@ -165,6 +204,8 @@ function ChatPageInner() {
           otherName: "",
           otherId: otherIdParam,
           lastMessageAt: null,
+          otherRating: null,
+          completed: false,
         },
       );
     });
@@ -181,11 +222,11 @@ function ChatPageInner() {
   const mobileInvalid = !bidIdParam || !otherIdParam;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
       <Navbar />
 
       {/* ── Mobile layout ── */}
-      <div className="flex md:hidden flex-1 min-h-0 flex-col pb-16">
+      <div className="flex md:hidden flex-1 min-h-0 flex-col">
         {mobileInvalid ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
             <p>No conversation selected.</p>
@@ -209,9 +250,21 @@ function ChatPageInner() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-gray-900 leading-tight line-clamp-1">
-                  {titleParam}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-gray-900 leading-tight line-clamp-1">
+                    {titleParam}
+                  </p>
+                  {selectedConv?.otherRating != null ? (
+                    <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                      {selectedConv.otherRating}
+                      <Star className="w-3.5 h-3.5 fill-[#E5A550] text-[#E5A550]" />
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic shrink-0">
+                      No reviews yet
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 leading-tight">
                   {kindParam === "offer" ? "Offer" : "Request"}
                 </p>
@@ -231,30 +284,70 @@ function ChatPageInner() {
       {/* ── Desktop layout ── */}
       <div className="hidden md:flex flex-1 min-h-0">
         {/* Sidebar */}
-        <div className="w-96 border-r border-gray-200 overflow-y-auto shrink-0">
-          {loading ? (
-            <ChatSidebarSkeleton />
-          ) : conversations.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm pt-10">
-              No conversations yet
-            </p>
-          ) : (
-            conversations.map((conv) => (
-              <button
-                key={conv.bidId}
-                type="button"
-                onClick={() => selectConversation(conv)}
-                className={`w-full text-left px-5 py-4 border-b border-gray-100 transition-colors hover:bg-gray-50 ${
-                  selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
-                }`}
-              >
-                <p className="font-bold text-gray-900 text-sm uppercase leading-tight">
-                  {conv.title}
-                </p>
-                <p className="text-sm text-gray-500 mt-0.5">{conv.otherName}</p>
-              </button>
-            ))
-          )}
+        <div className="w-96 border-r border-gray-200 flex flex-col shrink-0">
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setChatTab("active")}
+              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
+                chatTab === "active"
+                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => setChatTab("completed")}
+              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
+                chatTab === "completed"
+                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Completed
+            </button>
+          </div>
+
+          {/* Conversation list */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <ChatSidebarSkeleton />
+            ) : (
+              (() => {
+                const filtered = conversations.filter((c) =>
+                  chatTab === "completed" ? c.completed : !c.completed,
+                );
+                return filtered.length === 0 ? (
+                  <p className="text-center text-gray-400 text-sm pt-10">
+                    {chatTab === "completed"
+                      ? "No completed chats"
+                      : "No active chats"}
+                  </p>
+                ) : (
+                  filtered.map((conv) => (
+                    <button
+                      key={conv.bidId}
+                      type="button"
+                      onClick={() => selectConversation(conv)}
+                      className={`w-full text-left px-5 py-4 border-b border-gray-100 transition-colors hover:bg-gray-50 ${
+                        selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
+                      }`}
+                    >
+                      <p className="font-bold text-gray-900 text-sm uppercase leading-tight">
+                        {conv.title}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        {conv.otherName}
+                      </p>
+                    </button>
+                  ))
+                );
+              })()
+            )}
+          </div>
         </div>
 
         {/* Chat panel */}
@@ -265,11 +358,23 @@ function ChatPageInner() {
               <header className="bg-[#E8ECFF] flex items-center px-5 py-3 gap-3 shrink-0 border-b border-blue-100">
                 <div className="w-9 h-9 rounded bg-[#8B5E52] shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">
-                    {selectedConv.kind === "offer" ? "OFFER" : "REQUEST"}
-                    {" | "}
-                    {selectedConv.otherName || selectedConv.title}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-gray-900 text-sm leading-tight truncate">
+                      {selectedConv.kind === "offer" ? "OFFER" : "REQUEST"}
+                      {" | "}
+                      {selectedConv.otherName || selectedConv.title}
+                    </p>
+                    {selectedConv.otherRating != null ? (
+                      <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                        {selectedConv.otherRating}
+                        <Star className="w-3.5 h-3.5 fill-[#E5A550] text-[#E5A550]" />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic shrink-0">
+                        No reviews yet
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 leading-tight truncate">
                     {selectedConv.title}
                   </p>
@@ -305,7 +410,7 @@ function ChatPageInner() {
         </div>
       </div>
 
-      <BottomNav />
+      {mobileInvalid && <BottomNav />}
     </div>
   );
 }
