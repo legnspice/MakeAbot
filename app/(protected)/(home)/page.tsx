@@ -331,10 +331,8 @@ export default function Home() {
               onClick={() => setIsTypePickerOpen(false)}
               aria-hidden
             />
-            <div className="fixed inset-x-0 bottom-17 md:bottom-auto md:inset-0 md:flex md:items-center md:justify-center z-30 pointer-events-none">
-              <div className="pointer-events-auto bg-white rounded-t-3xl md:rounded-2xl md:shadow-2xl md:w-full md:max-w-sm mx-0 md:mx-0 px-6 pt-5 pb-10 md:pb-8">
-                {/* Drag handle — mobile only */}
-                <div className="md:hidden w-10 h-1 rounded-full bg-gray-300 mx-auto mb-5" />
+            <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
+              <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 px-6 pt-5 pb-8">
 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
