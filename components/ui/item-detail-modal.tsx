@@ -78,7 +78,7 @@ export default function ItemDetailModal({
               <img
                 src={item.imageUrl}
                 alt={item.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             ) : (
               <span className="text-gray-300 text-xs uppercase tracking-widest font-medium">

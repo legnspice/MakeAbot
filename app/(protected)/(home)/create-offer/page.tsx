@@ -213,7 +213,7 @@ export default function CreateOffer() {
                       alt="Offer photo"
                       width={400}
                       height={200}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-48 object-contain"
                     />
                     <button
                       type="button"

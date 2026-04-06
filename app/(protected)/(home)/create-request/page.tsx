@@ -233,7 +233,7 @@ export default function CreateRequest() {
                       alt="Request photo"
                       width={400}
                       height={200}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-48 object-contain"
                     />
                     <button
                       type="button"
