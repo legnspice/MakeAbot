@@ -1,22 +1,29 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SquarePen, Star, X, LogOut } from "lucide-react";
+import { SquarePen, Star, X, LogOut, Camera, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { getReviews } from "@/lib/actions/reviews";
 import { getPosts } from "@/lib/actions/posts";
 import { editUser, getUsers } from "@/lib/actions/users";
 import { logout } from "@/app/auth/login/actions";
 import type { SelectPost } from "@/lib/db/schema";
+import imageCompression from "browser-image-compression";
+import { createClient } from "@/lib/supabase/client";
 
 function formatPrice(value: number | null | undefined): string {
   if (value == null || value === 0) return "FREE";
   return `₱${value}`;
+}
+
+function getHighResAvatarUrl(url: string): string {
+  if (!url) return url;
+  return url.replace(/=s\d+-c/, "=s400-c");
 }
 
 export default function ProfilePage() {
@@ -50,6 +57,50 @@ export default function ProfilePage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const highResAvatar = getHighResAvatarUrl(avatarUrl);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    setIsUploadingAvatar(true);
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 400,
+        useWebWorker: true,
+        fileType: "image/webp",
+      });
+
+      const fileName = `${currentUser.id}-${Date.now()}.webp`;
+      const supabase = createClient();
+
+      const { error: uploadError } = await supabase.storage
+        .from("profile_photos")
+        .upload(fileName, compressed);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("profile_photos")
+        .getPublicUrl(fileName);
+
+      await supabase.auth.updateUser({
+        data: { avatar_url: data.publicUrl },
+      });
+
+      window.location.reload();
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarFileRef.current) avatarFileRef.current.value = "";
+    }
+  };
 
   const loadData = useCallback(async () => {
     const [userResult, reviewsResult, postsResult] = await Promise.all([
@@ -123,17 +174,40 @@ export default function ProfilePage() {
           {/* Header: avatar + info side by side */}
           <div className="flex items-start gap-8">
             {/* Avatar */}
-            <div className="relative w-48 h-48 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-2xl font-medium shrink-0">
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt="Profile"
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <span className="uppercase">{(name || "U").charAt(0)}</span>
-              )}
+            <div className="relative w-48 h-48 shrink-0">
+              <div className="w-full h-full rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-2xl font-medium">
+                {highResAvatar ? (
+                  <Image
+                    src={highResAvatar}
+                    alt="Profile"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="uppercase">{(name || "U").charAt(0)}</span>
+                )}
+              </div>
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
+              />
+              <button
+                type="button"
+                onClick={() => avatarFileRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                aria-label="Change profile picture"
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5" />
+                )}
+              </button>
             </div>
 
             {/* Info */}
@@ -240,17 +314,40 @@ export default function ProfilePage() {
             </button>
 
             {/* Profile picture */}
-            <div className="relative w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-sm font-medium">
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt="Profile"
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <span className="uppercase">{(name || "U").charAt(0)}</span>
-              )}
+            <div className="relative w-24 h-24">
+              <div className="w-full h-full rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-sm font-medium">
+                {highResAvatar ? (
+                  <Image
+                    src={highResAvatar}
+                    alt="Profile"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="uppercase">{(name || "U").charAt(0)}</span>
+                )}
+              </div>
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
+              />
+              <button
+                type="button"
+                onClick={() => avatarFileRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                aria-label="Change profile picture"
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+              </button>
             </div>
 
             {/* Name + rating row */}
