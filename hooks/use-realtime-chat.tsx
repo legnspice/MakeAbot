@@ -22,12 +22,13 @@ export interface ChatMessage {
 const EVENT_MESSAGE_TYPE = "message";
 
 export function useRealtimeChat({ roomName, username, currentUserId }: UseRealtimeChatProps) {
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
   useEffect(() => {
+    const supabase = supabaseRef.current;
     const newChannel = supabase.channel(roomName);
     channelRef.current = newChannel;
 
@@ -47,7 +48,7 @@ export function useRealtimeChat({ roomName, username, currentUserId }: UseRealti
       supabase.removeChannel(newChannel);
       channelRef.current = null;
     };
-  }, [roomName, supabase]);
+  }, [roomName]);
 
   const sendMessage = useCallback(
     async (content: string) => {
