@@ -88,7 +88,7 @@ export function DealActionBanner({
       disabled={acting}
       className={`px-4 py-2 rounded-full text-white font-semibold text-sm shrink-0 transition-colors disabled:opacity-50 ${
         showAccept
-          ? "bg-[#E5A550] hover:bg-[#D89440]"
+          ? "bg-[#DEA440] hover:bg-[#C48A2A]"
           : "bg-green-500 hover:bg-green-600"
       }`}
     >

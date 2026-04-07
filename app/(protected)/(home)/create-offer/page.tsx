@@ -269,7 +269,7 @@ export default function CreateOffer() {
                 type="button"
                 onClick={handlePost}
                 disabled={isPosting || isUploading || !form.title.trim()}
-                className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
+                className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white font-bold uppercase disabled:opacity-60"
               >
                 {isPosting ? "Posting..." : "POST!"}
               </Button>

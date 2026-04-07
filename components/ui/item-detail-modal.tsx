@@ -78,7 +78,7 @@ export default function ItemDetailModal({
               <img
                 src={item.imageUrl}
                 alt={item.title}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             ) : (
               <span className="text-gray-300 text-xs uppercase tracking-widest font-medium">
@@ -150,7 +150,7 @@ export default function ItemDetailModal({
             ) : (
               <Button
                 type="button"
-                className="flex-1 max-w-60 h-11 rounded-xl bg-[#CDA452] hover:bg-[#B8923F] text-white font-semibold uppercase tracking-wide text-sm"
+                className="flex-1 max-w-60 h-11 rounded-xl bg-[#DEA440] hover:bg-[#C48A2A] text-white font-semibold uppercase tracking-wide text-sm"
                 onClick={() => onInquire?.(item)}
               >
                 Inquire

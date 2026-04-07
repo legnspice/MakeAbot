@@ -254,10 +254,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar
-        onSearchToggle={() => setSearchOpen((o) => !o)}
-        searchOpen={searchOpen}
-      />
+      <Navbar />
 
       <div className="relative">
         <FilterBar
@@ -358,10 +355,10 @@ export default function Home() {
                       setIsTypePickerOpen(false);
                       router.push("/create-offer");
                     }}
-                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#E5A550] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
+                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#DEA440] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-full bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center transition-colors">
-                      <Tag className="w-6 h-6 text-[#E5A550]" />
+                      <Tag className="w-6 h-6 text-[#DEA440]" />
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-gray-800 text-sm">
@@ -403,11 +400,11 @@ export default function Home() {
         {/* Floating action button */}
         <Button
           size="icon"
-          className="font-bold text-lg fixed bottom-30 md:bottom-6 right-6 w-32 h-14 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white shadow-lg z-10 p-0 flex items-center justify-center"
+          className="font-bold text-lg fixed bottom-30 md:bottom-6 right-6 w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white shadow-lg z-10 p-0 flex items-center justify-center"
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen(true)}
         >
-          Create <Plus className="w-12 h-12 shrink-0" strokeWidth={2.5} />
+          <span className="hidden md:inline">Create</span> <Plus className="w-8 h-8 md:w-12 md:h-12 shrink-0" strokeWidth={2.5} />
         </Button>
       </div>
 

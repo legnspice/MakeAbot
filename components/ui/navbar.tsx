@@ -2,18 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, Search, HelpCircle } from "lucide-react";
+import { User, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useTutorial } from "@/contexts/tutorial-context";
 import NotificationsPanel from "@/components/ui/notifications-panel";
 import NotificationsBell from "@/components/notifications-bell";
 
-type NavbarProps = {
-  onSearchToggle?: () => void;
-  searchOpen?: boolean;
-};
-
-export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
+export default function Navbar() {
   const { userData } = useAuth();
   const meta = userData.supabaseUser.user_metadata ?? {};
   const avatarUrl = (meta.avatar_url ?? meta.picture ?? "") as string;
@@ -49,7 +44,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
       <nav className="flex justify-between items-center px-5 py-3 bg-white border-b border-gray-100">
         <Link
           href="/"
-          className="text-4xl sm:text-5xl font-black tracking-tight text-[#3761B0]"
+          className="text-3xl sm:text-5xl font-black tracking-tight text-[#3761B0]"
         >
           MakeAbot
         </Link>
@@ -103,14 +98,6 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
 
         {/* Mobile icon buttons */}
         <div className="flex md:hidden gap-1 items-center">
-          <button
-            type="button"
-            className={`w-10 h-10 rounded-full transition-colors flex items-center justify-center ${searchOpen ? "bg-gray-100" : "hover:bg-gray-100"}`}
-            onClick={onSearchToggle}
-            aria-label="Search"
-          >
-            <Search className="w-5 h-5 text-black" strokeWidth={2.5} />
-          </button>
           <button
             type="button"
             className="w-10 h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"

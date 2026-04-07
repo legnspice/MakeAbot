@@ -15,7 +15,7 @@ export default function NonAteneoEmailPage() {
         </p>
         <Link
           href="/auth/login"
-          className="w-full flex items-center justify-center rounded-full py-3 px-4 bg-[#E5A550] text-gray-900 font-semibold text-sm transition-colors"
+          className="w-full flex items-center justify-center rounded-full py-3 px-4 bg-[#DEA440] text-gray-900 font-semibold text-sm transition-colors"
         >
           Try again
         </Link>

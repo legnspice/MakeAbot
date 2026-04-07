@@ -39,20 +39,20 @@ export default function ItemRequestCard({
             }
           : undefined
       }
-      className={`w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none h-56 flex flex-col ${
+      className={`w-full h-36 text-left bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-row ${
         onClick
           ? "cursor-pointer hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
           : "opacity-75"
       }`}
     >
-      {/* Image area — always present for consistent layout */}
-      <div className="relative w-full h-28 shrink-0 bg-gray-100">
+      {/* Image area */}
+      <div className="relative w-32 shrink-0 bg-gray-100 self-stretch">
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            sizes="128px"
             className="object-cover"
           />
         ) : (
@@ -61,29 +61,30 @@ export default function ItemRequestCard({
           </div>
         )}
       </div>
-      <div className="relative flex-1 min-h-0 p-3 pt-2 flex flex-col overflow-hidden">
-        {typeBadge && (
-          <span className="inline-block mb-1 text-xs font-bold uppercase tracking-wider text-[#3761B0] bg-blue-50 px-2 py-0.5 rounded self-start shrink-0">
-            {typeBadge}
-          </span>
-        )}
-        <h3 className="text-base font-bold text-gray-900 truncate shrink-0">
-          {detail?.title ?? "Item"}
-        </h3>
-        <p className="text-sm text-gray-600 truncate shrink-0">
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 p-3 flex flex-col">
+        <div className="flex items-start gap-2">
+          <h3 className="text-base font-bold text-gray-900 truncate">
+            {detail?.title ?? "Item"}
+          </h3>
+          {typeBadge && (
+            <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-[#3761B0] bg-blue-50 px-2 py-0.5 rounded">
+              {typeBadge}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-600 truncate">
           {variant === "lent"
             ? requestedBy.replace(/^Offered by:/i, "Lent by:")
             : requestedBy}
         </p>
         {detail?.description && (
-          <div className="relative mt-0.5 flex-1 min-h-0 overflow-hidden">
-            <p className="text-xs text-gray-400 whitespace-pre-wrap leading-snug">
-              {detail.description}
-            </p>
-            <div className="absolute bottom-0 left-0 right-0 h-6 bg-linear-to-t from-white to-transparent pointer-events-none" />
-          </div>
+          <p className="mt-1 text-xs text-gray-400 line-clamp-2 whitespace-pre-wrap leading-snug">
+            {detail.description}
+          </p>
         )}
-        <div className="mt-auto flex justify-between items-end shrink-0">
+        <div className="mt-auto pt-1 flex justify-between items-end">
           {(hasLocation || hasDate) && (
             <div className="text-sm text-gray-600 flex flex-wrap gap-x-2 gap-y-0">
               {hasLocation && <span>{section}</span>}

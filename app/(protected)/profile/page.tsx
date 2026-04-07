@@ -201,7 +201,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarFileRefDesktop.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
                 aria-label="Change profile picture"
               >
                 {isUploadingAvatar ? (
@@ -224,13 +224,13 @@ export default function ProfilePage() {
                     <span className="text-2xl font-semibold text-gray-800">
                       {displayRating}
                     </span>
-                    <Star className="w-6 h-6 fill-[#E5A550] text-[#E5A550]" />
+                    <Star className="w-6 h-6 fill-[#DEA440] text-[#DEA440]" />
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={openEdit}
-                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors shrink-0"
+                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#DEA440] rounded flex items-center justify-center text-white hover:bg-[#C48A2A] transition-colors shrink-0"
                   aria-label="Edit profile"
                 >
                   Edit Profile
@@ -309,7 +309,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={openEdit}
-              className="absolute top-0 right-0 w-8 h-8 bg-[#E5A550] rounded flex items-center justify-center text-white hover:bg-[#D89440] transition-colors"
+              className="absolute top-0 right-0 w-8 h-8 bg-[#DEA440] rounded flex items-center justify-center text-white hover:bg-[#C48A2A] transition-colors"
               aria-label="Edit profile"
             >
               <SquarePen className="w-4 h-4" />
@@ -341,7 +341,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarFileRefMobile.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
                 aria-label="Change profile picture"
               >
                 {isUploadingAvatar ? (
@@ -375,7 +375,7 @@ export default function ProfilePage() {
                         key={n}
                         className={`w-5 h-5 ${
                           n <= filledStars
-                            ? "fill-[#E5A550] text-[#E5A550]"
+                            ? "fill-[#DEA440] text-[#DEA440]"
                             : "fill-gray-200 text-gray-200"
                         }`}
                       />
@@ -530,7 +530,7 @@ export default function ProfilePage() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
+              className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white font-bold uppercase disabled:opacity-60"
             >
               {isSaving ? "Saving…" : "Save"}
             </Button>

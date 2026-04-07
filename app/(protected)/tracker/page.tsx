@@ -289,10 +289,7 @@ export default function TrackerPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar
-        onSearchToggle={() => setSearchOpen((o) => !o)}
-        searchOpen={searchOpen}
-      />
+      <Navbar />
 
       <FilterBar
         filterLabels={allFilterLabels}

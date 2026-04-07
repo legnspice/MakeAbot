@@ -257,7 +257,7 @@ function ChatPageInner() {
                   {selectedConv?.otherRating != null ? (
                     <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
                       {selectedConv.otherRating}
-                      <Star className="w-3.5 h-3.5 fill-[#E5A550] text-[#E5A550]" />
+                      <Star className="w-3.5 h-3.5 fill-[#DEA440] text-[#DEA440]" />
                     </span>
                   ) : (
                     <span className="text-xs text-gray-400 italic shrink-0">
@@ -367,7 +367,7 @@ function ChatPageInner() {
                     {selectedConv.otherRating != null ? (
                       <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
                         {selectedConv.otherRating}
-                        <Star className="w-3.5 h-3.5 fill-[#E5A550] text-[#E5A550]" />
+                        <Star className="w-3.5 h-3.5 fill-[#DEA440] text-[#DEA440]" />
                       </span>
                     ) : (
                       <span className="text-xs text-gray-400 italic shrink-0">

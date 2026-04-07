@@ -91,7 +91,7 @@ export function RatingModal({
               <Star
                 className={`w-8 h-8 ${
                   n <= (hover || rating)
-                    ? "fill-[#E5A550] text-[#E5A550]"
+                    ? "fill-[#DEA440] text-[#DEA440]"
                     : "fill-gray-200 text-gray-200"
                 }`}
               />
@@ -112,7 +112,7 @@ export function RatingModal({
           type="button"
           onClick={handleSubmit}
           disabled={rating === 0 || submitting}
-          className="mt-4 w-full py-2.5 rounded-full bg-[#E5A550] text-white font-semibold text-sm hover:bg-[#D89440] transition-colors disabled:opacity-50"
+          className="mt-4 w-full py-2.5 rounded-full bg-[#DEA440] text-white font-semibold text-sm hover:bg-[#C48A2A] transition-colors disabled:opacity-50"
         >
           {submitting ? "Submitting…" : "Submit Review"}
         </button>

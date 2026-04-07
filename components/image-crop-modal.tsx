@@ -272,7 +272,7 @@ export function ImageCropModal({
             <Button
               type="button"
               onClick={handleConfirm}
-              className="flex-1 rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold"
+              className="flex-1 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white font-bold"
             >
               Confirm
             </Button>

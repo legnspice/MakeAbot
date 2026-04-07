@@ -40,7 +40,7 @@ const STEPS = [
   {
     icon: Plus,
     iconBg: "bg-amber-100",
-    iconColor: "text-[#E5A550]",
+    iconColor: "text-[#DEA440]",
     title: "Create a Post",
     body: "Tap the Create button below to post something you want to offer or something you need.",
   },
@@ -61,21 +61,21 @@ const STEPS = [
   {
     icon: Bell,
     iconBg: "bg-amber-100",
-    iconColor: "text-[#E5A550]",
+    iconColor: "text-[#DEA440]",
     title: "Notifications",
     body: "You'll be notified when someone inquires on your post or sends you a message. Check the notification bell to stay up to date.",
   },
   {
     icon: UserPen,
     iconBg: "bg-amber-100",
-    iconColor: "text-[#E5A550]",
+    iconColor: "text-[#DEA440]",
     title: "Profile",
     body: "Build trust and rapport with others by having your profile information up to date. Go into the Profile tab and click the edit profile button there.",
   },
   {
     icon: MailQuestionMark,
     iconBg: "bg-amber-100",
-    iconColor: "text-[#E5A550]",
+    iconColor: "text-[#DEA440]",
     title: "Contact Us!",
     body: "",
   },
