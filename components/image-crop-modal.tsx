@@ -20,7 +20,6 @@ export function ImageCropModal({
 }: ImageCropModalProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [minZoom, setMinZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   const onCropDone = useCallback((_: Area, croppedPixels: Area) => {
@@ -50,9 +49,6 @@ export function ImageCropModal({
             </p>
           </div>
 
-          {/* Cropper needs a relative container with set height;
-              override Tailwind's img reset so react-easy-crop can
-              position and transform its <img> freely */}
           <div
             className="relative w-full bg-black"
             style={{ height: 300 }}
@@ -68,23 +64,14 @@ export function ImageCropModal({
                 image={imageSrc}
                 crop={crop}
                 zoom={zoom}
-                minZoom={minZoom}
+                minZoom={0.5}
+                maxZoom={3}
                 aspect={aspect}
                 objectFit="contain"
+                restrictPosition={false}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropDone}
-                onMediaLoaded={({ naturalWidth, naturalHeight }) => {
-                  // Calculate minimum zoom so the full image fits inside the crop area
-                  const containerAspect = aspect;
-                  const imageAspect = naturalWidth / naturalHeight;
-                  const fitZoom = imageAspect > containerAspect
-                    ? containerAspect / imageAspect
-                    : imageAspect / containerAspect;
-                  const newMin = Math.min(1, fitZoom);
-                  setMinZoom(newMin);
-                  setZoom(newMin);
-                }}
               />
             </div>
           </div>
@@ -93,9 +80,9 @@ export function ImageCropModal({
             <label className="text-xs text-gray-500 block mb-1">Zoom</label>
             <input
               type="range"
-              min={minZoom}
+              min={0.5}
               max={3}
-              step={0.1}
+              step={0.05}
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
               className="w-full accent-[#3761B0]"
