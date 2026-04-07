@@ -45,14 +45,14 @@ export default function ItemRequestCard({
           : "opacity-75"
       }`}
     >
-      {/* Image area */}
-      <div className="relative w-32 shrink-0 bg-gray-100 self-stretch">
+      {/* Image area — square */}
+      <div className="relative h-full aspect-square shrink-0 bg-gray-100">
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
             fill
-            sizes="128px"
+            sizes="144px"
             className="object-cover"
           />
         ) : (
@@ -80,7 +80,7 @@ export default function ItemRequestCard({
             : requestedBy}
         </p>
         {detail?.description && (
-          <p className="mt-1 text-xs text-gray-400 line-clamp-2 whitespace-pre-wrap leading-snug">
+          <p className="hidden md:block mt-1 text-xs text-gray-400 line-clamp-2 whitespace-pre-wrap leading-snug">
             {detail.description}
           </p>
         )}

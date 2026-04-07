@@ -10,7 +10,7 @@ import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton"
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
-import { MessageCircle, X } from "lucide-react";
+import { ChatDotsFill, XLg } from "react-bootstrap-icons";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -381,7 +381,7 @@ function ChatListModal({
             className="shrink-0 p-1 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Close"
           >
-            <X className="w-4 h-4 text-gray-500" />
+            <XLg className="text-gray-500" size={16} />
           </button>
         </div>
         <ul className="overflow-y-auto space-y-2">
@@ -400,7 +400,7 @@ function ChatListModal({
                     {p.name}
                   </span>
                 </div>
-                <MessageCircle className={`w-4 h-4 shrink-0 ${iconClass}`} />
+                <ChatDotsFill className={`shrink-0 ${iconClass}`} size={16} />
               </button>
             </li>
           ))}

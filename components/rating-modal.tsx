@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, X } from "lucide-react";
+import { StarFill, Star, XLg } from "react-bootstrap-icons";
 import { createReview } from "@/lib/actions/reviews";
 
 interface RatingModalProps {
@@ -72,7 +72,7 @@ export function RatingModal({
             className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"
             aria-label="Close"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <XLg size={20} className="text-gray-500" />
           </button>
         </div>
 
@@ -88,13 +88,11 @@ export function RatingModal({
               className="p-1 transition-transform hover:scale-110"
               aria-label={`${n} star${n > 1 ? "s" : ""}`}
             >
-              <Star
-                className={`w-8 h-8 ${
-                  n <= (hover || rating)
-                    ? "fill-[#DEA440] text-[#DEA440]"
-                    : "fill-gray-200 text-gray-200"
-                }`}
-              />
+              {n <= (hover || rating) ? (
+                <StarFill size={32} className="text-[#DEA440]" />
+              ) : (
+                <Star size={32} className="text-gray-200" />
+              )}
             </button>
           ))}
         </div>

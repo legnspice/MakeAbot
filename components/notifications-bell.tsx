@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell } from "lucide-react";
+import { BellFill } from "react-bootstrap-icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -95,7 +95,7 @@ export default function NotificationsBell({
     <span
       className={`relative inline-flex items-center justify-center ${className}`}
     >
-      <Bell className="w-5 h-5" strokeWidth={2} />
+      <BellFill size={20} />
       {badge}
     </span>
   );

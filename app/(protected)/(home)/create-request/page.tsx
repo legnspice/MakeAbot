@@ -7,7 +7,8 @@ import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
+import { ChevronLeft, ImageFill, XLg } from "react-bootstrap-icons";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { createRequest } from "@/lib/actions/requests";
 import { createClient } from "@/lib/supabase/client";
@@ -130,7 +131,7 @@ export default function CreateRequest() {
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Back"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft size={20} />
             </button>
             <h1 className="text-lg font-bold text-gray-800">
               Create a Request
@@ -259,7 +260,7 @@ export default function CreateRequest() {
                       className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full p-1 transition-colors"
                       aria-label="Remove photo"
                     >
-                      <X className="w-4 h-4 text-white" />
+                      <XLg size={16} className="text-white" />
                     </button>
                   </div>
                 ) : (
@@ -276,7 +277,7 @@ export default function CreateRequest() {
                       </>
                     ) : (
                       <>
-                        <ImageIcon className="w-6 h-6" />
+                        <ImageFill size={24} />
                         <span className="text-sm">Add a photo</span>
                       </>
                     )}

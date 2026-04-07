@@ -10,7 +10,7 @@ import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
 import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
-import { Plus, Tag, HelpCircle, X } from "lucide-react";
+import { PlusLg, TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { getPosts, getPostBids, createPostBid } from "@/lib/actions/posts";
 import {
@@ -342,7 +342,7 @@ export default function Home() {
                     className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                     aria-label="Close"
                   >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <XLg size={20} className="text-gray-500" />
                   </button>
                 </div>
 
@@ -358,7 +358,7 @@ export default function Home() {
                     className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#DEA440] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-full bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center transition-colors">
-                      <Tag className="w-6 h-6 text-[#DEA440]" />
+                      <TagFill size={24} className="text-[#DEA440]" />
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-gray-800 text-sm">
@@ -380,7 +380,7 @@ export default function Home() {
                     className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#3761B0] hover:bg-blue-50 active:bg-blue-100 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
-                      <HelpCircle className="w-6 h-6 text-[#3761B0]" />
+                      <QuestionCircleFill size={24} className="text-[#3761B0]" />
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-gray-800 text-sm">
@@ -404,7 +404,7 @@ export default function Home() {
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen(true)}
         >
-          <span className="hidden md:inline">Create</span> <Plus className="w-8 h-8 md:w-12 md:h-12 shrink-0" strokeWidth={2.5} />
+          <span className="text-black hidden md:inline">Create</span> <PlusLg size={56} className="text-black md:hidden" /><PlusLg size={58} className="text-black hidden md:block" />
         </Button>
       </div>
 

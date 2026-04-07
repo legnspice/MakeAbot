@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Facebook, Mail } from "lucide-react";
+import { Facebook, EnvelopeFill } from "react-bootstrap-icons";
 
 export function AppFooter() {
   return (
@@ -29,14 +29,14 @@ export function AppFooter() {
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-xs text-white/70 hover:text-[#3761B0] transition-colors"
         >
-          <Facebook className="size-4 shrink-0" />
+          <Facebook className="shrink-0" size={16} />
           MakeAbot on Facebook
         </a>
         <a
           href="mailto:niles.tristan.cabrera@student.ateneo.edu"
           className="flex items-center gap-2 text-xs text-white/70 hover:text-[#3761B0] transition-colors"
         >
-          <Mail className="size-4 shrink-0" />
+          <EnvelopeFill className="shrink-0" size={16} />
           niles.tristan.cabrera@student.ateneo.edu
         </a>
       </div>

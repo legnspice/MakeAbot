@@ -26,6 +26,7 @@
     "postgres": "^3.4.8",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
+    "react-bootstrap-icons": "^1.11.6",
     "react-dom": "19.2.3",
     "resend": "^6.10.0",
     "tailwind-merge": "^3.4.0",

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, HelpCircle } from "lucide-react";
+import { PersonFill, QuestionCircleFill } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { useTutorial } from "@/contexts/tutorial-context";
 import NotificationsPanel from "@/components/ui/notifications-panel";
@@ -70,7 +70,7 @@ export default function Navbar() {
             className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
             aria-label="Help"
           >
-            <HelpCircle className="w-4 h-4" strokeWidth={2.5} />
+            <QuestionCircleFill size={16} />
             Help
           </button>
           <Link
@@ -104,14 +104,14 @@ export default function Navbar() {
             onClick={openTutorial}
             aria-label="Help"
           >
-            <HelpCircle className="w-5 h-5 text-black" strokeWidth={2.5} />
+            <QuestionCircleFill size={20} className="text-black" />
           </button>
           <Link
             href="/profile"
             className="w-10 h-10 rounded-full cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center"
             aria-label="Profile"
           >
-            <User className="w-5 h-5 text-black" strokeWidth={2.5} />
+            <PersonFill size={20} className="text-black" />
           </Link>
         </div>
       </nav>

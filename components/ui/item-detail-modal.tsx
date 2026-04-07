@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ExternalLink, MessageCircle } from "lucide-react";
+import { ChevronLeft, BoxArrowUpRight, ChatDotsFill } from "react-bootstrap-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ export default function ItemDetailModal({
               onClick={onClose}
               aria-label="Close"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft size={20} />
             </Button>
           </div>
 
@@ -144,7 +144,7 @@ export default function ItemDetailModal({
                 className="flex-1 max-w-60 h-11 rounded-xl bg-[#3761B0] hover:bg-[#2a4d8a] text-white font-semibold uppercase tracking-wide text-sm flex items-center justify-center gap-2"
                 onClick={onChatClick}
               >
-                <MessageCircle className="w-4 h-4" />
+                <ChatDotsFill size={16} />
                 Chat
               </Button>
             ) : (
@@ -165,7 +165,7 @@ export default function ItemDetailModal({
               disabled={!item.linkUrl}
               aria-label={item.linkUrl ? "Open link" : "No link available"}
             >
-              <ExternalLink className="w-5 h-5" />
+              <BoxArrowUpRight size={20} />
             </Button>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, ChevronDown, Search } from 'lucide-react';
+import { PlusLg, ChevronDown, Search, FunnelFill } from 'react-bootstrap-icons';
 
 export type DateSort = 'date-newest' | 'date-oldest';
 export type PriceSort = 'price-highest' | 'price-lowest';
@@ -71,8 +71,9 @@ export default function FilterBar({
           onClick={() => onSortModalOpenChange(true)}
           className="shrink-0 h-8 px-4 rounded-full bg-[#3761B0] text-white text-sm font-medium flex items-center gap-1.5 hover:bg-[#2a4d8a] transition-colors"
         >
+          <FunnelFill size={14} />
           Sort
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown size={14} />
         </button>
 
         {/* Filter pills */}
@@ -134,7 +135,7 @@ export default function FilterBar({
             }`}
             aria-label="Toggle search"
           >
-            <Search className="w-4 h-4" />
+            <Search size={16} />
           </button>
           <button
             type="button"
@@ -142,7 +143,7 @@ export default function FilterBar({
             className="h-8 w-8 shrink-0 rounded-full bg-[#3761B0] text-white flex items-center justify-center hover:bg-[#2a4d8a] transition-colors"
             aria-label="Add filter"
           >
-            <Plus className="w-4 h-4" />
+             <FunnelFill size={14} />
           </button>
           <button
             type="button"
@@ -150,7 +151,7 @@ export default function FilterBar({
             className="h-8 w-8 shrink-0 rounded-full bg-[#3761B0] text-white flex items-center justify-center hover:bg-[#2a4d8a] transition-colors"
             aria-label="Sort"
           >
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown size={16} />
           </button>
         </div>
       </div>
@@ -192,7 +193,7 @@ export default function FilterBar({
       {showSearch && (
         <div className="md:hidden px-4 pb-3">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <Input
               type="search"
               placeholder="Search items..."

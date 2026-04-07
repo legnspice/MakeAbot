@@ -2,13 +2,12 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ChevronLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft, StarFill } from "react-bootstrap-icons";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
-import { Star } from "lucide-react";
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
@@ -247,7 +246,7 @@ function ChatPageInner() {
                 className="w-9 h-9 rounded-full border border-[#3761B0] text-[#3761B0] flex items-center justify-center shrink-0"
                 aria-label="Back"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft size={20} />
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -257,7 +256,7 @@ function ChatPageInner() {
                   {selectedConv?.otherRating != null ? (
                     <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
                       {selectedConv.otherRating}
-                      <Star className="w-3.5 h-3.5 fill-[#DEA440] text-[#DEA440]" />
+                      <StarFill className="text-[#DEA440]" size={14} />
                     </span>
                   ) : (
                     <span className="text-xs text-gray-400 italic shrink-0">
@@ -367,7 +366,7 @@ function ChatPageInner() {
                     {selectedConv.otherRating != null ? (
                       <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
                         {selectedConv.otherRating}
-                        <Star className="w-3.5 h-3.5 fill-[#DEA440] text-[#DEA440]" />
+                        <StarFill className="text-[#DEA440]" size={14} />
                       </span>
                     ) : (
                       <span className="text-xs text-gray-400 italic shrink-0">
@@ -385,7 +384,7 @@ function ChatPageInner() {
                   className="text-[#3761B0] hover:text-[#2a4d8a] transition-colors p-1 rounded-full hover:bg-blue-50"
                   aria-label="Close"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft size={20} />
                 </button>
               </header>
 

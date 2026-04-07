@@ -6,7 +6,8 @@ import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SquarePen, Star, X, LogOut, Camera, Loader2 } from "lucide-react";
+import { PencilSquare, StarFill, Star, XLg, BoxArrowRight, CameraFill } from "react-bootstrap-icons";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { getReviews } from "@/lib/actions/reviews";
 import { getPosts } from "@/lib/actions/posts";
@@ -177,7 +178,7 @@ export default function ProfilePage() {
           <div className="flex items-start gap-8">
             {/* Avatar */}
             <div className="relative w-48 h-48 shrink-0">
-              <div className="w-full h-full rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-2xl font-medium">
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-500 text-2xl font-medium">
                 {highResAvatar ? (
                   <Image
                     src={highResAvatar}
@@ -201,13 +202,13 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarFileRefDesktop.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60 z-10"
                 aria-label="Change profile picture"
               >
                 {isUploadingAvatar ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Camera className="w-5 h-5" />
+                  <CameraFill size={20} />
                 )}
               </button>
             </div>
@@ -224,7 +225,7 @@ export default function ProfilePage() {
                     <span className="text-2xl font-semibold text-gray-800">
                       {displayRating}
                     </span>
-                    <Star className="w-6 h-6 fill-[#DEA440] text-[#DEA440]" />
+                    <StarFill className="text-[#DEA440]" size={24} />
                   </div>
                 )}
                 <button
@@ -234,7 +235,7 @@ export default function ProfilePage() {
                   aria-label="Edit profile"
                 >
                   Edit Profile
-                  <SquarePen className="ml-2 w-4 h-4" />
+                  <PencilSquare className="ml-2" size={16} />
                 </button>
               </div>
 
@@ -245,7 +246,7 @@ export default function ProfilePage() {
               </div>
               {description && (
                 <p className="mt-3 text-sm text-gray-700 leading-relaxed max-w-xl">
-                  &quot;{description}&quot;
+                  {description}
                 </p>
               )}
             </div>
@@ -312,7 +313,7 @@ export default function ProfilePage() {
               className="absolute top-0 right-0 w-8 h-8 bg-[#DEA440] rounded flex items-center justify-center text-white hover:bg-[#C48A2A] transition-colors"
               aria-label="Edit profile"
             >
-              <SquarePen className="w-4 h-4" />
+              <PencilSquare size={16} />
             </button>
 
             {/* Profile picture */}
@@ -347,7 +348,7 @@ export default function ProfilePage() {
                 {isUploadingAvatar ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Camera className="w-4 h-4" />
+                  <CameraFill size={16} />
                 )}
               </button>
             </div>
@@ -370,16 +371,21 @@ export default function ProfilePage() {
               {reviewCount > 0 ? (
                 <div className="flex flex-col items-center justify-center gap-1 shrink-0 ml-auto">
                   <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Star
-                        key={n}
-                        className={`w-5 h-5 ${
-                          n <= filledStars
-                            ? "fill-[#DEA440] text-[#DEA440]"
-                            : "fill-gray-200 text-gray-200"
-                        }`}
-                      />
-                    ))}
+                    {[1, 2, 3, 4, 5].map((n) =>
+                      n <= filledStars ? (
+                        <StarFill
+                          key={n}
+                          className="text-[#DEA440]"
+                          size={20}
+                        />
+                      ) : (
+                        <Star
+                          key={n}
+                          className="text-gray-200"
+                          size={20}
+                        />
+                      )
+                    )}
                   </div>
                   <span className="text-sm text-gray-600 font-medium">
                     {displayRating} / 5 ({reviewCount})
@@ -412,7 +418,7 @@ export default function ProfilePage() {
               variant="outline"
               className="w-full rounded-xl border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium flex items-center justify-center gap-2"
             >
-              <LogOut className="w-4 h-4" />
+              <BoxArrowRight size={16} />
               Log out
             </Button>
           </form>
@@ -460,7 +466,7 @@ export default function ProfilePage() {
                 className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"
                 aria-label="Close"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <XLg className="text-gray-600" size={20} />
               </button>
             </div>
 

@@ -6,7 +6,7 @@ import { useChatScroll } from "@/hooks/use-chat-scroll";
 import { type ChatMessage, useRealtimeChat } from "@/hooks/use-realtime-chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { SendFill } from "react-bootstrap-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface RealtimeChatProps {
@@ -137,7 +137,7 @@ export const RealtimeChat = ({
               type="submit"
               disabled={!isConnected}
             >
-              <Send className="size-4" />
+              <SendFill size={16} />
             </Button>
           )}
         </form>

@@ -11,69 +11,69 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutGrid,
-  Plus,
-  MessageCircle,
-  ListChecks,
-  Bell,
-  MailQuestionMark,
-  UserPen,
-} from "lucide-react";
+  GridFill,
+  PlusLg,
+  ChatDotsFill,
+  ListCheck,
+  BellFill,
+  EnvelopeExclamationFill,
+  PencilSquare,
+} from "react-bootstrap-icons";
 import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 import Link from "next/link";
 
 const STEPS = [
   {
-    icon: LayoutGrid,
+    icon: GridFill,
     iconBg: "bg-blue-100",
     iconColor: "text-[#3761B0]",
     title: "Welcome to MakeAbot!",
     body: "Your student app for sharing and finding items within the Ateneo community. Here's a quick tour to get you started.",
   },
   {
-    icon: LayoutGrid,
+    icon: GridFill,
     iconBg: "bg-blue-100",
     iconColor: "text-[#3761B0]",
     title: "Browse the Feed",
     body: "Scroll through what your fellow Ateneans are offering and requesting. Use the filter bar to switch between Offers, Requests, or search by keyword.",
   },
   {
-    icon: Plus,
+    icon: PlusLg,
     iconBg: "bg-amber-100",
     iconColor: "text-[#DEA440]",
     title: "Create a Post",
     body: "Tap the Create button below to post something you want to offer or something you need.",
   },
   {
-    icon: MessageCircle,
+    icon: ChatDotsFill,
     iconBg: "bg-blue-100",
     iconColor: "text-[#3761B0]",
     title: "Inquire on an Item",
     body: "Tap any card, then hit Inquire to open a direct chat with the poster.",
   },
   {
-    icon: ListChecks,
+    icon: ListCheck,
     iconBg: "bg-blue-100",
     iconColor: "text-[#3761B0]",
     title: "Track Your Chats",
     body: "Head to the Tracker tab to see all your active conversations and follow up on negotiations.",
   },
   {
-    icon: Bell,
+    icon: BellFill,
     iconBg: "bg-amber-100",
     iconColor: "text-[#DEA440]",
     title: "Notifications",
     body: "You'll be notified when someone inquires on your post or sends you a message. Check the notification bell to stay up to date.",
   },
   {
-    icon: UserPen,
+    icon: PencilSquare,
     iconBg: "bg-amber-100",
     iconColor: "text-[#DEA440]",
     title: "Profile",
     body: "Build trust and rapport with others by having your profile information up to date. Go into the Profile tab and click the edit profile button there.",
   },
   {
-    icon: MailQuestionMark,
+    icon: EnvelopeExclamationFill,
     iconBg: "bg-amber-100",
     iconColor: "text-[#DEA440]",
     title: "Contact Us!",
@@ -139,8 +139,8 @@ export function TutorialModal() {
               className={`w-16 h-16 rounded-full ${current.iconBg} flex items-center justify-center`}
             >
               <Icon
-                className={`w-8 h-8 ${current.iconColor}`}
-                strokeWidth={2}
+                className={current.iconColor}
+                size={32}
               />
             </div>
           )}
