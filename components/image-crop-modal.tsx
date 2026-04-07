@@ -22,8 +22,8 @@ export function ImageCropModal({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-  const onCropChange = useCallback((_: unknown, croppedArea: Area) => {
-    setCroppedAreaPixels(croppedArea);
+  const onCropDone = useCallback((_: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels);
   }, []);
 
   const handleConfirm = async () => {
@@ -39,7 +39,7 @@ export function ImageCropModal({
     <>
       <div className="fixed inset-0 z-50 bg-black/60" onClick={onCancel} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col">
           <div className="px-4 py-3 border-b border-gray-200">
             <h2 className="text-lg font-bold text-gray-800 text-center">
               Adjust Photo
@@ -49,16 +49,30 @@ export function ImageCropModal({
             </p>
           </div>
 
-          <div className="relative w-full h-72 bg-black">
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={aspect}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropChange}
-            />
+          {/* Cropper needs a relative container with set height;
+              override Tailwind's img reset so react-easy-crop can
+              position and transform its <img> freely */}
+          <div
+            className="relative w-full bg-black"
+            style={{ height: 300 }}
+          >
+            <style>{`
+              .crop-container img {
+                max-width: none !important;
+                max-height: none !important;
+              }
+            `}</style>
+            <div className="crop-container" style={{ position: "absolute", inset: 0 }}>
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={aspect}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropDone}
+              />
+            </div>
           </div>
 
           <div className="px-4 py-2">
