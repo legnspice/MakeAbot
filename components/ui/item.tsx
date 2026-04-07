@@ -46,8 +46,8 @@ export default function ItemRequestCard({
       }`}
     >
       {/* Image area — always present for consistent layout */}
-      <div className="relative w-full h-28 shrink-0 bg-gray-100">
-        {imageUrl ? (
+      <div className="relative w-full h-28 shrink-0">
+        {imageUrl && (
           <Image
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
@@ -55,12 +55,6 @@ export default function ItemRequestCard({
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover"
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-gray-300 text-xs uppercase tracking-widest font-medium">
-              No image
-            </span>
-          </div>
         )}
       </div>
       <div className="relative flex-1 min-h-0 p-3 pt-2 flex flex-col overflow-hidden">
