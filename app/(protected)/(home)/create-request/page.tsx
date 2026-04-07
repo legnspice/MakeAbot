@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
 import { URGENCY_VALUES, type Urgency } from "@/lib/db/enums";
+import { ImageCropModal } from "@/components/image-crop-modal";
 
 export default function CreateRequest() {
   const router = useRouter();
@@ -28,18 +29,31 @@ export default function CreateRequest() {
   const [isPosting, setIsPosting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
     incentive: "",
   });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setRawImageSrc(null);
     setIsUploading(true);
     try {
+      const file = new File([croppedBlob], "cropped.webp", {
+        type: "image/webp",
+      });
       const compressed = await imageCompression(file, {
         maxSizeMB: 0.5,
         maxWidthOrHeight: 1024,
@@ -65,8 +79,11 @@ export default function CreateRequest() {
       console.error("Image upload failed:", err);
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleCropCancel = () => {
+    setRawImageSrc(null);
   };
 
   const handleRemoveImage = () => {
@@ -224,7 +241,7 @@ export default function CreateRequest() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handleImageUpload}
+                  onChange={handleFileSelect}
                   disabled={isUploading}
                 />
                 {uploadedImageUrl ? (
@@ -234,7 +251,7 @@ export default function CreateRequest() {
                       alt="Request photo"
                       width={400}
                       height={200}
-                      className="w-full h-48 object-contain"
+                      className="w-full h-48 object-cover"
                     />
                     <button
                       type="button"
@@ -281,6 +298,15 @@ export default function CreateRequest() {
           </div>
         </div>
       </div>
+
+      {/* Image crop modal */}
+      {rawImageSrc && (
+        <ImageCropModal
+          imageSrc={rawImageSrc}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
 
       <BottomNav />
     </div>
