@@ -73,7 +73,8 @@ export default function CreateOffer() {
   };
 
   const handlePost = async () => {
-    const title = form.title.trim() || "New offer";
+    const title = form.title.trim();
+    if (!title) return;
     const priceValue = form.price.trim()
       ? parseInt(form.price.trim(), 10) || null
       : null;
@@ -251,7 +252,7 @@ export default function CreateOffer() {
               <Button
                 type="button"
                 onClick={handlePost}
-                disabled={isPosting || isUploading}
+                disabled={isPosting || isUploading || !form.title.trim()}
                 className="w-full rounded-full bg-[#E5A550] hover:bg-[#D89440] text-white font-bold uppercase disabled:opacity-60"
               >
                 {isPosting ? "Posting..." : "POST!"}

@@ -74,7 +74,8 @@ export default function CreateRequest() {
   };
 
   const handlePost = async () => {
-    const title = form.title.trim() || "New request";
+    const title = form.title.trim();
+    if (!title) return;
     const feeValue = form.incentive.trim()
       ? parseInt(form.incentive.trim(), 10) || null
       : null;
@@ -271,7 +272,7 @@ export default function CreateRequest() {
               <Button
                 type="button"
                 onClick={handlePost}
-                disabled={isPosting || isUploading}
+                disabled={isPosting || isUploading || !form.title.trim()}
                 className="w-full rounded-full bg-[#3761B0] hover:bg-[#2d52a0] text-white font-bold uppercase disabled:opacity-60"
               >
                 {isPosting ? "Posting..." : "POST!"}
