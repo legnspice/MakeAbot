@@ -20,19 +20,19 @@ export async function GET(request: Request) {
       const email = data.user.email?.toLowerCase() || "";
       const acceptedDomain = "@student.ateneo.edu";
 
-      if (!email.endsWith(acceptedDomain)) {
-        try {
-          const supabaseAdmin = await createAdminClient();
-          // Delete the user record
-          await supabaseAdmin.auth.admin.deleteUser(data.user.id);
+      // if (!email.endsWith(acceptedDomain)) {
+      //   try {
+      //     const supabaseAdmin = await createAdminClient();
+      //     // Delete the user record
+      //     await supabaseAdmin.auth.admin.deleteUser(data.user.id);
 
-          await supabase.auth.signOut();
-        } catch (adminError) {
-          console.error("Cleanup failed for unauthorized user:", adminError);
-        }
+      //     await supabase.auth.signOut();
+      //   } catch (adminError) {
+      //     console.error("Cleanup failed for unauthorized user:", adminError);
+      //   }
 
-        return NextResponse.redirect(`${baseUrl}/auth/login/non-ateneo-email-used`);
-      }
+      //   return NextResponse.redirect(`${baseUrl}/auth/login/non-ateneo-email-used`);
+      // }
 
       // Handle successful login redirect
       const forwardedHost = request.headers.get("x-forwarded-host");

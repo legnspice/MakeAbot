@@ -87,8 +87,8 @@ export async function sendPushToUser(
     await sendToSubscriptions(subscriptions, { ...pushPayload, tag });
   }
 
-  // 4. Send email for qualifying events
-  if (EMAIL_EVENTS.has(type)) {
+  // 4. Send email for qualifying events (only when email is enabled via RESEND_FROM)
+  if (EMAIL_EVENTS.has(type) && process.env.RESEND_FROM) {
     try {
       const adminClient = await createAdminClient();
       const { data: userData } = await adminClient.auth.admin.getUserById(userId);
