@@ -46,8 +46,8 @@ export default function ItemRequestCard({
       }`}
     >
       {/* Image area — always present for consistent layout */}
-      <div className="relative w-full h-28 shrink-0">
-        {imageUrl && (
+      <div className="relative w-full h-28 shrink-0 bg-gray-100">
+        {imageUrl ? (
           <Image
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
@@ -55,6 +55,10 @@ export default function ItemRequestCard({
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover"
           />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-sm text-gray-400">No image</span>
+          </div>
         )}
       </div>
       <div className="relative flex-1 min-h-0 p-3 pt-2 flex flex-col overflow-hidden">
@@ -72,9 +76,12 @@ export default function ItemRequestCard({
             : requestedBy}
         </p>
         {detail?.description && (
-          <p className="hidden md:block text-sm text-gray-500 truncate">
-            {detail.description}
-          </p>
+          <div className="relative mt-0.5 flex-1 min-h-0 overflow-hidden">
+            <p className="text-xs text-gray-400 whitespace-pre-wrap leading-snug">
+              {detail.description}
+            </p>
+            <div className="absolute bottom-0 left-0 right-0 h-6 bg-linear-to-t from-white to-transparent pointer-events-none" />
+          </div>
         )}
         <div className="mt-auto flex justify-between items-end shrink-0">
           {(hasLocation || hasDate) && (
@@ -85,7 +92,6 @@ export default function ItemRequestCard({
           )}
           <span className="text-[#3761B0] font-semibold ml-auto">{price}</span>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-white to-transparent pointer-events-none" />
       </div>
     </div>
   );
