@@ -83,10 +83,10 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
         </div>
 
         {/* Mobile icon buttons */}
-        <div className="flex md:hidden gap-5 items-center">
+        <div className="flex md:hidden gap-1 items-center">
           <button
             type="button"
-            className={`w-12 h-12 rounded-full transition-colors flex items-center justify-center ${searchOpen ? "bg-gray-100" : "hover:bg-gray-100"}`}
+            className={`w-10 h-10 rounded-full transition-colors flex items-center justify-center ${searchOpen ? "bg-gray-100" : "hover:bg-gray-100"}`}
             onClick={onSearchToggle}
             aria-label="Search"
           >
@@ -94,7 +94,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           </button>
           <button
             type="button"
-            className="w-12 h-12 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+            className="w-10 h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
             onClick={openTutorial}
             aria-label="Help"
           >
@@ -102,7 +102,7 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
           </button>
           <Link
             href="/profile"
-            className="w-12 h-12 rounded-full cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center"
+            className="w-10 h-10 rounded-full cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center"
             aria-label="Profile"
           >
             <User className="w-5 h-5 text-black" strokeWidth={2.5} />
