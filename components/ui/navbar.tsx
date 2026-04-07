@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { User, Search, HelpCircle } from "lucide-react";
@@ -24,6 +24,25 @@ export default function Navbar({ onSearchToggle, searchOpen }: NavbarProps) {
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { openTutorial } = useTutorial();
+  const loggedRef = useRef(false);
+
+  useEffect(() => {
+    if (loggedRef.current) return;
+    loggedRef.current = true;
+    console.log(
+      `%c
+ ███╗   ███╗  █████╗
+ ████╗ ████║ ██╔══██╗
+ ██╔████╔██║ ███████║
+ ██║╚██╔╝██║ ██╔══██║
+ ██║ ╚═╝ ██║ ██║  ██║
+ ╚═╝     ╚═╝ ╚═╝  ╚═╝
+
+ there's nothing to lend/borrow here, ${displayName.split(" ")[0]}
+`,
+      "color: #3761B0; font-weight: bold; font-size: 12px;"
+    );
+  }, [displayName]);
 
   return (
     <>
