@@ -9,14 +9,12 @@ interface ImageCropModalProps {
   imageSrc: string;
   onCropComplete: (croppedBlob: Blob) => void;
   onCancel: () => void;
-  aspect?: number;
 }
 
 export function ImageCropModal({
   imageSrc,
   onCropComplete,
   onCancel,
-  aspect = 16 / 9,
 }: ImageCropModalProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -51,7 +49,7 @@ export function ImageCropModal({
 
           <div
             className="relative w-full bg-black"
-            style={{ height: 300 }}
+            style={{ height: 350 }}
           >
             <style>{`
               .crop-container img {
@@ -64,14 +62,14 @@ export function ImageCropModal({
                 image={imageSrc}
                 crop={crop}
                 zoom={zoom}
-                minZoom={0.5}
+                minZoom={1}
                 maxZoom={3}
-                aspect={aspect}
+                aspect={4 / 3}
                 objectFit="contain"
-                restrictPosition={false}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropDone}
+                showGrid
               />
             </div>
           </div>
@@ -80,7 +78,7 @@ export function ImageCropModal({
             <label className="text-xs text-gray-500 block mb-1">Zoom</label>
             <input
               type="range"
-              min={0.5}
+              min={1}
               max={3}
               step={0.05}
               value={zoom}
