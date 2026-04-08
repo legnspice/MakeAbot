@@ -25,11 +25,8 @@ type Category = "Messages" | "Activity";
 
 const CATEGORY_MAP: Record<string, Category> = {
   new_message: "Messages",
-  new_bid: "Activity",
-  bid_accepted: "Activity",
-  bid_rejected: "Activity",
   new_review: "Activity",
-  // new_request has no in-app row today (broadcast push-only), but mapped defensively
+  // new_request has no in-app row (broadcast push-only), but mapped defensively
   new_request: "Activity",
 };
 
