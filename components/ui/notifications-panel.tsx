@@ -57,8 +57,11 @@ export default function NotificationsPanel({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoaded(false);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab("All");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowAllRead(false);
       return;
     }
@@ -103,7 +106,7 @@ export default function NotificationsPanel({ open, onClose }: Props) {
   const unread = filtered.filter((n) => !n.is_read);
   const read = filtered.filter((n) => n.is_read);
   const visibleRead = showAllRead ? read : read.slice(0, READ_THRESHOLD);
-  const hiddenReadCount = read.length - READ_THRESHOLD;
+  const hiddenReadCount = Math.max(0, read.length - READ_THRESHOLD);
 
   function renderNotification(n: SelectNotification) {
     return (
