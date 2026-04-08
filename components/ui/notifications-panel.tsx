@@ -109,6 +109,7 @@ export default function NotificationsPanel({ open, onClose }: Props) {
   const hiddenReadCount = Math.max(0, read.length - READ_THRESHOLD);
 
   function renderNotification(n: SelectNotification) {
+    const isMessage = n.type === "new_message";
     return (
       <button
         key={n.id}
@@ -116,17 +117,24 @@ export default function NotificationsPanel({ open, onClose }: Props) {
         onClick={() => handleClick(n)}
         className={`w-full text-left px-5 py-4 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 transition-colors ${n.is_read ? "opacity-60" : ""}`}
       >
-        {!n.is_read && (
-          <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2 mb-0.5" />
-        )}
-        <p className="text-sm font-semibold text-gray-900 leading-snug inline">
-          {n.title}
-        </p>
+        <div className="flex items-center gap-2 min-w-0">
+          {!n.is_read && (
+            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+          )}
+          <p className="text-sm font-semibold text-gray-900 leading-snug flex-1 min-w-0 truncate">
+            {n.title}
+          </p>
+          {isMessage && n.message_count > 1 && (
+            <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+              {n.message_count > 99 ? "99+" : n.message_count}
+            </span>
+          )}
+        </div>
         {n.body && (
-          <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>
+          <p className="mt-0.5 text-sm text-gray-600 truncate">{n.body}</p>
         )}
         <p className="mt-1 text-xs text-gray-400">
-          {formatTime(new Date(n.created_at))}
+          {formatTime(new Date(isMessage ? n.updated_at : n.created_at))}
         </p>
       </button>
     );
