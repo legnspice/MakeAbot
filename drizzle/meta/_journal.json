@@ -29,6 +29,13 @@
       "when": 1775374957449,
       "tag": "0003_flaky_scarecrow",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775374957450,
+      "tag": "0004_notifications_coalesce",
+      "breakpoints": true
     }
   ]
 }
