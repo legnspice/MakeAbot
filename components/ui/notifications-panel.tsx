@@ -124,7 +124,7 @@ export default function NotificationsPanel({ open, onClose }: Props) {
           <p className="text-sm font-semibold text-gray-900 leading-snug flex-1 min-w-0 truncate">
             {n.title}
           </p>
-          {isMessage && n.message_count > 1 && (
+          {isMessage && !n.is_read && n.message_count > 1 && (
             <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
               {n.message_count > 99 ? "99+" : n.message_count}
             </span>
@@ -164,7 +164,10 @@ export default function NotificationsPanel({ open, onClose }: Props) {
             )}
             <button
               type="button"
-              onClick={() => { router.push("/settings/notifications"); onClose(); }}
+              onClick={() => {
+                router.push("/settings/notifications");
+                onClose();
+              }}
               className="p-1 rounded hover:bg-gray-100 transition-colors"
               aria-label="Notification settings"
             >

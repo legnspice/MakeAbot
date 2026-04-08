@@ -38,6 +38,7 @@ Remove `new_bid`, `bid_accepted`, `bid_rejected` from the `NotificationType` enu
 
 **`lib/db/schema.ts` + Drizzle migration**
 - Drop `new_bid`, `bid_accepted`, `bid_rejected` boolean columns from `notification_preferences` table
+- Include a one-time `DELETE FROM notifications WHERE type IN ('new_bid', 'bid_accepted', 'bid_rejected')` in the migration to purge orphaned rows already in the DB
 
 ---
 
@@ -50,7 +51,11 @@ All other dead `/notifications` URLs were in `rejectRequestBid` — removed in c
 
 ---
 
-### 3. Suppress bell badge while user is in an active chat
+### 3. Preserve: message coalescing per chat session (already implemented, must not be broken)
+
+Each chat session produces exactly one `notifications` row, not one per message. This is enforced by an upsert in `lib/repo/notifications.repo.ts:upsertMessageNotification` — on conflict `(user_id, type, context_id)` it increments `message_count` and updates `body`/`title` rather than inserting a new row. `push.service.ts` calls this path for `new_message` type. No changes needed here — implementors must not replace this with a plain `insertNotification` call.
+
+### 4. Suppress bell badge while user is in an active chat
 
 The service worker already suppresses the OS push popup when the user is on the relevant chat page. The in-app badge still increments because the upsert sets `is_read = false` and Realtime fires an UPDATE.
 
@@ -64,7 +69,7 @@ The service worker already suppresses the OS push popup when the user is on the 
 
 ---
 
-### 4. Fix email templates
+### 5. Fix email templates
 
 **`lib/services/push.service.ts`**
 
