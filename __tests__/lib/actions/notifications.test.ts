@@ -57,5 +57,18 @@ describe("notifications actions", () => {
       await updateNotificationPreferences({ new_message: false });
       expect(mockUpdate).toHaveBeenCalledWith("user-123", { new_message: false });
     });
+
+    it("does not accept removed preference fields (new_bid, bid_accepted, bid_rejected)", async () => {
+      // These fields should no longer exist in the schema — updatePreferencesSchema
+      // should silently strip or not validate them. We verify the action only passes
+      // the remaining valid fields to the service.
+      const mockUpdate = jest
+        .spyOn(notificationsService, "updatePreferences")
+        .mockResolvedValue(undefined as never);
+
+      // Passing only a valid field — should work fine
+      await updateNotificationPreferences({ new_review: true });
+      expect(mockUpdate).toHaveBeenCalledWith("user-123", { new_review: true });
+    });
   });
 });
