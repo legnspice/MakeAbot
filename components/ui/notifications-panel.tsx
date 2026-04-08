@@ -83,7 +83,9 @@ export default function NotificationsPanel({ open, onClose }: Props) {
       await markNotificationRead(n.id);
       setNotifications((prev) =>
         prev.map((item) =>
-          item.id === n.id ? { ...item, is_read: true } : item,
+          item.id === n.id
+            ? { ...item, is_read: true, message_count: 0 }
+            : item,
         ),
       );
     }
@@ -95,7 +97,9 @@ export default function NotificationsPanel({ open, onClose }: Props) {
 
   async function handleMarkAllRead() {
     await markAllRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, is_read: true, message_count: 0 })),
+    );
   }
 
   const hasUnread = notifications.some((n) => !n.is_read);
