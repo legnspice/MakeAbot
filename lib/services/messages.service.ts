@@ -23,7 +23,7 @@ export async function createMessage(data: InsertMessageSchema) {
     body: data.content.length > 60 ? data.content.slice(0, 60) + "…" : data.content,
     url: contextId
       ? `/chat?bidId=${contextId}&otherId=${data.sender_id}`
-      : "/notifications",
+      : "/",
     contextId,
   }).catch(() => {});
   return result;

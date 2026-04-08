@@ -14,9 +14,6 @@ webpush.setVapidDetails(
 );
 
 const EMAIL_EVENTS = new Set<NotificationType>([
-  "new_bid",
-  "bid_accepted",
-  "bid_rejected",
   "new_review",
 ]);
 
