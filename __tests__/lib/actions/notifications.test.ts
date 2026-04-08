@@ -58,7 +58,7 @@ describe("notifications actions", () => {
       expect(mockUpdate).toHaveBeenCalledWith("user-123", { new_message: false });
     });
 
-    it("does not accept removed preference fields (new_bid, bid_accepted, bid_rejected)", async () => {
+    it("passes remaining valid preference fields through to service", async () => {
       // These fields should no longer exist in the schema — updatePreferencesSchema
       // should silently strip or not validate them. We verify the action only passes
       // the remaining valid fields to the service.
