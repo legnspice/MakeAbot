@@ -7,6 +7,7 @@ import {
   getNotifications,
   markNotificationRead,
   markAllRead,
+  markChatNotificationRead,
 } from "@/lib/actions/notifications";
 import type { SelectNotification } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/client";
@@ -46,9 +47,12 @@ const READ_THRESHOLD = 3;
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** When the panel is opened while the user is in a chat, mark that conversation's
+   *  notification as read so the panel reflects accurate state immediately. */
+  chatContextId?: string;
 };
 
-export default function NotificationsPanel({ open, onClose }: Props) {
+export default function NotificationsPanel({ open, onClose, chatContextId }: Props) {
   const router = useRouter();
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
@@ -63,24 +67,28 @@ export default function NotificationsPanel({ open, onClose }: Props) {
     if (!open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoaded(false);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab("All");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowAllRead(false);
       return;
     }
     if (loaded) return;
     let cancelled = false;
-    getNotifications().then((result) => {
+    // If opened while in a chat, mark that conversation's notification read first
+    // so the panel reflects accurate state rather than a stale unread entry.
+    const load = async () => {
+      if (chatContextId) await markChatNotificationRead(chatContextId);
+      if (cancelled) return;
+      const result = await getNotifications();
       if (!cancelled) {
         setNotifications(result.data ?? []);
         setLoaded(true);
       }
-    });
+    };
+    void load();
     return () => {
       cancelled = true;
     };
-  }, [open, loaded]);
+  }, [open, loaded, chatContextId]);
 
   // Keep panel in sync when markChatNotificationRead fires externally (e.g. from chat-room).
   useEffect(() => {

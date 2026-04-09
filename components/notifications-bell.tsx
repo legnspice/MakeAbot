@@ -3,6 +3,7 @@
 import { BellFill } from "react-bootstrap-icons";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -20,6 +21,7 @@ export default function NotificationsBell({
   onClick,
   className = "",
 }: Props) {
+  const pathname = usePathname();
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
   const [unreadCount, setUnreadCount] = useState(0);
@@ -89,7 +91,7 @@ export default function NotificationsBell({
   }, [userId]);
 
   const badge =
-    unreadCount > 0 ? (
+    unreadCount > 0 && pathname !== "/chat" ? (
       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
         {unreadCount > 99 ? "99+" : unreadCount}
       </span>
