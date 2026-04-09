@@ -6,6 +6,7 @@ import { RatingModal } from "@/components/rating-modal";
 import { createMessage, getConversation } from "@/lib/actions/messages";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
 import { getUsers } from "@/lib/actions/users";
@@ -48,6 +49,47 @@ export const ChatRoom = ({
     if (!contextId) return;
     void markChatNotificationRead(contextId);
   }, [request_bid_id, post_bid_id]);
+
+  // Suppress notifications that arrive while the user is already in this chat.
+  // sendPushToUser runs after the realtime broadcast, so the notification row is
+  // created *after* handleMessage fires — meaning handleMessage's markChatNotificationRead
+  // is always a no-op (no unread row exists yet). This listener catches the late INSERT/UPDATE
+  // and immediately re-marks it read.
+  useEffect(() => {
+    const contextId = request_bid_id ?? post_bid_id;
+    if (!contextId || !publicUser.id) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`chat-notif-suppress-${contextId}-${publicUser.id}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${publicUser.id}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            type?: string;
+            context_id?: string | null;
+            is_read?: boolean;
+          } | null;
+          if (
+            row?.type === "new_message" &&
+            row.context_id === contextId &&
+            row.is_read === false
+          ) {
+            void markChatNotificationRead(contextId);
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, [request_bid_id, post_bid_id, publicUser.id]);
 
   useEffect(() => {
     async function loadData() {

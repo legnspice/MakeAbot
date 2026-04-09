@@ -9,6 +9,8 @@ import {
   markAllRead,
 } from "@/lib/actions/notifications";
 import type { SelectNotification } from "@/lib/db/schema";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/auth-context";
 
 function formatTime(date: Date): string {
   const now = new Date();
@@ -48,6 +50,8 @@ type Props = {
 
 export default function NotificationsPanel({ open, onClose }: Props) {
   const router = useRouter();
+  const { userData } = useAuth();
+  const userId = userData.publicUser.id;
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("All");
@@ -77,6 +81,38 @@ export default function NotificationsPanel({ open, onClose }: Props) {
       cancelled = true;
     };
   }, [open, loaded]);
+
+  // Keep panel in sync when markChatNotificationRead fires externally (e.g. from chat-room).
+  useEffect(() => {
+    if (!open || !loaded || !userId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`notifications-panel-${userId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const updated = payload.new as { id: string; is_read: boolean; message_count: number };
+          if (updated.is_read) {
+            setNotifications((prev) =>
+              prev.map((n) =>
+                n.id === updated.id ? { ...n, is_read: true, message_count: 0 } : n,
+              ),
+            );
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, [open, loaded, userId]);
 
   async function handleClick(n: SelectNotification) {
     if (!n.is_read) {

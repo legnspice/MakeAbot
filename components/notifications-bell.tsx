@@ -2,7 +2,7 @@
 
 import { BellFill } from "react-bootstrap-icons";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -23,6 +23,8 @@ export default function NotificationsBell({
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
   const [unreadCount, setUnreadCount] = useState(0);
+  // Sequence counter — only the latest in-flight fetch may write to state.
+  const fetchSeq = useRef(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -30,21 +32,20 @@ export default function NotificationsBell({
     let isMounted = true;
     const supabase = createClient();
 
-    // 1. Define the fetch function inside the effect
     const loadUnreadCount = async () => {
+      fetchSeq.current += 1;
+      const mySeq = fetchSeq.current;
       const { count } = await supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("is_read", false);
-
-      // 2. Only update state if the component is still mounted
-      if (isMounted) {
+      // Discard result if a newer fetch has already been dispatched or component unmounted.
+      if (isMounted && mySeq === fetchSeq.current) {
         setUnreadCount(count ?? 0);
       }
     };
 
-    // 3. Call it with `void` to explicitly tell the linter it's an async fire-and-forget
     void loadUnreadCount();
 
     const channelName = `notifications-bell-${userId}-${Math.random().toString(36).slice(2)}`;
@@ -60,7 +61,10 @@ export default function NotificationsBell({
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          if (isMounted) setUnreadCount((c) => c + 1);
+          // Re-fetch instead of blindly incrementing — INSERT for a notification that
+          // gets immediately suppressed (e.g. user is in that chat) would leave the
+          // count permanently inflated if we only did setUnreadCount(c => c + 1).
+          void loadUnreadCount();
         },
       )
       .on(
@@ -78,7 +82,7 @@ export default function NotificationsBell({
       .subscribe();
 
     return () => {
-      isMounted = false; // Prevent state updates on unmounted component
+      isMounted = false;
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
