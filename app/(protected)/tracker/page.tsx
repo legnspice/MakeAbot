@@ -7,13 +7,11 @@ import BottomNav from "@/components/ui/bottomnavbar";
 import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
-import { getPosts, getPostBids } from "@/lib/actions/posts";
-import { getRequests, getRequestBids } from "@/lib/actions/requests";
+import { getPosts, getPostBids, removePost } from "@/lib/actions/posts";
+import { getRequests, getRequestBids, removeRequest } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { ChatDotsFill, XLg } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
-import { removePost } from "@/lib/actions/posts";
-import { removeRequest } from "@/lib/actions/requests";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -327,13 +325,21 @@ export default function TrackerPage() {
 
   const handleDeleteOffer = async (offerId: string) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
-    await removePost(offerId);
+    const { error } = await removePost(offerId);
+    if (error) {
+      alert("Failed to delete item. Please try again.");
+      return;
+    }
     setOffers((prev) => prev.filter((o) => o.id !== offerId));
   };
 
   const handleDeleteRequest = async (requestId: string) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
-    await removeRequest(requestId);
+    const { error } = await removeRequest(requestId);
+    if (error) {
+      alert("Failed to delete item. Please try again.");
+      return;
+    }
     setRequests((prev) => prev.filter((r) => r.id !== requestId));
   };
 
@@ -370,50 +376,46 @@ export default function TrackerPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
               {sortedCards.map((card) => {
                 if (card.type === "offer") {
-                  const offer = card.data as TrackerOffer;
                   return (
-                    <div key={`offer-${offer.id}`}>
-                      <ItemRequestCard
-                        variant="lent"
-                        requestedBy={offer.isOwned ? "Offered by: You" : `Offered by: ${offer.requesters[0]?.name ?? "User"}`}
-                        price={offer.price}
-                        typeBadge="Offer"
-                        detail={{
-                          title: offer.itemName,
-                          lentBy: offer.isOwned ? "You" : (offer.requesters[0]?.name ?? "User"),
-                          quantity: 1,
-                          price: offer.price,
-                          description: offer.description ?? undefined,
-                          imageUrl: offer.imageUrl ?? undefined,
-                        }}
-                        onClick={offer.requesterCount > 0 ? () => setModalData({ title: offer.itemName, people: offer.requesters, type: "offer" }) : undefined}
-                        onEdit={offer.isOwned ? () => router.push(`/create-offer?edit=${offer.id}`) : undefined}
-                        onDelete={offer.isOwned ? () => handleDeleteOffer(offer.id) : undefined}
-                      />
-                    </div>
+                    <ItemRequestCard
+                      key={`offer-${card.data.id}`}
+                      variant="lent"
+                      requestedBy={card.data.isOwned ? "Offered by: You" : `Offered by: ${card.data.requesters[0]?.name ?? "User"}`}
+                      price={card.data.price}
+                      typeBadge="Offer"
+                      detail={{
+                        title: card.data.itemName,
+                        lentBy: card.data.isOwned ? "You" : (card.data.requesters[0]?.name ?? "User"),
+                        quantity: 1,
+                        price: card.data.price,
+                        description: card.data.description ?? undefined,
+                        imageUrl: card.data.imageUrl ?? undefined,
+                      }}
+                      onClick={card.data.requesterCount > 0 ? () => setModalData({ title: card.data.itemName, people: (card.data as TrackerOffer).requesters, type: "offer" }) : undefined}
+                      onEdit={card.data.isOwned ? () => router.push(`/create-offer?edit=${card.data.id}`) : undefined}
+                      onDelete={card.data.isOwned ? () => handleDeleteOffer(card.data.id) : undefined}
+                    />
                   );
                 } else {
-                  const request = card.data as TrackerRequest;
                   return (
-                    <div key={`request-${request.id}`}>
-                      <ItemRequestCard
-                        variant="requested"
-                        requestedBy={request.isOwned ? "Requested by: You" : `Requested by: ${request.bidders[0]?.name ?? "User"}`}
-                        price={request.price}
-                        typeBadge="Request"
-                        detail={{
-                          title: request.itemName,
-                          requestedBy: request.isOwned ? "You" : (request.bidders[0]?.name ?? "User"),
-                          quantity: 1,
-                          price: request.price,
-                          description: request.description ?? undefined,
-                          imageUrl: request.imageUrl ?? undefined,
-                        }}
-                        onClick={request.bidders.length > 0 ? () => setModalData({ title: request.itemName, people: request.bidders, type: "request" }) : undefined}
-                        onEdit={request.isOwned ? () => router.push(`/create-request?edit=${request.id}`) : undefined}
-                        onDelete={request.isOwned ? () => handleDeleteRequest(request.id) : undefined}
-                      />
-                    </div>
+                    <ItemRequestCard
+                      key={`request-${card.data.id}`}
+                      variant="requested"
+                      requestedBy={card.data.isOwned ? "Requested by: You" : `Requested by: ${card.data.bidders[0]?.name ?? "User"}`}
+                      price={card.data.price}
+                      typeBadge="Request"
+                      detail={{
+                        title: card.data.itemName,
+                        requestedBy: card.data.isOwned ? "You" : (card.data.bidders[0]?.name ?? "User"),
+                        quantity: 1,
+                        price: card.data.price,
+                        description: card.data.description ?? undefined,
+                        imageUrl: card.data.imageUrl ?? undefined,
+                      }}
+                      onClick={card.data.bidders.length > 0 ? () => setModalData({ title: card.data.itemName, people: (card.data as TrackerRequest).bidders, type: "request" }) : undefined}
+                      onEdit={card.data.isOwned ? () => router.push(`/create-request?edit=${card.data.id}`) : undefined}
+                      onDelete={card.data.isOwned ? () => handleDeleteRequest(card.data.id) : undefined}
+                    />
                   );
                 }
               })}
