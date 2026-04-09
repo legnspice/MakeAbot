@@ -150,7 +150,7 @@ export default function ItemDetailModal({
             ) : (
               <Button
                 type="button"
-                className="flex-1 max-w-60 h-11 rounded-xl bg-[#DEA440] hover:bg-[#C48A2A] text-white font-semibold uppercase tracking-wide text-sm"
+                className="flex-1 max-w-60 h-11 rounded-xl bg-[#DEA440] hover:bg-[#C48A2A] text-black font-semibold uppercase tracking-wide text-sm"
                 onClick={() => onInquire?.(item)}
               >
                 Inquire

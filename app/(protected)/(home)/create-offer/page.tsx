@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ImageFill, XLg } from "react-bootstrap-icons";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { createPost } from "@/lib/actions/posts";
+import { createPost, getPosts, editPost } from "@/lib/actions/posts";
 import { createClient } from "@/lib/supabase/client";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
@@ -34,6 +34,30 @@ export default function CreateOffer() {
     description: "",
     price: "",
   });
+
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+
+  useEffect(() => {
+    if (!editId) return;
+    setIsLoadingEdit(true);
+    getPosts({ id: editId }).then((result) => {
+      const post = result.data?.[0];
+      if (post) {
+        setForm({
+          title: post.title ?? "",
+          description: post.description ?? "",
+          price: post.price != null ? String(post.price) : "",
+        });
+        if (post.type === "Item" || post.type === "Service") setItemKind(post.type);
+        if (post.imgUrl) setUploadedImageUrl(post.imgUrl);
+      } else {
+        router.push("/tracker");
+      }
+      setIsLoadingEdit(false);
+    });
+  }, [editId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -98,17 +122,27 @@ export default function CreateOffer() {
 
     setIsPosting(true);
     try {
-      await createPost({
-        user_id: currentUser.id,
-        title,
-        price: priceValue,
-        description: form.description.trim() || null,
-        imgUrl: uploadedImageUrl,
-        status: "Active",
-        type: itemKind,
-      });
-      requestPermissionAndSubscribe().catch(() => {});
-      router.push("/");
+      if (editId) {
+        await editPost(editId, {
+          title,
+          price: priceValue,
+          description: form.description.trim() || null,
+          imgUrl: uploadedImageUrl,
+          type: itemKind,
+        });
+      } else {
+        await createPost({
+          user_id: currentUser.id,
+          title,
+          price: priceValue,
+          description: form.description.trim() || null,
+          imgUrl: uploadedImageUrl,
+          status: "Active",
+          type: itemKind,
+        });
+        requestPermissionAndSubscribe().catch(() => {});
+      }
+      router.push(editId ? "/tracker" : "/");
     } finally {
       setIsPosting(false);
     }
@@ -124,13 +158,15 @@ export default function CreateOffer() {
           <div className="flex items-center gap-2 mb-6">
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => router.push(editId ? "/tracker" : "/")}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Back"
             >
               <ChevronLeft size={20} />
             </button>
-            <h1 className="text-lg font-bold text-gray-800">Create an Offer</h1>
+            <h1 className="text-lg font-bold text-gray-800">
+              {editId ? "Edit Offer" : "Create an Offer"}
+            </h1>
           </div>
 
           {/* Form */}
@@ -269,10 +305,10 @@ export default function CreateOffer() {
               <Button
                 type="button"
                 onClick={handlePost}
-                disabled={isPosting || isUploading || !form.title.trim()}
-                className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white font-bold uppercase disabled:opacity-60"
+                disabled={isPosting || isUploading || isLoadingEdit || !form.title.trim()}
+                className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black font-bold uppercase disabled:opacity-60"
               >
-                {isPosting ? "Posting..." : "POST!"}
+                {isPosting ? (editId ? "Saving..." : "Posting...") : (editId ? "SAVE" : "POST!")}
               </Button>
             </div>
           </div>

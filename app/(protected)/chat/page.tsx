@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { ArrowLeft, ChevronLeft, StarFill } from "react-bootstrap-icons";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -10,7 +11,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
 import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
-import { getUsers } from "@/lib/actions/users";
+import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
 import { getLatestTimestampsForBids } from "@/lib/actions/messages";
 import { getReviews } from "@/lib/actions/reviews";
 
@@ -20,6 +21,7 @@ type ConversationEntry = {
   title: string;
   otherName: string;
   otherId: string;
+  otherAvatarUrl: string | null;
   lastMessageAt: Date | null;
   otherRating: number | null;
   completed: boolean;
@@ -68,6 +70,7 @@ function ChatPageInner() {
           otherName: "",
           otherId: bid.bidder_id,
           lastMessageAt: null,
+          otherAvatarUrl: null,
           otherRating: null,
           completed: post.status === "Closed",
         });
@@ -86,6 +89,7 @@ function ChatPageInner() {
           otherName: "",
           otherId: post.user_id,
           lastMessageAt: null,
+          otherAvatarUrl: null,
           otherRating: null,
           completed: post.status === "Closed",
         });
@@ -103,6 +107,7 @@ function ChatPageInner() {
           otherName: "",
           otherId: bid.bidder_id,
           lastMessageAt: null,
+          otherAvatarUrl: null,
           otherRating: null,
           completed: req.status === "Completed",
         });
@@ -121,6 +126,7 @@ function ChatPageInner() {
           otherName: "",
           otherId: req.user_id,
           lastMessageAt: null,
+          otherAvatarUrl: null,
           otherRating: null,
           completed: req.status === "Completed",
         });
@@ -149,12 +155,16 @@ function ChatPageInner() {
 
     const timestampsMap = timestampsResult.data ?? new Map<string, Date>();
 
-    // 2. Batch fetch ratings for each user
+    // 2. Batch fetch ratings and avatars for each user
     const ratingsMap = new Map<string, number | null>();
+    const avatarsMap = new Map<string, string | null>();
     if (idsArr.length > 0) {
       await Promise.all(
         idsArr.map(async (uid) => {
-          const reviewsResult = await getReviews({ rated_user_id: uid });
+          const [reviewsResult, avatarUrl] = await Promise.all([
+            getReviews({ rated_user_id: uid }),
+            getUserAvatarUrl(uid),
+          ]);
           const reviews = reviewsResult.data ?? [];
           if (reviews.length > 0) {
             const avg =
@@ -163,15 +173,17 @@ function ChatPageInner() {
           } else {
             ratingsMap.set(uid, null);
           }
+          avatarsMap.set(uid, avatarUrl);
         }),
       );
     }
 
-    // 3. Fill in names, timestamps, and ratings
+    // 3. Fill in names, timestamps, ratings, and avatars
     for (const item of items) {
       item.otherName = usersMap.get(item.otherId) ?? "User";
       item.lastMessageAt = timestampsMap.get(item.bidId) ?? null;
       item.otherRating = ratingsMap.get(item.otherId) ?? null;
+      item.otherAvatarUrl = avatarsMap.get(item.otherId) ?? null;
     }
 
     // Sort by most recent message first; conversations with no messages go last
@@ -202,6 +214,7 @@ function ChatPageInner() {
           title: titleParam,
           otherName: "",
           otherId: otherIdParam,
+          otherAvatarUrl: null,
           lastMessageAt: null,
           otherRating: null,
           completed: false,
@@ -252,6 +265,7 @@ function ChatPageInner() {
                 <div className="flex items-center gap-2">
                   <p className="font-bold text-gray-900 leading-tight line-clamp-1">
                     {titleParam}
+                    {selectedConv?.otherName ? ` | ${selectedConv.otherName}` : ""}
                   </p>
                   {selectedConv?.otherRating != null ? (
                     <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
@@ -335,12 +349,31 @@ function ChatPageInner() {
                         selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
                       }`}
                     >
-                      <p className="font-bold text-gray-900 text-sm uppercase leading-tight">
-                        {conv.title}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        {conv.otherName}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                          {conv.otherAvatarUrl ? (
+                            <Image
+                              src={conv.otherAvatarUrl}
+                              alt={conv.otherName}
+                              width={40}
+                              height={40}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
+                              {conv.otherName.charAt(0)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 text-sm uppercase leading-tight truncate">
+                            {conv.title}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {conv.otherName}
+                          </p>
+                        </div>
+                      </div>
                     </button>
                   ))
                 );
@@ -355,13 +388,27 @@ function ChatPageInner() {
             <>
               {/* Header */}
               <header className="bg-[#E8ECFF] flex items-center px-5 py-3 gap-3 shrink-0 border-b border-blue-100">
-                <div className="w-9 h-9 rounded bg-[#8B5E52] shrink-0" />
+                <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                  {selectedConv.otherAvatarUrl ? (
+                    <Image
+                      src={selectedConv.otherAvatarUrl}
+                      alt={selectedConv.otherName}
+                      width={36}
+                      height={36}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
+                      {(selectedConv.otherName || "U").charAt(0)}
+                    </span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-bold text-gray-900 text-sm leading-tight truncate">
-                      {selectedConv.kind === "offer" ? "OFFER" : "REQUEST"}
+                      {selectedConv.title}
                       {" | "}
-                      {selectedConv.otherName || selectedConv.title}
+                      {selectedConv.otherName}
                     </p>
                     {selectedConv.otherRating != null ? (
                       <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">

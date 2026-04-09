@@ -28,6 +28,9 @@ export function useRealtimeChat({ roomName, username, currentUserId }: UseRealti
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
   useEffect(() => {
+    // Clear stale messages from previous room
+    setMessages([]);
+
     const supabase = supabaseRef.current;
     const newChannel = supabase.channel(roomName);
     channelRef.current = newChannel;

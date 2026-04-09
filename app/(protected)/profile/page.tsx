@@ -202,7 +202,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarFileRefDesktop.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60 z-10"
+                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black flex items-center justify-center shadow-md transition-colors disabled:opacity-60 z-10"
                 aria-label="Change profile picture"
               >
                 {isUploadingAvatar ? (
@@ -231,7 +231,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={openEdit}
-                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#DEA440] rounded flex items-center justify-center text-white hover:bg-[#C48A2A] transition-colors shrink-0"
+                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#DEA440] rounded flex items-center justify-center text-black hover:bg-[#C48A2A] transition-colors shrink-0"
                   aria-label="Edit profile"
                 >
                   Edit Profile
@@ -310,7 +310,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={openEdit}
-              className="absolute top-0 right-0 w-8 h-8 bg-[#DEA440] rounded flex items-center justify-center text-white hover:bg-[#C48A2A] transition-colors"
+              className="absolute top-0 right-0 w-8 h-8 bg-[#DEA440] rounded flex items-center justify-center text-black hover:bg-[#C48A2A] transition-colors"
               aria-label="Edit profile"
             >
               <PencilSquare size={16} />
@@ -342,7 +342,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarFileRefMobile.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
                 aria-label="Change profile picture"
               >
                 {isUploadingAvatar ? (
@@ -536,7 +536,7 @@ export default function ProfilePage() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white font-bold uppercase disabled:opacity-60"
+              className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black font-bold uppercase disabled:opacity-60"
             >
               {isSaving ? "Saving…" : "Save"}
             </Button>

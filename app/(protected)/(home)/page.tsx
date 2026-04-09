@@ -10,7 +10,7 @@ import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
 import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
-import { PlusLg, TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
+import { TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { getPosts, getPostBids, createPostBid } from "@/lib/actions/posts";
 import {
@@ -400,11 +400,12 @@ export default function Home() {
         {/* Floating action button */}
         <Button
           size="icon"
-          className="font-bold text-lg fixed bottom-30 md:bottom-6 right-6 w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-white shadow-lg z-10 p-0 flex items-center justify-center"
+          className="font-regular text-lg fixed bottom-30 md:bottom-6 right-6 w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black shadow-lg z-10 p-0 flex items-center justify-center"
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen(true)}
         >
-          <span className="text-black hidden md:inline">Create</span> <PlusLg size={56} className="text-black md:hidden" /><PlusLg size={58} className="text-black hidden md:block" />
+          <span className="hidden md:inline text-black font-regular">Create</span>
+          <span className="text-black text-3xl md:text-3xl leading-none -mt-1">+</span>
         </Button>
       </div>
 
