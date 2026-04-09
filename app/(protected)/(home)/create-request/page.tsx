@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ImageFill, XLg } from "react-bootstrap-icons";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { createRequest } from "@/lib/actions/requests";
+import { createRequest, getRequests, editRequest } from "@/lib/actions/requests";
 import { createClient } from "@/lib/supabase/client";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
@@ -36,6 +37,29 @@ export default function CreateRequest() {
     description: "",
     incentive: "",
   });
+
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+
+  useEffect(() => {
+    if (!editId) return;
+    setIsLoadingEdit(true);
+    getRequests({ id: editId }).then((result) => {
+      const req = result.data?.[0];
+      if (req) {
+        setForm({
+          title: req.title ?? "",
+          description: req.description ?? "",
+          incentive: req.fee != null ? String(req.fee) : "",
+        });
+        if (req.type === "Item" || req.type === "Service") setItemKind(req.type);
+        if (req.urgency) setUrgency(req.urgency);
+        if (req.imgUrl) setUploadedImageUrl(req.imgUrl);
+      }
+      setIsLoadingEdit(false);
+    });
+  }, [editId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -100,18 +124,29 @@ export default function CreateRequest() {
 
     setIsPosting(true);
     try {
-      await createRequest({
-        user_id: currentUser.id,
-        title,
-        fee: feeValue,
-        description: form.description.trim() || null,
-        imgUrl: uploadedImageUrl,
-        urgency,
-        status: "Active",
-        type: itemKind,
-      });
-      requestPermissionAndSubscribe().catch(() => {});
-      router.push("/");
+      if (editId) {
+        await editRequest(editId, {
+          title,
+          fee: feeValue,
+          description: form.description.trim() || null,
+          imgUrl: uploadedImageUrl,
+          urgency,
+          type: itemKind,
+        });
+      } else {
+        await createRequest({
+          user_id: currentUser.id,
+          title,
+          fee: feeValue,
+          description: form.description.trim() || null,
+          imgUrl: uploadedImageUrl,
+          urgency,
+          status: "Active",
+          type: itemKind,
+        });
+        requestPermissionAndSubscribe().catch(() => {});
+      }
+      router.push(editId ? "/tracker" : "/");
     } finally {
       setIsPosting(false);
     }
@@ -127,14 +162,14 @@ export default function CreateRequest() {
           <div className="flex items-center gap-2 mb-6">
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => router.push(editId ? "/tracker" : "/")}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Back"
             >
               <ChevronLeft size={20} />
             </button>
             <h1 className="text-lg font-bold text-gray-800">
-              Create a Request
+              {editId ? "Edit Request" : "Create a Request"}
             </h1>
           </div>
 
@@ -290,10 +325,10 @@ export default function CreateRequest() {
               <Button
                 type="button"
                 onClick={handlePost}
-                disabled={isPosting || isUploading || !form.title.trim()}
+                disabled={isPosting || isUploading || isLoadingEdit || !form.title.trim()}
                 className="w-full rounded-full bg-[#3761B0] hover:bg-[#2d52a0] text-white font-bold uppercase disabled:opacity-60"
               >
-                {isPosting ? "Posting..." : "POST!"}
+                {isPosting ? (editId ? "Saving..." : "Posting...") : (editId ? "SAVE" : "POST!")}
               </Button>
             </div>
           </div>
