@@ -2,9 +2,6 @@ import { z } from "zod";
 
 export const NOTIFICATION_TYPES = [
   "new_message",
-  "new_bid",
-  "bid_accepted",
-  "bid_rejected",
   "new_review",
   "new_request",
 ] as const;
@@ -31,9 +28,6 @@ export type PushSubscriptionSchema = z.infer<typeof pushSubscriptionSchema>;
 
 export const updatePreferencesSchema = z.object({
   new_message: z.boolean().optional(),
-  new_bid: z.boolean().optional(),
-  bid_accepted: z.boolean().optional(),
-  bid_rejected: z.boolean().optional(),
   new_review: z.boolean().optional(),
   new_request: z.boolean().optional(),
 });

@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
-import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
+import FilterBar, {
+  type DateSort,
+  type PriceSort,
+} from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
 import { getPosts, getPostBids, removePost } from "@/lib/actions/posts";
@@ -12,6 +15,7 @@ import { getRequests, getRequestBids, removeRequest } from "@/lib/actions/reques
 import { getUsers } from "@/lib/actions/users";
 import { ChatDotsFill, XLg } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
+import { markChatNotificationRead } from "@/lib/actions/notifications";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -127,12 +131,8 @@ async function fetchTrackerData(userId: string) {
   }
 
   // My own post IDs (to avoid duplicates)
-  const myPostIds = new Set(
-    (postsResult.data ?? []).map((p) => p.id),
-  );
-  const myRequestIds = new Set(
-    (requestsResult.data ?? []).map((r) => r.id),
-  );
+  const myPostIds = new Set((postsResult.data ?? []).map((p) => p.id));
+  const myRequestIds = new Set((requestsResult.data ?? []).map((r) => r.id));
 
   // Cards for my offers (posts I own)
   const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
@@ -250,7 +250,9 @@ export default function TrackerPage() {
         setIsLoading(false);
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser.id]);
 
   const allFilterLabels = ["All", "Offers", "Requests", ...customFilters];
@@ -311,12 +313,13 @@ export default function TrackerPage() {
     }
   };
 
-  const goToChat = (
+  const goToChat = async (
     bidId: string,
     kind: "offer" | "request",
     title: string,
     otherId: string,
   ) => {
+    await markChatNotificationRead(bidId);
     router.push(
       `/chat?bidId=${encodeURIComponent(bidId)}&kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}&otherId=${encodeURIComponent(otherId)}`,
     );
@@ -483,11 +486,16 @@ function ChatListModal({
             <li key={p.bidId}>
               <button
                 type="button"
-                onClick={() => { onSelect(p.bidId, p.id); onClose(); }}
+                onClick={() => {
+                  onSelect(p.bidId, p.id);
+                  onClose();
+                }}
                 className={`w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={`w-7 h-7 shrink-0 rounded-full ${avatarClass} flex items-center justify-center text-xs font-semibold`}>
+                  <span
+                    className={`w-7 h-7 shrink-0 rounded-full ${avatarClass} flex items-center justify-center text-xs font-semibold`}
+                  >
                     {p.name.charAt(0).toUpperCase()}
                   </span>
                   <span className="text-sm font-medium text-gray-800 truncate">

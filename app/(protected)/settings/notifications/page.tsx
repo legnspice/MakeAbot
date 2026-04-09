@@ -15,9 +15,6 @@ const EVENT_LABELS: Record<
   string
 > = {
   new_message: "New messages",
-  new_bid: "New bids on your posts/requests",
-  bid_accepted: "Your bid was accepted",
-  bid_rejected: "Your bid was not accepted",
   new_review: "New reviews",
   new_request: "New requests from others",
 };

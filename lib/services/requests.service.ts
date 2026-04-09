@@ -1,5 +1,5 @@
 import * as requestsRepo from "../repo/requests.repo";
-import { sendPushToUser, sendPushToAllUsers } from "./push.service";
+import { sendPushToAllUsers } from "./push.service";
 import {
   FindRequestsSchema,
   FindRequestBidsSchema,
@@ -30,57 +30,15 @@ export async function createRequest(data: InsertRequestSchema) {
 }
 
 export async function createRequestBid(data: InsertRequestBidSchema) {
-  const bid = await requestsRepo.insertRequestBid(data);
-  // fire-and-forget
-  (async () => {
-    try {
-      const request = await requestsRepo.findRequestById(data.request_id);
-      if (request?.user_id) {
-        await sendPushToUser(request.user_id, "new_bid", {
-          title: `New offer for "${request.title}"`,
-          body: "Someone offered to help",
-          url: `/chat?bidId=${bid.id}&kind=request&title=${encodeURIComponent(request.title)}&otherId=${data.bidder_id}`,
-        });
-      }
-    } catch {}
-  })();
-  return bid;
+  return await requestsRepo.insertRequestBid(data);
 }
 
-export async function acceptRequestBid(bidId: string, requestOwnerId: string) {
+export async function acceptRequestBid(bidId: string, _requestOwnerId: string) {
   await requestsRepo.updateRequestBidStatus(bidId, "Accepted");
-  // fire-and-forget
-  (async () => {
-    try {
-      const bid = await requestsRepo.findRequestBidById(bidId);
-      if (bid) {
-        const request = await requestsRepo.findRequestById(bid.request_id);
-        await sendPushToUser(bid.bidder_id, "bid_accepted", {
-          title: "Your offer was accepted",
-          body: request ? `For "${request.title}"` : "",
-          url: `/chat?bidId=${bidId}&kind=request&title=${encodeURIComponent(request?.title ?? "")}&otherId=${requestOwnerId}`,
-        });
-      }
-    } catch {}
-  })();
 }
 
 export async function rejectRequestBid(bidId: string, _requestOwnerId: string) {
   await requestsRepo.updateRequestBidStatus(bidId, "Closed");
-  // fire-and-forget
-  (async () => {
-    try {
-      const bid = await requestsRepo.findRequestBidById(bidId);
-      if (bid) {
-        const request = await requestsRepo.findRequestById(bid.request_id);
-        await sendPushToUser(bid.bidder_id, "bid_rejected", {
-          title: "Your offer was not accepted",
-          body: request ? `For "${request.title}"` : "",
-          url: "/notifications",
-        });
-      }
-    } catch {}
-  })();
 }
 
 export async function removeRequest(id: string, userId: string) {

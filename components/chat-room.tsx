@@ -38,6 +38,7 @@ export const ChatRoom = ({
   const [chatDataLoading, setChatDataLoading] = useState(true);
 
   const processedMessageIds = useRef<Set<string>>(new Set());
+  const processedIncomingIds = useRef<Set<string>>(new Set());
 
   const { userData } = useAuth();
   const publicUser = userData.publicUser;
@@ -48,6 +49,7 @@ export const ChatRoom = ({
     if (!contextId) return;
     void markChatNotificationRead(contextId);
   }, [request_bid_id, post_bid_id]);
+
 
   useEffect(() => {
     // Reset state for new conversation
@@ -88,6 +90,20 @@ export const ChatRoom = ({
 
   useEffect(() => {
     handleMessageLogic.current = async (messages: ChatMessage[]) => {
+      // Mark notification read when the other user sends us a message while we're in this chat.
+      // The upsert in push.service sets is_read=false on each new message; this re-marks it read.
+      const contextId = request_bid_id ?? post_bid_id;
+      const newIncoming = messages.filter(
+        (msg) =>
+          msg.user.userId !== publicUser.id &&
+          !processedIncomingIds.current.has(msg.id),
+      );
+      if (newIncoming.length > 0 && contextId) {
+        newIncoming.forEach((msg) => processedIncomingIds.current.add(msg.id));
+        void markChatNotificationRead(contextId);
+      }
+
+      // Existing outgoing-message logic (unchanged):
       const newMessagesFromCurrentUser = messages.filter(
         (msg) =>
           msg.user.userId === publicUser.id &&

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { PersonFill, QuestionCircleFill } from "react-bootstrap-icons";
@@ -16,6 +17,11 @@ export default function Navbar() {
     meta.full_name ??
     meta.name ??
     "Profile") as string;
+
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const chatContextId =
+    pathname === "/chat" ? (searchParams.get("bidId") ?? undefined) : undefined;
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { openTutorial } = useTutorial();
@@ -120,6 +126,7 @@ export default function Navbar() {
         <NotificationsPanel
           open={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
+          chatContextId={chatContextId}
         />
       </div>
     </>

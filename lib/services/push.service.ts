@@ -14,9 +14,6 @@ webpush.setVapidDetails(
 );
 
 const EMAIL_EVENTS = new Set<NotificationType>([
-  "new_bid",
-  "bid_accepted",
-  "bid_rejected",
   "new_review",
 ]);
 
@@ -87,18 +84,61 @@ export async function sendPushToUser(
     await sendToSubscriptions(subscriptions, { ...pushPayload, tag });
   }
 
-  // 4. Send email for qualifying events (only when email is enabled via RESEND_FROM)
+  // 4. Send email for qualifying events (only when RESEND_FROM is configured)
   if (EMAIL_EVENTS.has(type) && process.env.RESEND_FROM) {
     try {
       const adminClient = await createAdminClient();
       const { data: userData } = await adminClient.auth.admin.getUserById(userId);
       const email = userData?.user?.email;
       if (email) {
+        const fullUrl = `${process.env.NEXT_PUBLIC_SITE_URL}${pushPayload.url}`;
         await resend.emails.send({
           from: process.env.RESEND_FROM!,
           to: email,
           subject: pushPayload.title,
-          text: `${pushPayload.body ?? ""}\n\nView: ${process.env.NEXT_PUBLIC_SITE_URL}${pushPayload.url}`,
+          text: `${pushPayload.body ?? ""}\n\nView: ${fullUrl}`,
+          html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${pushPayload.title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <!-- Header accent -->
+          <tr>
+            <td style="background:#3761B0;height:4px;font-size:0;">&nbsp;</td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px 32px 24px;">
+              <p style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">${pushPayload.title}</p>
+              ${pushPayload.body ? `<p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">${pushPayload.body}</p>` : ""}
+              <a href="${fullUrl}"
+                 style="display:inline-block;padding:12px 24px;background:#3761B0;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">
+                View on MakeAbot
+              </a>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
+                You're receiving this because you have email notifications enabled.<br />
+                Manage your preferences in the MakeAbot app under Settings → Notifications.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
         });
       }
     } catch {

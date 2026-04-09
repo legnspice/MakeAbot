@@ -1,3 +1,46 @@
+# Notifications Rework — Pass 2 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Replace the notifications panel's flat section-header grouping with tab navigation (All / Messages / Activity) and collapse read notifications after 3, with a "Show X more" button.
+
+**Architecture:** All changes are confined to `components/ui/notifications-panel.tsx`. Add `activeTab` and `showAllRead` state, replace `groupNotifications` with a `filterByTab` function, and render tabs + split unread/read lists inline. No new files, no DB changes.
+
+**Tech Stack:** Next.js 15 App Router, React, Tailwind CSS, TypeScript.
+
+**Spec:** `docs/superpowers/specs/2026-04-08-notifications-rework-pass2-design.md`
+
+---
+
+## File Map
+
+| File | Action |
+|---|---|
+| `components/ui/notifications-panel.tsx` | Modify — add tabs, read collapsing, remove groupNotifications |
+
+---
+
+## Task 1: Implement tabs and read collapsing in NotificationsPanel
+
+**Files:**
+- Modify: `components/ui/notifications-panel.tsx`
+
+This is a pure UI refactor. The component currently uses `groupNotifications` to produce section headers. We replace that with:
+1. A `filterByTab` function (flat filter, no headers)
+2. A tab bar rendered between the header row and the list
+3. Inline unread/read split with collapse threshold of 3
+
+There are no unit-testable pure functions here (the component renders inside a client boundary and depends on server actions). Tests are manual/visual. The existing test suite covers the actions layer — no test file is modified.
+
+- [ ] **Step 1: Read the current file**
+
+Read `components/ui/notifications-panel.tsx` in full before making any changes. Understand the current state shape, the `groupNotifications` function, and the JSX structure.
+
+- [ ] **Step 2: Replace the file with the updated implementation**
+
+Replace the entire contents of `components/ui/notifications-panel.tsx` with:
+
+```tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,11 +50,8 @@ import {
   getNotifications,
   markNotificationRead,
   markAllRead,
-  markChatNotificationRead,
 } from "@/lib/actions/notifications";
 import type { SelectNotification } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/contexts/auth-context";
 
 function formatTime(date: Date): string {
   const now = new Date();
@@ -47,15 +87,10 @@ const READ_THRESHOLD = 3;
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** When the panel is opened while the user is in a chat, mark that conversation's
-   *  notification as read so the panel reflects accurate state immediately. */
-  chatContextId?: string;
 };
 
-export default function NotificationsPanel({ open, onClose, chatContextId }: Props) {
+export default function NotificationsPanel({ open, onClose }: Props) {
   const router = useRouter();
-  const { userData } = useAuth();
-  const userId = userData.publicUser.id;
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("All");
@@ -65,7 +100,6 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
 
   useEffect(() => {
     if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoaded(false);
       setActiveTab("All");
       setShowAllRead(false);
@@ -73,63 +107,23 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
     }
     if (loaded) return;
     let cancelled = false;
-    // If opened while in a chat, mark that conversation's notification read first
-    // so the panel reflects accurate state rather than a stale unread entry.
-    const load = async () => {
-      if (chatContextId) await markChatNotificationRead(chatContextId);
-      if (cancelled) return;
-      const result = await getNotifications();
+    getNotifications().then((result) => {
       if (!cancelled) {
         setNotifications(result.data ?? []);
         setLoaded(true);
       }
-    };
-    void load();
+    });
     return () => {
       cancelled = true;
     };
-  }, [open, loaded, chatContextId]);
-
-  // Keep panel in sync when markChatNotificationRead fires externally (e.g. from chat-room).
-  useEffect(() => {
-    if (!open || !loaded || !userId) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`notifications-panel-${userId}-${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const updated = payload.new as { id: string; is_read: boolean; message_count: number };
-          if (updated.is_read) {
-            setNotifications((prev) =>
-              prev.map((n) =>
-                n.id === updated.id ? { ...n, is_read: true, message_count: 0 } : n,
-              ),
-            );
-          }
-        },
-      )
-      .subscribe();
-    return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
-    };
-  }, [open, loaded, userId]);
+  }, [open, loaded]);
 
   async function handleClick(n: SelectNotification) {
     if (!n.is_read) {
       await markNotificationRead(n.id);
       setNotifications((prev) =>
         prev.map((item) =>
-          item.id === n.id
-            ? { ...item, is_read: true, message_count: 0 }
-            : item,
+          item.id === n.id ? { ...item, is_read: true } : item,
         ),
       );
     }
@@ -141,9 +135,7 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
 
   async function handleMarkAllRead() {
     await markAllRead();
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, is_read: true, message_count: 0 })),
-    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   }
 
   const hasUnread = notifications.some((n) => !n.is_read);
@@ -154,10 +146,9 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
   const unread = filtered.filter((n) => !n.is_read);
   const read = filtered.filter((n) => n.is_read);
   const visibleRead = showAllRead ? read : read.slice(0, READ_THRESHOLD);
-  const hiddenReadCount = Math.max(0, read.length - READ_THRESHOLD);
+  const hiddenReadCount = read.length - READ_THRESHOLD;
 
   function renderNotification(n: SelectNotification) {
-    const isMessage = n.type === "new_message";
     return (
       <button
         key={n.id}
@@ -165,24 +156,17 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
         onClick={() => handleClick(n)}
         className={`w-full text-left px-5 py-4 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 transition-colors ${n.is_read ? "opacity-60" : ""}`}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          {!n.is_read && (
-            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-          )}
-          <p className="text-sm font-semibold text-gray-900 leading-snug flex-1 min-w-0 truncate">
-            {n.title}
-          </p>
-          {isMessage && !n.is_read && n.message_count > 1 && (
-            <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
-              {n.message_count > 99 ? "99+" : n.message_count}
-            </span>
-          )}
-        </div>
+        {!n.is_read && (
+          <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2 mb-0.5" />
+        )}
+        <p className="text-sm font-semibold text-gray-900 leading-snug inline">
+          {n.title}
+        </p>
         {n.body && (
-          <p className="mt-0.5 text-sm text-gray-600 truncate">{n.body}</p>
+          <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>
         )}
         <p className="mt-1 text-xs text-gray-400">
-          {formatTime(new Date(isMessage ? n.updated_at : n.created_at))}
+          {formatTime(new Date(n.created_at))}
         </p>
       </button>
     );
@@ -212,10 +196,7 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
             )}
             <button
               type="button"
-              onClick={() => {
-                router.push("/settings/notifications");
-                onClose();
-              }}
+              onClick={() => { router.push("/settings/notifications"); onClose(); }}
               className="p-1 rounded hover:bg-gray-100 transition-colors"
               aria-label="Notification settings"
             >
@@ -278,3 +259,37 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
     </>
   );
 }
+```
+
+- [ ] **Step 3: Run all tests**
+
+```bash
+pnpm test
+```
+
+Expected: All 79 tests pass (no test files touch this component directly; the actions layer tests are unaffected).
+
+- [ ] **Step 4: Verify TypeScript compiles**
+
+```bash
+pnpm build 2>&1 | head -30
+```
+
+Expected: Build succeeds with no type errors. If there are errors, fix them before committing.
+
+- [ ] **Step 5: Manual smoke test (optional but recommended)**
+
+Open the app locally (`pnpm dev`), open the notifications panel:
+- Confirm three tabs render: All, Messages, Activity
+- Confirm All tab is selected by default
+- Confirm switching tabs filters notifications correctly
+- If you have more than 3 read notifications, confirm only 3 show and "Show X more" appears
+- Confirm clicking "Show X more" reveals all read notifications
+- Confirm closing and reopening the panel resets to the All tab
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add components/ui/notifications-panel.tsx
+git commit -m "feat: add tab navigation and read notification collapsing to notifications panel"
+```
