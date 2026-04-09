@@ -43,8 +43,12 @@ export const messages = pgTable("messages", {
   receiver_id: uuid("receiver_id")
     .notNull()
     .references(() => users.id),
-  request_bid_id: uuid("request_bid_id").references(() => request_bids.id),
-  post_bid_id: uuid("post_bid_id").references(() => post_bids.id),
+  request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
+    onDelete: "cascade",
+  }),
+  post_bid_id: uuid("post_bid_id").references(() => post_bids.id, {
+    onDelete: "cascade",
+  }),
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   is_read: boolean("is_read").default(false).notNull(),
@@ -58,8 +62,12 @@ export const reviews = pgTable("reviews", {
   creator_id: uuid("creator_id")
     .notNull()
     .references(() => users.id),
-  request_bid_id: uuid("request_bid_id").references(() => request_bids.id),
-  post_bid_id: uuid("post_bid_id").references(() => post_bids.id),
+  request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
+    onDelete: "cascade",
+  }),
+  post_bid_id: uuid("post_bid_id").references(() => post_bids.id, {
+    onDelete: "cascade",
+  }),
   comment: text("comment"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   rating: integer("rating").notNull(),
@@ -178,4 +186,5 @@ export type InsertNotification = typeof notifications.$inferInsert;
 export type SelectNotification = typeof notifications.$inferSelect;
 export type InsertPushSubscription = typeof push_subscriptions.$inferInsert;
 export type SelectPushSubscription = typeof push_subscriptions.$inferSelect;
-export type SelectNotificationPreferences = typeof notification_preferences.$inferSelect;
+export type SelectNotificationPreferences =
+  typeof notification_preferences.$inferSelect;

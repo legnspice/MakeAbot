@@ -51,6 +51,7 @@ export const ChatRoom = ({
 
   useEffect(() => {
     // Reset state for new conversation
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDbMessages([]);
     setChatDataLoading(true);
     processedMessageIds.current.clear();
@@ -125,7 +126,7 @@ export const ChatRoom = ({
       user: {
         name:
           msg.sender_id === publicUser.id
-            ? publicUser.name ?? "You"
+            ? (publicUser.name ?? "You")
             : otherUserName,
         userId: msg.sender_id,
       },
