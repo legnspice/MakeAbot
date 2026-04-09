@@ -44,7 +44,7 @@ export default function ItemRequestCard({
           : undefined
       }
       className={`w-full h-28 text-left bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-row ${
-        onClick
+        onClick || onEdit || onDelete
           ? "cursor-pointer hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
           : "opacity-75"
       }`}
