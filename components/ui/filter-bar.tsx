@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusLg, ChevronDown, Search, FunnelFill } from 'react-bootstrap-icons';
+import { PlusLg, ChevronDown, Search, Funnel } from 'react-bootstrap-icons';
 
 export type DateSort = 'date-newest' | 'date-oldest';
 export type PriceSort = 'price-highest' | 'price-lowest';
@@ -71,7 +71,7 @@ export default function FilterBar({
           onClick={() => onSortModalOpenChange(true)}
           className="shrink-0 h-8 px-4 rounded-full bg-[#3761B0] text-white text-sm font-medium flex items-center gap-1.5 hover:bg-[#2a4d8a] transition-colors"
         >
-          <FunnelFill size={14} />
+          <Funnel size={14} />
           Sort
           <ChevronDown size={14} />
         </button>
@@ -143,7 +143,7 @@ export default function FilterBar({
             className="h-8 w-8 shrink-0 rounded-full bg-[#3761B0] text-white flex items-center justify-center hover:bg-[#2a4d8a] transition-colors"
             aria-label="Add filter"
           >
-             <FunnelFill size={14} />
+             <Funnel size={14} />
           </button>
           <button
             type="button"

@@ -115,7 +115,7 @@ export const RealtimeChat = ({
         </div>
       </div>
 
-      <div className="flex w-full items-center gap-2 border-t border-border p-4 z-10">
+      <div className="flex w-full items-center gap-2 border-t border-border p-4 z-10 bg-gray-100">
         <form
           onSubmit={handleSendMessage}
           className="flex flex-1 gap-2"

@@ -53,13 +53,13 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-6">
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             Home
           </Link>
           <Link
             href="/tracker"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             Tracker
           </Link>
@@ -67,7 +67,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={openTutorial}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
             aria-label="Help"
           >
             <QuestionCircleFill size={16} />
@@ -75,7 +75,7 @@ export default function Navbar() {
           </button>
           <Link
             href="/profile"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#3761B0] transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
           >
             {/* {displayName} */}
             <div className="relative w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">

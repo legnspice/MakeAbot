@@ -41,7 +41,7 @@ export const ChatMessageItem = ({
           className={cn(
             "py-2 px-3 rounded-xl text-sm w-fit",
             isOwnMessage
-              ? "bg-primary text-primary-foreground"
+              ? "bg-[#3761B0] text-white"
               : "bg-muted text-foreground",
           )}
         >

@@ -110,7 +110,7 @@ export function RatingModal({
           type="button"
           onClick={handleSubmit}
           disabled={rating === 0 || submitting}
-          className="mt-4 w-full py-2.5 rounded-full bg-[#DEA440] text-white font-semibold text-sm hover:bg-[#C48A2A] transition-colors disabled:opacity-50"
+          className="mt-4 w-full py-2.5 rounded-full bg-[#DEA440] text-black font-semibold text-sm hover:bg-[#C48A2A] transition-colors disabled:opacity-50"
         >
           {submitting ? "Submitting…" : "Submit Review"}
         </button>

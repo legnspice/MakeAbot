@@ -49,6 +49,11 @@ export const ChatRoom = ({
   }, [request_bid_id, post_bid_id]);
 
   useEffect(() => {
+    // Reset state for new conversation
+    setDbMessages([]);
+    setChatDataLoading(true);
+    processedMessageIds.current.clear();
+
     async function loadData() {
       const result = await getConversation({
         user1_id: publicUser.id,
