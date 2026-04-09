@@ -11,6 +11,9 @@ import { getPosts, getPostBids } from "@/lib/actions/posts";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { ChatDotsFill, XLg } from "react-bootstrap-icons";
+import ItemRequestCard from "@/components/ui/item";
+import { removePost } from "@/lib/actions/posts";
+import { removeRequest } from "@/lib/actions/requests";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -30,6 +33,11 @@ function formatPrice(value: number | null | undefined): string {
 type TrackerOffer = {
   id: string;
   itemName: string;
+  description: string | null;
+  imageUrl: string | null;
+  price: string;
+  type: string | null;
+  isOwned: boolean;
   requesterCount: number;
   requesters: { id: string; name: string; bidId: string }[];
   notificationCount?: number;
@@ -38,8 +46,13 @@ type TrackerOffer = {
 type TrackerRequest = {
   id: string;
   itemName: string;
+  description: string | null;
+  imageUrl: string | null;
   status: string;
   price: string;
+  type: string | null;
+  urgency: string | null;
+  isOwned: boolean;
   bidders: { id: string; name: string; bidId: string }[];
   notificationCount?: number;
 };
@@ -128,6 +141,11 @@ async function fetchTrackerData(userId: string) {
   const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
     id: post.id,
     itemName: post.title,
+    description: post.description ?? null,
+    imageUrl: post.imgUrl ?? null,
+    price: formatPrice(post.price),
+    type: post.type ?? null,
+    isOwned: true,
     requesterCount: bids.length,
     requesters: bids.map((bid) => ({
       id: bid.bidder_id,
@@ -142,6 +160,11 @@ async function fetchTrackerData(userId: string) {
     offerList.push({
       id: `bid-${bid.id}`,
       itemName: post.title,
+      description: post.description ?? null,
+      imageUrl: post.imgUrl ?? null,
+      price: formatPrice(post.price),
+      type: post.type ?? null,
+      isOwned: false,
       requesterCount: 1,
       requesters: [
         {
@@ -157,8 +180,13 @@ async function fetchTrackerData(userId: string) {
   const requestList: TrackerRequest[] = reqBidGroups.map(({ req, bids }) => ({
     id: req.id,
     itemName: req.title,
+    description: req.description ?? null,
+    imageUrl: req.imgUrl ?? null,
     status: req.status,
     price: formatPrice(req.fee),
+    type: req.type ?? null,
+    urgency: req.urgency ?? null,
+    isOwned: true,
     bidders: bids.map((bid) => ({
       id: bid.bidder_id,
       name: usersMap.get(bid.bidder_id) ?? "User",
@@ -173,8 +201,13 @@ async function fetchTrackerData(userId: string) {
     requestList.push({
       id: `bid-${bid.id}`,
       itemName: req.title,
+      description: req.description ?? null,
+      imageUrl: req.imgUrl ?? null,
       status: req.status,
       price: formatPrice(req.fee),
+      type: req.type ?? null,
+      urgency: req.urgency ?? null,
+      isOwned: false,
       bidders: [
         {
           id: req.user_id,
@@ -205,6 +238,11 @@ export default function TrackerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
+  const [modalData, setModalData] = useState<{
+    title: string;
+    people: { id: string; name: string; bidId: string }[];
+    type: "offer" | "request";
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,8 +293,8 @@ export default function TrackerPage() {
     const base = filteredCards.map((card, i) => ({ card, i }));
     base.sort((a, b) => {
       if (priceSort) {
-        const pA = a.card.type === "offer" ? "FREE" : a.card.data.price;
-        const pB = b.card.type === "offer" ? "FREE" : b.card.data.price;
+        const pA = a.card.data.price;
+        const pB = b.card.data.price;
         const diff = getPriceRank(pA) - getPriceRank(pB);
         if (diff !== 0) return priceSort === "price-lowest" ? diff : -diff;
       }
@@ -285,6 +323,18 @@ export default function TrackerPage() {
     router.push(
       `/chat?bidId=${encodeURIComponent(bidId)}&kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}&otherId=${encodeURIComponent(otherId)}`,
     );
+  };
+
+  const handleDeleteOffer = async (offerId: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    await removePost(offerId);
+    setOffers((prev) => prev.filter((o) => o.id !== offerId));
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    await removeRequest(requestId);
+    setRequests((prev) => prev.filter((r) => r.id !== requestId));
   };
 
   return (
@@ -318,27 +368,70 @@ export default function TrackerPage() {
         <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
           <section aria-label="Tracker">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-              {sortedCards.map((card) =>
-                card.type === "offer" ? (
-                  <OfferCard
-                    key={`offer-${card.data.id}`}
-                    offer={card.data}
-                    onRequesterClick={(bidId, otherId) =>
-                      goToChat(bidId, "offer", card.data.itemName, otherId)
-                    }
-                  />
-                ) : (
-                  <RequestCard
-                    key={`request-${card.data.id}`}
-                    request={card.data}
-                    onBidderClick={(bidId, otherId) =>
-                      goToChat(bidId, "request", card.data.itemName, otherId)
-                    }
-                  />
-                ),
-              )}
+              {sortedCards.map((card) => {
+                if (card.type === "offer") {
+                  const offer = card.data as TrackerOffer;
+                  return (
+                    <div key={`offer-${offer.id}`}>
+                      <ItemRequestCard
+                        variant="lent"
+                        requestedBy={offer.isOwned ? "Offered by: You" : `Offered by: ${offer.requesters[0]?.name ?? "User"}`}
+                        price={offer.price}
+                        typeBadge="Offer"
+                        detail={{
+                          title: offer.itemName,
+                          lentBy: offer.isOwned ? "You" : (offer.requesters[0]?.name ?? "User"),
+                          quantity: 1,
+                          price: offer.price,
+                          description: offer.description ?? undefined,
+                          imageUrl: offer.imageUrl ?? undefined,
+                        }}
+                        onClick={offer.requesterCount > 0 ? () => setModalData({ title: offer.itemName, people: offer.requesters, type: "offer" }) : undefined}
+                        onEdit={offer.isOwned ? () => router.push(`/create-offer?edit=${offer.id}`) : undefined}
+                        onDelete={offer.isOwned ? () => handleDeleteOffer(offer.id) : undefined}
+                      />
+                    </div>
+                  );
+                } else {
+                  const request = card.data as TrackerRequest;
+                  return (
+                    <div key={`request-${request.id}`}>
+                      <ItemRequestCard
+                        variant="requested"
+                        requestedBy={request.isOwned ? "Requested by: You" : `Requested by: ${request.bidders[0]?.name ?? "User"}`}
+                        price={request.price}
+                        typeBadge="Request"
+                        detail={{
+                          title: request.itemName,
+                          requestedBy: request.isOwned ? "You" : (request.bidders[0]?.name ?? "User"),
+                          quantity: 1,
+                          price: request.price,
+                          description: request.description ?? undefined,
+                          imageUrl: request.imageUrl ?? undefined,
+                        }}
+                        onClick={request.bidders.length > 0 ? () => setModalData({ title: request.itemName, people: request.bidders, type: "request" }) : undefined}
+                        onEdit={request.isOwned ? () => router.push(`/create-request?edit=${request.id}`) : undefined}
+                        onDelete={request.isOwned ? () => handleDeleteRequest(request.id) : undefined}
+                      />
+                    </div>
+                  );
+                }
+              })}
             </div>
           </section>
+          {modalData && (
+            <ChatListModal
+              title={modalData.title}
+              people={modalData.people}
+              accentClass={modalData.type === "offer" ? "bg-gray-50 hover:bg-gray-100" : "bg-blue-50 hover:bg-blue-100"}
+              avatarClass={modalData.type === "offer" ? "bg-gray-300 text-gray-600" : "bg-blue-200 text-blue-700"}
+              iconClass={modalData.type === "offer" ? "text-gray-400" : "text-blue-400"}
+              onSelect={(bidId, otherId) =>
+                goToChat(bidId, modalData.type, modalData.title, otherId)
+              }
+              onClose={() => setModalData(null)}
+            />
+          )}
         </main>
       )}
 
@@ -407,97 +500,5 @@ function ChatListModal({
         </ul>
       </div>
     </div>
-  );
-}
-
-function OfferCard({
-  offer,
-  onRequesterClick,
-}: {
-  offer: TrackerOffer;
-  onRequesterClick: (bidId: string, otherId: string) => void;
-}) {
-  const [modalOpen, setModalOpen] = useState(false);
-
-  return (
-    <>
-      <div className="w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900">{offer.itemName}</h3>
-        <p className="text-sm text-gray-600 mt-1">Offer</p>
-        {offer.requesterCount === 0 ? (
-          <p className="mt-3 text-xs text-gray-400 italic">No requesters yet</p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="mt-3 text-sm font-medium text-gray-700 hover:text-gray-900 underline underline-offset-2 transition-colors"
-          >
-            {offer.requesterCount} {offer.requesterCount === 1 ? "requester" : "requesters"}
-          </button>
-        )}
-      </div>
-      {modalOpen && (
-        <ChatListModal
-          title={offer.itemName}
-          people={offer.requesters}
-          accentClass="bg-gray-50 hover:bg-gray-100"
-          avatarClass="bg-gray-300 text-gray-600"
-          iconClass="text-gray-400"
-          onSelect={onRequesterClick}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-    </>
-  );
-}
-
-function RequestCard({
-  request,
-  onBidderClick,
-}: {
-  request: TrackerRequest;
-  onBidderClick: (bidId: string, otherId: string) => void;
-}) {
-  const [modalOpen, setModalOpen] = useState(false);
-
-  return (
-    <>
-      <div className="relative w-full text-left bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        {request.notificationCount != null && request.notificationCount > 0 && (
-          <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">
-            {request.notificationCount}
-          </div>
-        )}
-        <h3 className="text-lg font-bold text-gray-900 pr-8">
-          {request.itemName}
-        </h3>
-        <p className="text-sm text-gray-600 mt-1">
-          {request.status} &middot;{" "}
-          <span className="text-[#3761B0] font-semibold">{request.price}</span>
-        </p>
-        {request.bidders.length === 0 ? (
-          <p className="mt-3 text-xs text-gray-400 italic">No providers yet</p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="mt-3 text-sm font-medium text-[#3761B0] hover:text-[#2a4d8a] underline underline-offset-2 transition-colors"
-          >
-            {request.bidders.length} {request.bidders.length === 1 ? "provider" : "providers"}
-          </button>
-        )}
-      </div>
-      {modalOpen && (
-        <ChatListModal
-          title={request.itemName}
-          people={request.bidders}
-          accentClass="bg-blue-50 hover:bg-blue-100"
-          avatarClass="bg-blue-200 text-blue-700"
-          iconClass="text-blue-400"
-          onSelect={onBidderClick}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-    </>
   );
 }
