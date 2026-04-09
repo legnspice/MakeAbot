@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
@@ -56,6 +55,8 @@ export default function CreateRequest() {
         if (req.type === "Item" || req.type === "Service") setItemKind(req.type);
         if (req.urgency) setUrgency(req.urgency);
         if (req.imgUrl) setUploadedImageUrl(req.imgUrl);
+      } else {
+        router.push("/tracker");
       }
       setIsLoadingEdit(false);
     });

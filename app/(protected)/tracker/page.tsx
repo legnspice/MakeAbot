@@ -38,7 +38,6 @@ type TrackerOffer = {
   isOwned: boolean;
   requesterCount: number;
   requesters: { id: string; name: string; bidId: string }[];
-  notificationCount?: number;
 };
 
 type TrackerRequest = {
