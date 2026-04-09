@@ -4,6 +4,7 @@ import * as usersService from "@/lib/services/users.service";
 import { handleAction } from "@/lib/error/actions-handler";
 import { requireAuth } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { FindUserSchema, UpdateUserSchema } from "@/lib/validation/users";
 import { AppError } from "@/lib/error/app-error";
 
@@ -25,4 +26,14 @@ export async function editUser(id: string, data: UpdateUserSchema) {
 export async function getSupabaseUser() {
   const supabase = await createClient();
   return await supabase.auth.getUser();
+}
+
+export async function getUserAvatarUrl(userId: string): Promise<string | null> {
+  return await handleAction(async () => {
+    await requireAuth();
+    const admin = await createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(userId);
+    const meta = data?.user?.user_metadata;
+    return (meta?.avatar_url ?? meta?.picture ?? null) as string | null;
+  }).then((r) => r.data ?? null);
 }

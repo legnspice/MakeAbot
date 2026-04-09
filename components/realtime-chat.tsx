@@ -16,6 +16,7 @@ interface RealtimeChatProps {
   onMessage?: (messages: ChatMessage[]) => void;
   messages?: ChatMessage[];
   actionButton?: React.ReactNode;
+  otherAvatarUrl?: string;
 }
 
 /**
@@ -33,6 +34,7 @@ export const RealtimeChat = ({
   onMessage,
   messages: initialMessages = [],
   actionButton,
+  otherAvatarUrl,
 }: RealtimeChatProps) => {
   const { containerRef, scrollToBottom } = useChatScroll();
 
@@ -108,6 +110,7 @@ export const RealtimeChat = ({
                   message={message}
                   isOwnMessage={message.user.name === username}
                   showHeader={showHeader}
+                  avatarUrl={message.user.name !== username ? otherAvatarUrl : undefined}
                 />
               </div>
             );

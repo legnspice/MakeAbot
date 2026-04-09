@@ -8,7 +8,7 @@ import { markChatNotificationRead } from "@/lib/actions/notifications";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
-import { getUsers } from "@/lib/actions/users";
+import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import { getDealStatus } from "@/lib/actions/deals";
 
@@ -34,6 +34,7 @@ export const ChatRoom = ({
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
+  const [otherAvatarUrl, setOtherAvatarUrl] = useState<string | undefined>();
   const [chatDataLoading, setChatDataLoading] = useState(true);
 
   const processedMessageIds = useRef<Set<string>>(new Set());
@@ -71,6 +72,9 @@ export const ChatRoom = ({
       if (result2.data && result2.data.length > 0) {
         setOtherUserName(result2.data[0].name || "Unknown User");
       }
+
+      const avatar = await getUserAvatarUrl(other_user_id);
+      if (avatar) setOtherAvatarUrl(avatar);
 
       setChatDataLoading(false);
     }
@@ -198,6 +202,7 @@ export const ChatRoom = ({
         onMessage={handleMessage}
         messages={formattedMessages}
         actionButton={dealButton}
+        otherAvatarUrl={otherAvatarUrl}
       />
       <RatingModal
         open={ratingOpen}
