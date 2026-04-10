@@ -24,6 +24,48 @@ function formatTime(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+const GROUPS: { label: string; types: string[] }[] = [
+  { label: "Messages", types: ["new_inquiry", "new_message"] },
+  { label: "Reviews", types: ["new_review"] },
+  { label: "Opportunities", types: ["new_request"] },
+];
+
+function NotificationRow({
+  n,
+  onClick,
+}: {
+  n: SelectNotification;
+  onClick: (n: SelectNotification) => void;
+}) {
+  return (
+    <button
+      key={n.id}
+      type="button"
+      onClick={() => onClick(n)}
+      className={`w-full text-left px-4 py-4 focus:outline-none focus-visible:bg-gray-50 hover:bg-gray-50 transition-colors ${n.is_read ? "opacity-60" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {!n.is_read && (
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+            )}
+            <p className="text-sm font-semibold text-gray-900 leading-snug">
+              {n.title}
+            </p>
+          </div>
+          {n.body && (
+            <p className="mt-1 text-sm text-gray-600">{n.body}</p>
+          )}
+        </div>
+        <span className="shrink-0 text-xs text-gray-500 mt-1">
+          {formatTime(new Date(n.created_at))}
+        </span>
+      </div>
+    </button>
+  );
+}
+
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
@@ -92,37 +134,24 @@ export default function NotificationsPage() {
             No notifications yet
           </p>
         ) : (
-          <section aria-label="Notifications">
-            <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white">
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => handleClick(n)}
-                  className={`w-full text-left px-4 py-4 focus:outline-none focus-visible:bg-gray-50 hover:bg-gray-50 transition-colors ${n.is_read ? "opacity-60" : ""}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {!n.is_read && (
-                          <span className="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                        )}
-                        <p className="text-sm font-semibold text-gray-900 leading-snug">
-                          {n.title}
-                        </p>
-                      </div>
-                      {n.body && (
-                        <p className="mt-1 text-sm text-gray-600">{n.body}</p>
-                      )}
-                    </div>
-                    <span className="shrink-0 text-xs text-gray-500 mt-1">
-                      {formatTime(new Date(n.created_at))}
-                    </span>
+          <div className="space-y-6">
+            {GROUPS.map(({ label, types }) => {
+              const group = notifications.filter((n) => types.includes(n.type));
+              if (group.length === 0) return null;
+              return (
+                <section key={label} aria-label={label}>
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1 px-1">
+                    {label}
+                  </h2>
+                  <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white">
+                    {group.map((n) => (
+                      <NotificationRow key={n.id} n={n} onClick={handleClick} />
+                    ))}
                   </div>
-                </button>
-              ))}
-            </div>
-          </section>
+                </section>
+              );
+            })}
+          </div>
         )}
       </main>
       <BottomNav />

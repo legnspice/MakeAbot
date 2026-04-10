@@ -1,11 +1,9 @@
 import webpush from "web-push";
-import { Resend } from "resend";
 import * as notificationsRepo from "../repo/notifications.repo";
 import { createAdminClient } from "../supabase/admin";
+import { sendTransactionalEmail } from "./email.service";
 import { NotificationType } from "../validation/notifications";
 import type { SelectNotificationPreferences } from "../db/schema";
-
-const resend = new Resend(process.env.RESEND_API_KEY!);
 
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT!,
@@ -13,9 +11,11 @@ webpush.setVapidDetails(
   process.env.PRIVATE_VAPID_KEY!,
 );
 
-const EMAIL_EVENTS = new Set<NotificationType>([
-  "new_review",
-]);
+// Events that trigger an immediate transactional email
+const EMAIL_EVENTS = new Set<NotificationType>(["new_inquiry", "new_review"]);
+
+// Types that coalesce per-thread via upsert
+const COALESCED_TYPES = new Set<NotificationType>(["new_inquiry", "new_message"]);
 
 async function sendToSubscriptions(
   subscriptions: { id: string; endpoint: string; p256dh: string; auth: string }[],
@@ -47,9 +47,10 @@ export async function sendPushToUser(
   const { contextId, ...pushPayload } = payload;
 
   // 1. Write to in-app tracker
+  let messageCount = 1;
   try {
-    if (type === "new_message" && contextId) {
-      await notificationsRepo.upsertMessageNotification({
+    if (COALESCED_TYPES.has(type) && contextId) {
+      const upserted = await notificationsRepo.upsertMessageNotification({
         user_id: userId,
         type,
         context_id: contextId,
@@ -57,6 +58,7 @@ export async function sendPushToUser(
         body: pushPayload.body,
         url: pushPayload.url,
       });
+      messageCount = (upserted as { message_count?: number })?.message_count ?? 1;
     } else {
       await notificationsRepo.insertNotification({
         user_id: userId,
@@ -80,66 +82,20 @@ export async function sendPushToUser(
   // 3. Send Web Push
   const subscriptions = await notificationsRepo.findSubscriptionsForUser(userId);
   if (subscriptions.length > 0) {
-    const tag = type === "new_message" && contextId ? `chat_${contextId}` : undefined;
+    const tag =
+      COALESCED_TYPES.has(type) && contextId ? `chat_${contextId}` : undefined;
     await sendToSubscriptions(subscriptions, { ...pushPayload, tag });
   }
 
-  // 4. Send email for qualifying events (only when RESEND_FROM is configured)
-  if (EMAIL_EVENTS.has(type) && process.env.RESEND_FROM) {
+  // 4. Transactional email — only on first contact for coalesced types
+  const isFirstContact = !COALESCED_TYPES.has(type) || messageCount === 1;
+  if (EMAIL_EVENTS.has(type) && isFirstContact && process.env.RESEND_FROM) {
     try {
       const adminClient = await createAdminClient();
       const { data: userData } = await adminClient.auth.admin.getUserById(userId);
       const email = userData?.user?.email;
       if (email) {
-        const fullUrl = `${process.env.NEXT_PUBLIC_SITE_URL}${pushPayload.url}`;
-        await resend.emails.send({
-          from: process.env.RESEND_FROM!,
-          to: email,
-          subject: pushPayload.title,
-          text: `${pushPayload.body ?? ""}\n\nView: ${fullUrl}`,
-          html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${pushPayload.title}</title>
-</head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-          <!-- Header accent -->
-          <tr>
-            <td style="background:#3761B0;height:4px;font-size:0;">&nbsp;</td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px 32px 24px;">
-              <p style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">${pushPayload.title}</p>
-              ${pushPayload.body ? `<p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">${pushPayload.body}</p>` : ""}
-              <a href="${fullUrl}"
-                 style="display:inline-block;padding:12px 24px;background:#3761B0;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">
-                View on MakeAbot
-              </a>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                You're receiving this because you have email notifications enabled.<br />
-                Manage your preferences in the MakeAbot app under Settings → Notifications.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
-        });
+        await sendTransactionalEmail(email, pushPayload.title, pushPayload.body, pushPayload.url);
       }
     } catch {
       // Email failure must never block the caller
@@ -151,7 +107,13 @@ export async function sendPushToAllUsers(
   excludeUserId: string,
   payload: { title: string; body: string; url: string },
 ): Promise<void> {
-  // No in-app row — broadcast push only
+  // Write in-app rows for all users (grouped under "Opportunities")
+  try {
+    await notificationsRepo.insertBroadcastNotifications(excludeUserId, payload);
+  } catch {
+    // in-app failure must not block push
+  }
+
   const subscriptions = await notificationsRepo.findSubscriptionsForBroadcast(excludeUserId);
   if (subscriptions.length === 0) return;
   await sendToSubscriptions(subscriptions, payload);

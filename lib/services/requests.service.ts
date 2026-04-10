@@ -23,7 +23,7 @@ export async function createRequest(data: InsertRequestSchema) {
     sendPushToAllUsers(data.user_id, {
       title: "New request posted",
       body: data.title,
-      url: `/requests/${request.id}`,
+      url: `/`,
     }).catch(() => {});
   }
   return request;

@@ -2,6 +2,7 @@ import * as messagesRepo from "../repo/messages.repo";
 import * as usersRepo from "../repo/users.repo";
 import * as postsRepo from "../repo/posts.repo";
 import * as requestsRepo from "../repo/requests.repo";
+import * as notificationsRepo from "../repo/notifications.repo";
 import { sendPushToUser } from "./push.service";
 import {
   FindMessagesSchema,
@@ -20,6 +21,8 @@ export async function getConversation(filters: FindConversationSchema) {
 export async function createMessage(data: InsertMessageSchema) {
   const result = await messagesRepo.insertMessage(data);
   const contextId = data.request_bid_id ?? data.post_bid_id ?? null;
+  const threadField: "request_bid_id" | "post_bid_id" =
+    data.request_bid_id ? "request_bid_id" : "post_bid_id";
 
   // fire-and-forget — failure must not throw
   (async () => {
@@ -48,16 +51,63 @@ export async function createMessage(data: InsertMessageSchema) {
 
       const senderName = senderUsers[0]?.name ?? "Someone";
       const title = conversationTitle ?? "New message";
-      const truncated = data.content.length > 60
-        ? data.content.slice(0, 60) + "…"
-        : data.content;
+      const truncated =
+        data.content.length > 60 ? data.content.slice(0, 60) + "…" : data.content;
+      const url = contextId
+        ? `/chat?bidId=${contextId}&otherId=${data.sender_id}`
+        : "/";
 
-      await sendPushToUser(data.receiver_id, "new_message", {
-        title,
-        body: `${senderName}: ${truncated}`,
-        url: contextId ? `/chat?bidId=${contextId}&otherId=${data.sender_id}` : "/",
-        contextId,
-      });
+      if (!contextId) {
+        // No thread context — fall back to generic new_message
+        await sendPushToUser(data.receiver_id, "new_message", {
+          title,
+          body: `${senderName}: ${truncated}`,
+          url,
+          contextId: null,
+        });
+        return;
+      }
+
+      // --- Phase detection ---
+      // Phase 1: receiver hasn't replied yet AND inquiry notification is unread (or doesn't exist yet)
+      const [receiverHasReplied, existingInquiry] = await Promise.all([
+        messagesRepo.hasUserSentMessageInThread(data.receiver_id, threadField, contextId),
+        notificationsRepo.findInquiryNotification(data.receiver_id, contextId),
+      ]);
+
+      const isPhase2 = receiverHasReplied || existingInquiry?.is_read === true;
+
+      if (isPhase2) {
+        // Phase 2 — standard coalesced message notification
+        await sendPushToUser(data.receiver_id, "new_message", {
+          title,
+          body: `${senderName}: ${truncated}`,
+          url,
+          contextId,
+        });
+      } else if (existingInquiry) {
+        // Phase 1 follow-up — upsert in-app only, no push, no email
+        await notificationsRepo.upsertMessageNotification({
+          user_id: data.receiver_id,
+          type: "new_inquiry",
+          context_id: contextId,
+          title: conversationTitle
+            ? `${senderName} is interested in your ${conversationTitle}`
+            : `${senderName} sent you a message`,
+          body: `${senderName} is interested in your post • ${(existingInquiry.message_count ?? 1) + 1} messages`,
+          url,
+        });
+      } else {
+        // Phase 1 first contact — send new_inquiry with push + email
+        await sendPushToUser(data.receiver_id, "new_inquiry", {
+          title: conversationTitle
+            ? `${senderName} is interested in your ${conversationTitle}`
+            : `${senderName} sent you a message`,
+          body: `${senderName} is interested in your post`,
+          url,
+          contextId,
+        });
+      }
     } catch {
       // notification failure must never block message creation
     }

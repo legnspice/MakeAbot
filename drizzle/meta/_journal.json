@@ -43,6 +43,13 @@
       "when": 1744113600000,
       "tag": "0005_remove_dead_notification_types",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775787929219,
+      "tag": "0006_light_mulholland_black",
+      "breakpoints": true
     }
   ]
 }

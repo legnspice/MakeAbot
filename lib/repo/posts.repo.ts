@@ -57,7 +57,8 @@ export async function findPostBids(filters: FindPostBidsSchema) {
 }
 
 export async function insertPost(data: InsertPostSchema) {
-  return await db.insert(posts).values(data);
+  const [post] = await db.insert(posts).values(data).returning();
+  return post;
 }
 
 export async function insertPostBid(data: InsertPostBidSchema) {

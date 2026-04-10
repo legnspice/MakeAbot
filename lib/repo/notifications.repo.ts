@@ -1,9 +1,10 @@
-import { eq, desc, and, count, sql, ne, or, isNull } from "drizzle-orm";
+import { eq, desc, and, count, sql, ne, or, isNull, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   notifications,
   push_subscriptions,
   notification_preferences,
+  users,
 } from "../db/schema";
 import { InsertNotificationSchema } from "../validation/notifications";
 
@@ -75,6 +76,16 @@ export async function markAllNotificationsRead(userId: string) {
     );
 }
 
+export async function findInquiryNotification(userId: string, contextId: string) {
+  return await db.query.notifications.findFirst({
+    where: and(
+      eq(notifications.user_id, userId),
+      eq(notifications.type, "new_inquiry"),
+      eq(notifications.context_id, contextId),
+    ),
+  });
+}
+
 export async function markMessageNotificationReadByContext(
   userId: string,
   contextId: string,
@@ -85,7 +96,7 @@ export async function markMessageNotificationReadByContext(
     .where(
       and(
         eq(notifications.user_id, userId),
-        eq(notifications.type, "new_message"),
+        inArray(notifications.type, ["new_inquiry", "new_message"]),
         eq(notifications.context_id, contextId),
         eq(notifications.is_read, false),
       ),
@@ -176,4 +187,60 @@ export async function updatePreferences(
     .update(notification_preferences)
     .set(data)
     .where(eq(notification_preferences.user_id, userId));
+}
+
+// --- Broadcast ---
+
+export async function insertBroadcastNotifications(
+  excludeUserId: string,
+  data: { title: string; body: string; url: string },
+) {
+  const allUsers = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(ne(users.id, excludeUserId));
+  if (allUsers.length === 0) return;
+  await db.insert(notifications).values(
+    allUsers.map((u) => ({
+      user_id: u.id,
+      type: "new_request" as const,
+      title: data.title,
+      body: data.body,
+      url: data.url,
+    })),
+  );
+}
+
+// --- Daily digest ---
+
+export async function findUsersWithUnreadMessageNotifications(): Promise<
+  { user_id: string; rows: { type: string; title: string; body: string | null; url: string | null }[] }[]
+> {
+  const unread = await db
+    .select({
+      user_id: notifications.user_id,
+      type: notifications.type,
+      title: notifications.title,
+      body: notifications.body,
+      url: notifications.url,
+    })
+    .from(notifications)
+    .where(
+      and(
+        inArray(notifications.type, ["new_inquiry", "new_message"]),
+        eq(notifications.is_read, false),
+      ),
+    );
+
+  const grouped = new Map<
+    string,
+    { type: string; title: string; body: string | null; url: string | null }[]
+  >();
+  for (const row of unread) {
+    const existing = grouped.get(row.user_id) ?? [];
+    existing.push({ type: row.type, title: row.title, body: row.body, url: row.url });
+    grouped.set(row.user_id, existing);
+  }
+
+  return Array.from(grouped.entries()).map(([user_id, rows]) => ({ user_id, rows }));
 }

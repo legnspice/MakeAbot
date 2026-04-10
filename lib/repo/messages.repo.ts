@@ -1,4 +1,4 @@
-import { and, eq, lte, gte, desc, ilike, asc, or, inArray, max } from "drizzle-orm";
+import { and, eq, lte, gte, desc, ilike, asc, or, inArray, max, count } from "drizzle-orm";
 import { db } from "../db";
 import { messages } from "../db/schema";
 import { getDayRange } from "./helper";
@@ -99,6 +99,26 @@ export async function findLatestTimestampsForBids(
   }
 
   return result;
+}
+
+/** Returns true if userId has sent at least one message in the given thread. */
+export async function hasUserSentMessageInThread(
+  userId: string,
+  field: "request_bid_id" | "post_bid_id",
+  threadId: string,
+): Promise<boolean> {
+  const result = await db
+    .select({ value: count() })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.sender_id, userId),
+        field === "request_bid_id"
+          ? eq(messages.request_bid_id, threadId)
+          : eq(messages.post_bid_id, threadId),
+      ),
+    );
+  return (result[0]?.value ?? 0) > 0;
 }
 
 export async function deleteMessage(id: string, userId: string) {

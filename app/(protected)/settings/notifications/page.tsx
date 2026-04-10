@@ -14,7 +14,8 @@ const EVENT_LABELS: Record<
   keyof Omit<SelectNotificationPreferences, "user_id">,
   string
 > = {
-  new_message: "New messages",
+  new_inquiry: "New inquiries on my posts",
+  new_message: "New messages in active conversations",
   new_review: "New reviews",
   new_request: "New requests from others",
 };

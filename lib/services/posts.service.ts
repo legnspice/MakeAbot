@@ -1,5 +1,6 @@
 import * as postsRepo from "../repo/posts.repo";
 import { posts } from "../db/schema";
+import { sendPushToAllUsers } from "./push.service";
 import {
   FindPostsSchema,
   FindPostBidsSchema,
@@ -17,7 +18,15 @@ export async function getPostBids(filters: FindPostBidsSchema) {
 }
 
 export async function createPost(data: InsertPostSchema) {
-  return await postsRepo.insertPost(data);
+  const post = await postsRepo.insertPost(data);
+  if (post && data.user_id) {
+    sendPushToAllUsers(data.user_id, {
+      title: "New post available",
+      body: data.title,
+      url: `/`,
+    }).catch(() => {});
+  }
+  return post;
 }
 
 export async function createPostBid(data: InsertPostBidSchema) {
