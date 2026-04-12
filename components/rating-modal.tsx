@@ -8,7 +8,7 @@ interface RatingModalProps {
   open: boolean;
   onClose: () => void;
   ratedUserId: string;
-  postBidId?: string | null;
+  offerBidId?: string | null;
   requestBidId?: string | null;
 }
 
@@ -16,7 +16,7 @@ export function RatingModal({
   open,
   onClose,
   ratedUserId,
-  postBidId,
+  offerBidId,
   requestBidId,
 }: RatingModalProps) {
   const [rating, setRating] = useState(0);
@@ -35,7 +35,7 @@ export function RatingModal({
       creator_id: "00000000-0000-0000-0000-000000000000",
       rating,
       comment: comment.trim() || "",
-      post_bid_id: postBidId ?? null,
+      offer_bid_id: offerBidId ?? null,
       request_bid_id: requestBidId ?? null,
     });
     setSubmitting(false);

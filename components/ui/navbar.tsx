@@ -41,7 +41,7 @@ export default function Navbar() {
 
  there's nothing to lend/borrow here, ${displayName.split(" ")[0]}
 `,
-      "color: #3761B0; font-weight: bold; font-size: 12px;"
+      "color: #3761B0; font-weight: bold; font-size: 12px;",
     );
   }, [displayName]);
 

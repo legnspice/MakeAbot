@@ -4,7 +4,11 @@ import * as notificationsRepo from "../repo/notifications.repo";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
-function buildEmailHtml(title: string, body: string | undefined, fullUrl: string): string {
+function buildEmailHtml(
+  title: string,
+  body: string | undefined,
+  fullUrl: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,7 +77,8 @@ export async function sendTransactionalEmail(
 export async function sendDailyDigest(): Promise<void> {
   if (!process.env.RESEND_FROM) return;
 
-  const usersWithUnread = await notificationsRepo.findUsersWithUnreadMessageNotifications();
+  const usersWithUnread =
+    await notificationsRepo.findUsersWithUnreadMessageNotifications();
   if (usersWithUnread.length === 0) return;
 
   const adminClient = await createAdminClient();
@@ -81,7 +86,8 @@ export async function sendDailyDigest(): Promise<void> {
   await Promise.allSettled(
     usersWithUnread.map(async ({ user_id, rows }) => {
       try {
-        const { data: userData } = await adminClient.auth.admin.getUserById(user_id);
+        const { data: userData } =
+          await adminClient.auth.admin.getUserById(user_id);
         const email = userData?.user?.email;
         if (!email) return;
 
@@ -94,8 +100,10 @@ export async function sendDailyDigest(): Promise<void> {
         const listItems = rows
           .map((r) => {
             const url = r.url
-              ? (r.url.startsWith("http") ? r.url : `${process.env.NEXT_PUBLIC_SITE_URL}${r.url}`)
-              : process.env.NEXT_PUBLIC_SITE_URL ?? "/";
+              ? r.url.startsWith("http")
+                ? r.url
+                : `${process.env.NEXT_PUBLIC_SITE_URL}${r.url}`
+              : (process.env.NEXT_PUBLIC_SITE_URL ?? "/");
             return `<li style="margin-bottom:12px;">
               <a href="${url}" style="font-size:14px;font-weight:600;color:#3761B0;text-decoration:none;">${r.title}</a>
               ${r.body ? `<p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${r.body}</p>` : ""}

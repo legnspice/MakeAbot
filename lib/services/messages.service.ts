@@ -43,7 +43,7 @@ export async function createMessage(data: InsertMessageSchema) {
           } else if (data.offer_bid_id) {
             const bid = await offersRepo.findOfferBidById(data.offer_bid_id);
             if (bid) {
-              const offer = await offersRepo.findOfferById(bid.post_id);
+              const offer = await offersRepo.findOfferById(bid.offer_id);
               return offer?.title ?? null;
             }
           }
@@ -129,11 +129,11 @@ export async function createMessage(data: InsertMessageSchema) {
 }
 
 export async function getLatestTimestampsForBids(
-  postBidIds: string[],
+  offerBidIds: string[],
   requestBidIds: string[],
 ) {
   return await messagesRepo.findLatestTimestampsForBids(
-    postBidIds,
+    offerBidIds,
     requestBidIds,
   );
 }

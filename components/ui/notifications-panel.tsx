@@ -52,7 +52,11 @@ type Props = {
   chatContextId?: string;
 };
 
-export default function NotificationsPanel({ open, onClose, chatContextId }: Props) {
+export default function NotificationsPanel({
+  open,
+  onClose,
+  chatContextId,
+}: Props) {
   const router = useRouter();
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
@@ -95,7 +99,9 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
     if (!open || !loaded || !userId) return;
     const supabase = createClient();
     const channel = supabase
-      .channel(`notifications-panel-${userId}-${Math.random().toString(36).slice(2)}`)
+      .channel(
+        `notifications-panel-${userId}-${Math.random().toString(36).slice(2)}`,
+      )
       .on(
         "postgres_changes",
         {
@@ -105,11 +111,17 @@ export default function NotificationsPanel({ open, onClose, chatContextId }: Pro
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          const updated = payload.new as { id: string; is_read: boolean; message_count: number };
+          const updated = payload.new as {
+            id: string;
+            is_read: boolean;
+            message_count: number;
+          };
           if (updated.is_read) {
             setNotifications((prev) =>
               prev.map((n) =>
-                n.id === updated.id ? { ...n, is_read: true, message_count: 0 } : n,
+                n.id === updated.id
+                  ? { ...n, is_read: true, message_count: 0 }
+                  : n,
               ),
             );
           }

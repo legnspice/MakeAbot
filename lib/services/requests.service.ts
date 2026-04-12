@@ -47,7 +47,9 @@ export async function completeRequest(requestId: string, winningBidId: string) {
   );
   // Return winner/loser bids for notification dispatch by caller
   const allBids = await requestsRepo.findRequestBids({ request_id: requestId });
-  const loserBids = allBids.filter((b) => b.id !== winningBidId && b.status === "Closed");
+  const loserBids = allBids.filter(
+    (b) => b.id !== winningBidId && b.status === "Closed",
+  );
   const winnerBid = allBids.find((b) => b.id === winningBidId);
   return { winnerBid, loserBids, request: req };
 }

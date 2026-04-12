@@ -108,7 +108,10 @@ export async function updateRequestBidStatus(
 }
 
 /** Set all Pending bids on a request to Closed, except the winner */
-export async function bulkCloseRequestBids(requestId: string, exceptBidId: string) {
+export async function bulkCloseRequestBids(
+  requestId: string,
+  exceptBidId: string,
+) {
   return await db
     .update(request_bids)
     .set({ status: "Closed" })
@@ -135,10 +138,7 @@ export async function expireStaleRequestBids(): Promise<
     .from(request_bids)
     .innerJoin(requests, eq(request_bids.request_id, requests.id))
     .where(
-      and(
-        eq(request_bids.status, "Pending"),
-        lt(requests.updated_at, cutoff),
-      ),
+      and(eq(request_bids.status, "Pending"), lt(requests.updated_at, cutoff)),
     );
 
   if (stale.length === 0) return [];
@@ -147,7 +147,12 @@ export async function expireStaleRequestBids(): Promise<
   await db
     .update(request_bids)
     .set({ status: "Closed" })
-    .where(and(eq(request_bids.status, "Pending"), inArray(request_bids.id, staleIds)));
+    .where(
+      and(
+        eq(request_bids.status, "Pending"),
+        inArray(request_bids.id, staleIds),
+      ),
+    );
 
   return stale;
 }

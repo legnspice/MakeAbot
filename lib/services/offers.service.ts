@@ -21,7 +21,7 @@ export async function createOffer(data: InsertOfferSchema) {
   const offer = await offersRepo.insertOffer(data);
   if (offer && data.user_id) {
     sendPushToAllUsers(data.user_id, {
-      title: "New post available",
+      title: "New offer available",
       body: data.title,
       url: `/`,
     }).catch(() => {});

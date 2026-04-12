@@ -25,12 +25,12 @@ interface ChatMessage {
 interface ChatRoomProps {
   other_user_id: string;
   request_bid_id?: string | null;
-  post_bid_id?: string | null;
+  offer_bid_id?: string | null;
 }
 export const ChatRoom = ({
   other_user_id,
   request_bid_id,
-  post_bid_id,
+  offer_bid_id,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
@@ -45,11 +45,10 @@ export const ChatRoom = ({
 
   // Mark the coalesced message notification as read when the user opens this chat.
   useEffect(() => {
-    const contextId = request_bid_id ?? post_bid_id;
+    const contextId = request_bid_id ?? offer_bid_id;
     if (!contextId) return;
     void markChatNotificationRead(contextId);
-  }, [request_bid_id, post_bid_id]);
-
+  }, [request_bid_id, offer_bid_id]);
 
   useEffect(() => {
     // Reset state for new conversation
@@ -63,7 +62,7 @@ export const ChatRoom = ({
         user1_id: publicUser.id,
         user2_id: other_user_id,
         request_bid_id: request_bid_id || null,
-        post_bid_id: post_bid_id || null,
+        offer_bid_id: offer_bid_id || null,
       });
 
       if (result.data) {
@@ -82,7 +81,7 @@ export const ChatRoom = ({
       setChatDataLoading(false);
     }
     loadData();
-  }, [publicUser.id, other_user_id, request_bid_id, post_bid_id]);
+  }, [publicUser.id, other_user_id, request_bid_id, offer_bid_id]);
 
   const handleMessageLogic = useRef<(messages: ChatMessage[]) => Promise<void>>(
     async () => {},
@@ -92,7 +91,7 @@ export const ChatRoom = ({
     handleMessageLogic.current = async (messages: ChatMessage[]) => {
       // Mark notification read when the other user sends us a message while we're in this chat.
       // The upsert in push.service sets is_read=false on each new message; this re-marks it read.
-      const contextId = request_bid_id ?? post_bid_id;
+      const contextId = request_bid_id ?? offer_bid_id;
       const newIncoming = messages.filter(
         (msg) =>
           msg.user.userId !== publicUser.id &&
@@ -118,7 +117,7 @@ export const ChatRoom = ({
           receiver_id: other_user_id,
           content: message.content,
           request_bid_id: request_bid_id || null,
-          post_bid_id: post_bid_id || null,
+          offer_bid_id: offer_bid_id || null,
         });
       }
     };
@@ -127,7 +126,7 @@ export const ChatRoom = ({
     publicUser.id,
     other_user_id,
     request_bid_id,
-    post_bid_id,
+    offer_bid_id,
   ]);
 
   const handleMessage = useCallback((messages: ChatMessage[]) => {
@@ -150,7 +149,7 @@ export const ChatRoom = ({
     }));
   }, [dbMessages, publicUser.id, publicUser.name, otherUserName]);
 
-  const bid_id = request_bid_id ?? post_bid_id;
+  const bid_id = request_bid_id ?? offer_bid_id;
   const dealKind: "offer" | "request" = request_bid_id ? "request" : "offer";
 
   const [ratingOpen, setRatingOpen] = useState(false);
@@ -171,7 +170,7 @@ export const ChatRoom = ({
           creator_id: publicUser.id,
           ...(request_bid_id
             ? { request_bid_id }
-            : { post_bid_id: post_bid_id! }),
+            : { offer_bid_id: offer_bid_id! }),
         });
         const alreadyReviewed = (reviewsResult.data ?? []).length > 0;
         setHasReviewed(alreadyReviewed);
@@ -180,7 +179,7 @@ export const ChatRoom = ({
         }
       }
     })();
-  }, [bid_id, dealKind, publicUser.id, request_bid_id, post_bid_id]);
+  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id]);
 
   const handleDealFinished = () => {
     setRatingOpen(true);
@@ -225,7 +224,7 @@ export const ChatRoom = ({
         open={ratingOpen}
         onClose={handleRatingClose}
         ratedUserId={other_user_id}
-        postBidId={post_bid_id}
+        offerBidId={offer_bid_id}
         requestBidId={request_bid_id}
       />
     </>

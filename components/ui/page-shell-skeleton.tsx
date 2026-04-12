@@ -4,7 +4,11 @@ import { Skeleton } from "@/components/ui/skeleton";
  * Full-page skeleton shell that mirrors Navbar + BottomNav.
  * Used by layout-level auth loading states so the page never flashes bare white.
  */
-export function PageShellSkeleton({ children }: { children?: React.ReactNode }) {
+export function PageShellSkeleton({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Navbar skeleton */}
@@ -33,7 +37,10 @@ export function PageShellSkeleton({ children }: { children?: React.ReactNode }) 
       {/* BottomNav skeleton — mobile only */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#4A6FA5] z-40 min-h-[68px] flex justify-around items-center px-2 py-2">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="flex flex-1 flex-col items-center justify-center gap-1.5 px-1 py-2">
+          <div
+            key={i}
+            className="flex flex-1 flex-col items-center justify-center gap-1.5 px-1 py-2"
+          >
             <div className="w-6 h-6 rounded bg-white/30 animate-pulse" />
             <div className="w-12 h-2.5 rounded bg-white/30 animate-pulse" />
           </div>

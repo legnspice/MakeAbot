@@ -87,12 +87,15 @@ export default function ItemRequestCard({
           </p>
         )}
         <div className="mt-auto flex justify-between items-end">
-          {(onEdit || onDelete) ? (
+          {onEdit || onDelete ? (
             <div className="flex gap-1.5">
               {onEdit && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
                   className="px-2.5 py-0.5 text-xs font-medium border border-gray-300 rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   Edit
@@ -101,7 +104,10 @@ export default function ItemRequestCard({
               {onDelete && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
                   className="px-2.5 py-0.5 text-xs font-medium border border-red-300 rounded-full text-red-600 hover:bg-red-50 transition-colors"
                 >
                   Delete
@@ -116,7 +122,9 @@ export default function ItemRequestCard({
               </div>
             )
           )}
-          <span className="text-[#3761B0] font-semibold text-sm ml-auto">{price}</span>
+          <span className="text-[#3761B0] font-semibold text-sm ml-auto">
+            {price}
+          </span>
         </div>
       </div>
     </div>

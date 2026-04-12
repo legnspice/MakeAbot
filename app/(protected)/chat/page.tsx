@@ -9,7 +9,7 @@ import BottomNav from "@/components/ui/bottomnavbar";
 import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
-import { getPosts, getPostBids } from "@/lib/actions/posts";
+import { getOffers, getOfferBids } from "@/lib/actions/offers";
 import { getRequests, getRequestBids } from "@/lib/actions/requests";
 import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
 import { getLatestTimestampsForBids } from "@/lib/actions/messages";
@@ -50,48 +50,48 @@ function ChatPageInner() {
   const loadConversations = useCallback(async () => {
     const items: ConversationEntry[] = [];
 
-    // Posts I own → bids on them (others requested my offer)
-    const myPostsResult = await getPosts({ user_id: currentUser.id });
-    const myPostBidsResult = await getPostBids({ bidder_id: currentUser.id });
+    // Offers I own → bids on them (others requested my offer)
+    const myOffersResult = await getOffers({ user_id: currentUser.id });
+    const myOfferBidsResult = await getOfferBids({ bidder_id: currentUser.id });
     const myRequestsResult = await getRequests({ user_id: currentUser.id });
     const myReqBidsResult = await getRequestBids({ bidder_id: currentUser.id });
 
     // Collect all user IDs we need to look up
     const userIds = new Set<string>();
 
-    for (const post of myPostsResult.data ?? []) {
-      const bidsResult = await getPostBids({ post_id: post.id });
+    for (const offer of myOffersResult.data ?? []) {
+      const bidsResult = await getOfferBids({ offer_id: offer.id });
       for (const bid of bidsResult.data ?? []) {
         userIds.add(bid.bidder_id);
         items.push({
           bidId: bid.id,
           kind: "offer",
-          title: post.title,
+          title: offer.title,
           otherName: "",
           otherId: bid.bidder_id,
           lastMessageAt: null,
           otherAvatarUrl: null,
           otherRating: null,
-          completed: post.status === "Closed",
+          completed: offer.status === "Closed",
         });
       }
     }
 
-    for (const bid of myPostBidsResult.data ?? []) {
-      const postResult = await getPosts({ id: bid.post_id });
-      const post = postResult.data?.[0];
-      if (post && post.user_id) {
-        userIds.add(post.user_id);
+    for (const bid of myOfferBidsResult.data ?? []) {
+      const offerResult = await getOffers({ id: bid.offer_id });
+      const offer = offerResult.data?.[0];
+      if (offer && offer.user_id) {
+        userIds.add(offer.user_id);
         items.push({
           bidId: bid.id,
           kind: "offer",
-          title: post.title,
+          title: offer.title,
           otherName: "",
-          otherId: post.user_id,
+          otherId: offer.user_id,
           lastMessageAt: null,
           otherAvatarUrl: null,
           otherRating: null,
-          completed: post.status === "Closed",
+          completed: offer.status === "Closed",
         });
       }
     }
@@ -134,7 +134,7 @@ function ChatPageInner() {
     }
 
     // Prepare arrays for batch fetching
-    const postBidIds = items
+    const offerBidIds = items
       .filter((i) => i.kind === "offer")
       .map((i) => i.bidId);
     const reqBidIds = items
@@ -145,7 +145,7 @@ function ChatPageInner() {
     // 1. Batch fetch users and last-message timestamps
     const [usersResult, timestampsResult] = await Promise.all([
       idsArr.length > 0 ? getUsers({ ids: idsArr }) : { data: [] },
-      getLatestTimestampsForBids(postBidIds, reqBidIds),
+      getLatestTimestampsForBids(offerBidIds, reqBidIds),
     ]);
 
     const usersMap = new Map<string, string>();
@@ -265,7 +265,9 @@ function ChatPageInner() {
                 <div className="flex items-center gap-2">
                   <p className="font-bold text-gray-900 leading-tight line-clamp-1">
                     {titleParam}
-                    {selectedConv?.otherName ? ` | ${selectedConv.otherName}` : ""}
+                    {selectedConv?.otherName
+                      ? ` | ${selectedConv.otherName}`
+                      : ""}
                   </p>
                   {selectedConv?.otherRating != null ? (
                     <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
@@ -286,7 +288,7 @@ function ChatPageInner() {
             <div className="flex-1 min-h-0">
               <ChatRoom
                 other_user_id={otherIdParam}
-                post_bid_id={kindParam === "offer" ? bidIdParam : null}
+                offer_bid_id={kindParam === "offer" ? bidIdParam : null}
                 request_bid_id={kindParam === "request" ? bidIdParam : null}
               />
             </div>
@@ -439,7 +441,7 @@ function ChatPageInner() {
               <div className="flex-1 min-h-0">
                 <ChatRoom
                   other_user_id={selectedConv.otherId}
-                  post_bid_id={
+                  offer_bid_id={
                     selectedConv.kind === "offer" ? selectedConv.bidId : null
                   }
                   request_bid_id={

@@ -41,7 +41,8 @@
 **Files:**
 - Modify: `lib/db/enums.ts`
 - Modify: `lib/db/schema.ts`
-- Create: migration via `npx drizzle-kit generate`
+
+> **Workflow note:** This project uses `npx drizzle-kit push` (not `generate`+`migrate`) for all schema changes. Push directly to Supabase. Data migrations (UPDATE statements) must be run separately via the Supabase dashboard SQL editor.
 
 - [ ] **Step 1: Update `bid_status` enum in `lib/db/enums.ts`**
 
@@ -60,11 +61,6 @@ Replace every occurrence of `posts` → `offers` and `post_bids` → `offer_bids
 ```typescript
 // lib/db/schema.ts
 
-// Change:
-export const posts = pgTable("posts", { ... })
-export const post_bids = pgTable("post_bids", { ... })
-
-// To:
 export const offers = pgTable("offers", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
@@ -91,46 +87,50 @@ export const offer_bids = pgTable("offer_bids", {
 });
 ```
 
-Also update `messages` and `reviews` tables — they reference `post_bids.id`. Change the FK column names and references:
+Also update `messages` and `reviews` tables — rename FK column `post_bid_id` → `offer_bid_id` and update reference to `offer_bids`:
 
 ```typescript
 // In messages table:
 offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
   onDelete: "cascade",
 }),
-// (keep request_bid_id as-is)
 
 // In reviews table:
 offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
   onDelete: "cascade",
 }),
-// (keep request_bid_id as-is)
 ```
 
-> **Note:** The DB column names in `messages` and `reviews` change from `post_bid_id` to `offer_bid_id`. This requires a column rename migration. Drizzle-kit will generate it.
+Also add `updated_at` to `requests` table and add type exports:
+```typescript
+// In requests table:
+updated_at: timestamp("updated_at").notNull().defaultNow(),
 
-- [ ] **Step 3: Generate the migration**
+// At bottom of schema.ts:
+export type InsertOfferBid = typeof offer_bids.$inferInsert;
+export type SelectOfferBid = typeof offer_bids.$inferSelect;
+```
+
+- [ ] **Step 3: Push schema to Supabase**
 
 ```bash
-npx drizzle-kit generate
+npx drizzle-kit push
 ```
 
-Expected: new migration file created in `drizzle/` (or wherever migrations live — check `drizzle.config.ts`).
+- [ ] **Step 4: Run data migration manually**
 
-- [ ] **Step 4: Edit the generated migration to add the data migration step**
-
-Open the generated SQL file. Before the `ALTER TYPE bid_status DROP VALUE 'Accepted'` line (or equivalent), add:
+In the Supabase dashboard SQL editor, run:
 
 ```sql
 UPDATE request_bids SET status = 'Pending' WHERE status = 'Accepted';
 ```
 
-> Drizzle-kit may not generate a `DROP VALUE` for Postgres enums — Postgres does not support dropping enum values directly. Instead, the migration will create a new enum type and swap it. Verify the generated SQL handles this correctly. If it creates a new type, ensure the `UPDATE` runs before the type swap.
+This cleans up any pre-existing rows before the enum value is retired.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/db/enums.ts lib/db/schema.ts drizzle/
+git add lib/db/enums.ts lib/db/schema.ts
 git commit -m "feat: rename posts→offers, add offer_bids.status, rework bid_status enum"
 ```
 
@@ -1738,13 +1738,9 @@ npm run build
 
 Expected: clean build, no TypeScript errors.
 
-- [ ] **Step 4: Apply the DB migration**
+- [ ] **Step 4: Verify DB push already applied**
 
-```bash
-npx drizzle-kit migrate
-```
-
-Verify it runs cleanly against the local/dev DB.
+Schema was pushed in Task 1 via `npx drizzle-kit push`. Confirm the Supabase dashboard reflects the renamed tables (`offers`, `offer_bids`) and new columns (`updated_at`, `offer_bids.status`).
 
 - [ ] **Step 5: Final commit if any cleanup needed**
 

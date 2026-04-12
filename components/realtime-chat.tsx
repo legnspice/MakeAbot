@@ -110,7 +110,9 @@ export const RealtimeChat = ({
                   message={message}
                   isOwnMessage={message.user.name === username}
                   showHeader={showHeader}
-                  avatarUrl={message.user.name !== username ? otherAvatarUrl : undefined}
+                  avatarUrl={
+                    message.user.name !== username ? otherAvatarUrl : undefined
+                  }
                 />
               </div>
             );
@@ -119,14 +121,13 @@ export const RealtimeChat = ({
       </div>
 
       <div className="flex w-full items-center gap-2 border-t border-border p-4 z-10 bg-gray-100">
-        <form
-          onSubmit={handleSendMessage}
-          className="flex flex-1 gap-2"
-        >
+        <form onSubmit={handleSendMessage} className="flex flex-1 gap-2">
           <Input
             className={cn(
               "rounded-full bg-background text-sm transition-all duration-300",
-              isConnected && newMessage.trim() ? "w-[calc(100%-36px)]" : "w-full",
+              isConnected && newMessage.trim()
+                ? "w-[calc(100%-36px)]"
+                : "w-full",
             )}
             type="text"
             value={newMessage}

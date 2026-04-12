@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   urgencyEnum,
-  postStatusEnum,
+  offerStatusEnum,
   requestStatusEnum,
   bidStatusEnum,
   typeEnum,
@@ -100,7 +100,7 @@ export const offers = pgTable("offers", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
   type: typeEnum("type").notNull().default("Unknown"),
-  status: postStatusEnum("status").notNull().default("Active"),
+  status: offerStatusEnum("status").notNull().default("Active"),
 });
 
 export const request_bids = pgTable("request_bids", {
@@ -119,7 +119,7 @@ export const request_bids = pgTable("request_bids", {
 
 export const offer_bids = pgTable("offer_bids", {
   id: uuid("id").primaryKey().defaultRandom(),
-  post_id: uuid("post_id")
+  offer_id: uuid("offer_id")
     .notNull()
     .references(() => offers.id, { onDelete: "cascade" }),
   bidder_id: uuid("bidder_id")

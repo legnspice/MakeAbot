@@ -37,10 +37,10 @@ export async function findOffers(filters: FindOffersSchema) {
 }
 
 export async function findOfferBids(filters: FindOfferBidsSchema) {
-  const { id, post_id, bidder_id, created_at } = filters;
+  const { id, offer_id, bidder_id, created_at } = filters;
   const conditions = [];
   if (id) conditions.push(eq(offer_bids.id, id));
-  if (post_id) conditions.push(eq(offer_bids.post_id, post_id));
+  if (offer_id) conditions.push(eq(offer_bids.offer_id, offer_id));
   if (bidder_id) conditions.push(eq(offer_bids.bidder_id, bidder_id));
   if (created_at) {
     const { startOfDay, endOfDay } = getDayRange(created_at);
@@ -100,7 +100,7 @@ export async function closeOfferBids(offerId: string) {
     .update(offer_bids)
     .set({ status: "Closed" })
     .where(
-      and(eq(offer_bids.post_id, offerId), eq(offer_bids.status, "Pending")),
+      and(eq(offer_bids.offer_id, offerId), eq(offer_bids.status, "Pending")),
     );
 }
 
@@ -116,7 +116,7 @@ export async function expireStaleOfferBids(): Promise<
       offerTitle: offers.title,
     })
     .from(offer_bids)
-    .innerJoin(offers, eq(offer_bids.post_id, offers.id))
+    .innerJoin(offers, eq(offer_bids.offer_id, offers.id))
     .where(
       and(eq(offer_bids.status, "Pending"), lt(offers.updated_at, cutoff)),
     );

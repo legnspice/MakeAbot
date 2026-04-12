@@ -10,8 +10,12 @@ import FilterBar, {
 } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
-import { getPosts, getPostBids, removePost } from "@/lib/actions/posts";
-import { getRequests, getRequestBids, removeRequest } from "@/lib/actions/requests";
+import { getOffers, getOfferBids, removeOffer } from "@/lib/actions/offers";
+import {
+  getRequests,
+  getRequestBids,
+  removeRequest,
+} from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { ChatDotsFill, XLg } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
@@ -63,18 +67,18 @@ type TrackerCard =
   | { type: "request"; data: TrackerRequest };
 
 async function fetchTrackerData(userId: string) {
-  const [postsResult, requestsResult, myPostBidsResult, myReqBidsResult] =
+  const [offersResult, requestsResult, myOfferBidsResult, myReqBidsResult] =
     await Promise.all([
-      getPosts({ user_id: userId }),
+      getOffers({ user_id: userId }),
       getRequests({ user_id: userId }),
-      getPostBids({ bidder_id: userId }),
+      getOfferBids({ bidder_id: userId }),
       getRequestBids({ bidder_id: userId }),
     ]);
 
-  // Bids on my posts
-  const postBidFetches = (postsResult.data ?? []).map((post) =>
-    getPostBids({ post_id: post.id }).then((r) => ({
-      post,
+  // Bids on my offers
+  const offerBidFetches = (offersResult.data ?? []).map((offer) =>
+    getOfferBids({ offer_id: offer.id }).then((r) => ({
+      offer,
       bids: r.data ?? [],
     })),
   );
@@ -86,12 +90,12 @@ async function fetchTrackerData(userId: string) {
     })),
   );
 
-  // Posts I bid on (fetch each post)
-  const myPostBids = myPostBidsResult.data ?? [];
-  const bidPostFetches = myPostBids.map((bid) =>
-    getPosts({ id: bid.post_id }).then((r) => ({
+  // Offers I bid on (fetch each offer)
+  const myOfferBids = myOfferBidsResult.data ?? [];
+  const bidOfferFetches = myOfferBids.map((bid) =>
+    getOffers({ id: bid.offer_id }).then((r) => ({
       bid,
-      post: r.data?.[0] ?? null,
+      offer: r.data?.[0] ?? null,
     })),
   );
 
@@ -104,22 +108,22 @@ async function fetchTrackerData(userId: string) {
     })),
   );
 
-  const [postBidGroups, reqBidGroups, bidPostGroups, bidReqGroups] =
+  const [offerBidGroups, reqBidGroups, bidOfferGroups, bidReqGroups] =
     await Promise.all([
-      Promise.all(postBidFetches),
+      Promise.all(offerBidFetches),
       Promise.all(reqBidFetches),
-      Promise.all(bidPostFetches),
+      Promise.all(bidOfferFetches),
       Promise.all(bidReqFetches),
     ]);
 
   // Collect all user IDs we need names for
   const userIds = new Set<string>();
-  for (const { bids } of postBidGroups)
+  for (const { bids } of offerBidGroups)
     for (const bid of bids) userIds.add(bid.bidder_id);
   for (const { bids } of reqBidGroups)
     for (const bid of bids) userIds.add(bid.bidder_id);
-  for (const { post } of bidPostGroups)
-    if (post?.user_id) userIds.add(post.user_id);
+  for (const { offer } of bidOfferGroups)
+    if (offer?.user_id) userIds.add(offer.user_id);
   for (const { req } of bidReqGroups)
     if (req?.user_id) userIds.add(req.user_id);
 
@@ -130,18 +134,18 @@ async function fetchTrackerData(userId: string) {
       usersMap.set(u.id, u.name ?? "User");
   }
 
-  // My own post IDs (to avoid duplicates)
-  const myPostIds = new Set((postsResult.data ?? []).map((p) => p.id));
+  // My own offer IDs (to avoid duplicates)
+  const myOfferIds = new Set((offersResult.data ?? []).map((p) => p.id));
   const myRequestIds = new Set((requestsResult.data ?? []).map((r) => r.id));
 
-  // Cards for my offers (posts I own)
-  const offerList: TrackerOffer[] = postBidGroups.map(({ post, bids }) => ({
-    id: post.id,
-    itemName: post.title,
-    description: post.description ?? null,
-    imageUrl: post.imgUrl ?? null,
-    price: formatPrice(post.price),
-    type: post.type ?? null,
+  // Cards for my offers (offers I own)
+  const offerList: TrackerOffer[] = offerBidGroups.map(({ offer, bids }) => ({
+    id: offer.id,
+    itemName: offer.title,
+    description: offer.description ?? null,
+    imageUrl: offer.imgUrl ?? null,
+    price: formatPrice(offer.price),
+    type: offer.type ?? null,
     isOwned: true,
     requesterCount: bids.length,
     requesters: bids.map((bid) => ({
@@ -151,22 +155,22 @@ async function fetchTrackerData(userId: string) {
     })),
   }));
 
-  // Cards for posts I bid on (not my own)
-  for (const { bid, post } of bidPostGroups) {
-    if (!post || !post.user_id || myPostIds.has(post.id)) continue;
+  // Cards for offers I bid on (not my own)
+  for (const { bid, offer } of bidOfferGroups) {
+    if (!offer || !offer.user_id || myOfferIds.has(offer.id)) continue;
     offerList.push({
       id: `bid-${bid.id}`,
-      itemName: post.title,
-      description: post.description ?? null,
-      imageUrl: post.imgUrl ?? null,
-      price: formatPrice(post.price),
-      type: post.type ?? null,
+      itemName: offer.title,
+      description: offer.description ?? null,
+      imageUrl: offer.imgUrl ?? null,
+      price: formatPrice(offer.price),
+      type: offer.type ?? null,
       isOwned: false,
       requesterCount: 1,
       requesters: [
         {
-          id: post.user_id,
-          name: usersMap.get(post.user_id) ?? "User",
+          id: offer.user_id,
+          name: usersMap.get(offer.user_id) ?? "User",
           bidId: bid.id,
         },
       ],
@@ -327,7 +331,7 @@ export default function TrackerPage() {
 
   const handleDeleteOffer = async (offerId: string) => {
     if (!window.confirm("Are you sure you want to delete this item?")) return;
-    const { error } = await removePost(offerId);
+    const { error } = await removeOffer(offerId);
     if (error) {
       alert("Failed to delete item. Please try again.");
       return;
@@ -382,20 +386,44 @@ export default function TrackerPage() {
                     <ItemRequestCard
                       key={`offer-${card.data.id}`}
                       variant="lent"
-                      requestedBy={card.data.isOwned ? "Offered by: You" : `Offered by: ${card.data.requesters[0]?.name ?? "User"}`}
+                      requestedBy={
+                        card.data.isOwned
+                          ? "Offered by: You"
+                          : `Offered by: ${card.data.requesters[0]?.name ?? "User"}`
+                      }
                       price={card.data.price}
                       typeBadge="Offer"
                       detail={{
                         title: card.data.itemName,
-                        lentBy: card.data.isOwned ? "You" : (card.data.requesters[0]?.name ?? "User"),
+                        lentBy: card.data.isOwned
+                          ? "You"
+                          : (card.data.requesters[0]?.name ?? "User"),
                         quantity: 1,
                         price: card.data.price,
                         description: card.data.description ?? undefined,
                         imageUrl: card.data.imageUrl ?? undefined,
                       }}
-                      onClick={card.data.requesterCount > 0 ? () => setModalData({ title: card.data.itemName, people: (card.data as TrackerOffer).requesters, type: "offer" }) : undefined}
-                      onEdit={card.data.isOwned ? () => router.push(`/create-offer?edit=${card.data.id}`) : undefined}
-                      onDelete={card.data.isOwned ? () => handleDeleteOffer(card.data.id) : undefined}
+                      onClick={
+                        card.data.requesterCount > 0
+                          ? () =>
+                              setModalData({
+                                title: card.data.itemName,
+                                people: (card.data as TrackerOffer).requesters,
+                                type: "offer",
+                              })
+                          : undefined
+                      }
+                      onEdit={
+                        card.data.isOwned
+                          ? () =>
+                              router.push(`/create-offer?edit=${card.data.id}`)
+                          : undefined
+                      }
+                      onDelete={
+                        card.data.isOwned
+                          ? () => handleDeleteOffer(card.data.id)
+                          : undefined
+                      }
                     />
                   );
                 } else {
@@ -403,20 +431,46 @@ export default function TrackerPage() {
                     <ItemRequestCard
                       key={`request-${card.data.id}`}
                       variant="requested"
-                      requestedBy={card.data.isOwned ? "Requested by: You" : `Requested by: ${card.data.bidders[0]?.name ?? "User"}`}
+                      requestedBy={
+                        card.data.isOwned
+                          ? "Requested by: You"
+                          : `Requested by: ${card.data.bidders[0]?.name ?? "User"}`
+                      }
                       price={card.data.price}
                       typeBadge="Request"
                       detail={{
                         title: card.data.itemName,
-                        requestedBy: card.data.isOwned ? "You" : (card.data.bidders[0]?.name ?? "User"),
+                        requestedBy: card.data.isOwned
+                          ? "You"
+                          : (card.data.bidders[0]?.name ?? "User"),
                         quantity: 1,
                         price: card.data.price,
                         description: card.data.description ?? undefined,
                         imageUrl: card.data.imageUrl ?? undefined,
                       }}
-                      onClick={card.data.bidders.length > 0 ? () => setModalData({ title: card.data.itemName, people: (card.data as TrackerRequest).bidders, type: "request" }) : undefined}
-                      onEdit={card.data.isOwned ? () => router.push(`/create-request?edit=${card.data.id}`) : undefined}
-                      onDelete={card.data.isOwned ? () => handleDeleteRequest(card.data.id) : undefined}
+                      onClick={
+                        card.data.bidders.length > 0
+                          ? () =>
+                              setModalData({
+                                title: card.data.itemName,
+                                people: (card.data as TrackerRequest).bidders,
+                                type: "request",
+                              })
+                          : undefined
+                      }
+                      onEdit={
+                        card.data.isOwned
+                          ? () =>
+                              router.push(
+                                `/create-request?edit=${card.data.id}`,
+                              )
+                          : undefined
+                      }
+                      onDelete={
+                        card.data.isOwned
+                          ? () => handleDeleteRequest(card.data.id)
+                          : undefined
+                      }
                     />
                   );
                 }
@@ -427,9 +481,19 @@ export default function TrackerPage() {
             <ChatListModal
               title={modalData.title}
               people={modalData.people}
-              accentClass={modalData.type === "offer" ? "bg-gray-50 hover:bg-gray-100" : "bg-blue-50 hover:bg-blue-100"}
-              avatarClass={modalData.type === "offer" ? "bg-gray-300 text-gray-600" : "bg-blue-200 text-blue-700"}
-              iconClass={modalData.type === "offer" ? "text-gray-400" : "text-blue-400"}
+              accentClass={
+                modalData.type === "offer"
+                  ? "bg-gray-50 hover:bg-gray-100"
+                  : "bg-blue-50 hover:bg-blue-100"
+              }
+              avatarClass={
+                modalData.type === "offer"
+                  ? "bg-gray-300 text-gray-600"
+                  : "bg-blue-200 text-blue-700"
+              }
+              iconClass={
+                modalData.type === "offer" ? "text-gray-400" : "text-blue-400"
+              }
               onSelect={(bidId, otherId) =>
                 goToChat(bidId, modalData.type, modalData.title, otherId)
               }

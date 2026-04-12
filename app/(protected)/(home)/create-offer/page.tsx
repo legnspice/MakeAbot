@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ImageFill, XLg } from "react-bootstrap-icons";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { createPost, getPosts, editPost } from "@/lib/actions/posts";
+import { createOffer, getOffers, editOffer } from "@/lib/actions/offers";
 import { createClient } from "@/lib/supabase/client";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
@@ -42,7 +42,7 @@ export default function CreateOffer() {
   useEffect(() => {
     if (!editId) return;
     setIsLoadingEdit(true);
-    getPosts({ id: editId }).then((result) => {
+    getOffers({ id: editId }).then((result) => {
       const post = result.data?.[0];
       if (post) {
         setForm({
@@ -50,7 +50,8 @@ export default function CreateOffer() {
           description: post.description ?? "",
           price: post.price != null ? String(post.price) : "",
         });
-        if (post.type === "Item" || post.type === "Service") setItemKind(post.type);
+        if (post.type === "Item" || post.type === "Service")
+          setItemKind(post.type);
         if (post.imgUrl) setUploadedImageUrl(post.imgUrl);
       } else {
         router.push("/tracker");
@@ -123,7 +124,7 @@ export default function CreateOffer() {
     setIsPosting(true);
     try {
       if (editId) {
-        await editPost(editId, {
+        await editOffer(editId, {
           title,
           price: priceValue,
           description: form.description.trim() || null,
@@ -131,7 +132,7 @@ export default function CreateOffer() {
           type: itemKind,
         });
       } else {
-        await createPost({
+        await createOffer({
           user_id: currentUser.id,
           title,
           price: priceValue,
@@ -305,10 +306,21 @@ export default function CreateOffer() {
               <Button
                 type="button"
                 onClick={handlePost}
-                disabled={isPosting || isUploading || isLoadingEdit || !form.title.trim()}
+                disabled={
+                  isPosting ||
+                  isUploading ||
+                  isLoadingEdit ||
+                  !form.title.trim()
+                }
                 className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black font-bold uppercase disabled:opacity-60"
               >
-                {isPosting ? (editId ? "Saving..." : "Posting...") : (editId ? "SAVE" : "POST!")}
+                {isPosting
+                  ? editId
+                    ? "Saving..."
+                    : "Posting..."
+                  : editId
+                    ? "SAVE"
+                    : "POST!"}
               </Button>
             </div>
           </div>

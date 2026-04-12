@@ -33,11 +33,11 @@ export const requestStatusEnum = pgEnum(
 export const RequestStatusEnum = z.enum(REQUEST_STATUS_VALUES);
 export type RequestStatus = z.infer<typeof RequestStatusEnum>;
 
-// Post Status
-export const POST_STATUS_VALUES = ["Active", "Closed", "Busy"] as const;
-export const postStatusEnum = pgEnum("post_status", POST_STATUS_VALUES);
-export const PostStatusEnum = z.enum(POST_STATUS_VALUES);
-export type PostStatus = z.infer<typeof PostStatusEnum>;
+// Offer Status
+export const OFFER_STATUS_VALUES = ["Active", "Closed", "Busy"] as const;
+export const offerStatusEnum = pgEnum("offer_status", OFFER_STATUS_VALUES);
+export const OfferStatusEnum = z.enum(OFFER_STATUS_VALUES);
+export type OfferStatus = z.infer<typeof OfferStatusEnum>;
 
 // Bid Status
 export const BID_STATUS_VALUES = ["Pending", "Completed", "Closed"] as const;

@@ -10,7 +10,10 @@ import { sendPushToUser } from "@/lib/services/push.service";
 type DealKind = "offer" | "request";
 
 export async function getDealStatus(bidId: string, kind: DealKind) {
-  return await handleAction<{ parentStatus: string; ownerUserId: string | null }>(async () => {
+  return await handleAction<{
+    parentStatus: string;
+    ownerUserId: string | null;
+  }>(async () => {
     await requireAuth();
 
     if (kind === "request") {
@@ -26,7 +29,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
     const bids = await offersService.getOfferBids({ id: bidId });
     const bid = bids[0];
     if (!bid) throw new Error("Offer bid not found");
-    const offersList = await offersService.getOffers({ id: bid.post_id });
+    const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
     if (!offer) throw new Error("Offer not found");
     return { parentStatus: offer.status, ownerUserId: offer.user_id };
@@ -41,7 +44,9 @@ export async function completeRequest(requestId: string, winningBidId: string) {
       await requestsService.completeRequest(requestId, winningBidId);
 
     // Fetch requester display name
-    const requesterUsers = await usersService.getUsers({ id: request.user_id ?? undefined });
+    const requesterUsers = await usersService.getUsers({
+      id: request.user_id ?? undefined,
+    });
     const requesterName = requesterUsers[0]?.name ?? "Someone";
 
     // Notify winner
@@ -62,8 +67,8 @@ export async function completeRequest(requestId: string, winningBidId: string) {
           body: `${request.title} has been fulfilled by someone else.`,
           url: `/`,
           contextId: null,
-        })
-      )
+        }),
+      ),
     );
 
     return { success: true };
@@ -78,12 +83,14 @@ export async function completeOfferBid(bidId: string) {
     const bid = bids[0];
     if (!bid) throw new Error("Offer bid not found");
 
-    const offersList = await offersService.getOffers({ id: bid.post_id });
+    const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
     if (!offer) throw new Error("Offer not found");
 
     // Fetch offerer display name
-    const offererUsers = await usersService.getUsers({ id: offer.user_id ?? undefined });
+    const offererUsers = await usersService.getUsers({
+      id: offer.user_id ?? undefined,
+    });
     const offererName = offererUsers[0]?.name ?? "Someone";
 
     await offersService.completeOfferBid(bidId);
