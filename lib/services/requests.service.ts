@@ -1,5 +1,6 @@
 import * as requestsRepo from "../repo/requests.repo";
 import { sendPushToAllUsers } from "./push.service";
+import { AppError } from "@/lib/error/app-error";
 import {
   FindRequestsSchema,
   FindRequestBidsSchema,
@@ -34,17 +35,16 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
 }
 
 export async function completeRequest(requestId: string, winningBidId: string) {
+  const req = await requestsRepo.findRequestById(requestId);
+  if (!req) throw new AppError("Request not found", 404);
+
   await requestsRepo.updateRequestBidStatus(winningBidId, "Completed");
   await requestsRepo.bulkCloseRequestBids(requestId, winningBidId);
-  const reqs = await requestsRepo.findRequests({ id: requestId });
-  const req = reqs[0];
-  if (req?.user_id) {
-    await requestsRepo.updateRequest(
-      requestId,
-      { status: "Completed", completed_at: new Date() },
-      req.user_id,
-    );
-  }
+  await requestsRepo.updateRequest(
+    requestId,
+    { status: "Completed", completed_at: new Date() },
+    req.user_id!,
+  );
   // Return winner/loser bids for notification dispatch by caller
   const allBids = await requestsRepo.findRequestBids({ request_id: requestId });
   const loserBids = allBids.filter((b) => b.id !== winningBidId && b.status === "Closed");
