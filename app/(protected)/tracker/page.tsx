@@ -10,16 +10,22 @@ import FilterBar, {
 } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
-import { getOffers, getOfferBids, removeOffer } from "@/lib/actions/offers";
+import {
+  getOffers,
+  getOfferBids,
+  removeOfferBid,
+} from "@/lib/actions/offers";
 import {
   getRequests,
   getRequestBids,
   removeRequest,
+  removeRequestBid,
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
-import { ChatDotsFill, XLg } from "react-bootstrap-icons";
+import { ChatDotsFill, XLg, ChevronDown, ChevronRight } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
+import { closeOffer, completeRequest, completeOfferBid } from "@/lib/actions/deals";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -43,9 +49,11 @@ type TrackerOffer = {
   imageUrl: string | null;
   price: string;
   type: string | null;
+  status: string;
   isOwned: boolean;
   requesterCount: number;
-  requesters: { id: string; name: string; bidId: string }[];
+  rawBidId?: string;
+  requesters: { id: string; name: string; bidId: string; bidStatus: string }[];
 };
 
 type TrackerRequest = {
@@ -58,6 +66,7 @@ type TrackerRequest = {
   type: string | null;
   urgency: string | null;
   isOwned: boolean;
+  rawBidId?: string;
   bidders: { id: string; name: string; bidId: string }[];
   notificationCount?: number;
 };
@@ -146,12 +155,14 @@ async function fetchTrackerData(userId: string) {
     imageUrl: offer.imgUrl ?? null,
     price: formatPrice(offer.price),
     type: offer.type ?? null,
+    status: offer.status,
     isOwned: true,
     requesterCount: bids.length,
     requesters: bids.map((bid) => ({
       id: bid.bidder_id,
       name: usersMap.get(bid.bidder_id) ?? "User",
       bidId: bid.id,
+      bidStatus: bid.status,
     })),
   }));
 
@@ -165,13 +176,16 @@ async function fetchTrackerData(userId: string) {
       imageUrl: offer.imgUrl ?? null,
       price: formatPrice(offer.price),
       type: offer.type ?? null,
+      status: offer.status,
       isOwned: false,
       requesterCount: 1,
+      rawBidId: bid.id,
       requesters: [
         {
           id: offer.user_id,
           name: usersMap.get(offer.user_id) ?? "User",
           bidId: bid.id,
+          bidStatus: bid.status,
         },
       ],
     });
@@ -209,6 +223,7 @@ async function fetchTrackerData(userId: string) {
       type: req.type ?? null,
       urgency: req.urgency ?? null,
       isOwned: false,
+      rawBidId: bid.id,
       bidders: [
         {
           id: req.user_id,
@@ -239,7 +254,9 @@ export default function TrackerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [modalData, setModalData] = useState<{
+    id: string;
     title: string;
     people: { id: string; name: string; bidId: string }[];
     type: "offer" | "request";
@@ -279,21 +296,58 @@ export default function TrackerPage() {
             r.itemName.toLowerCase().includes(activeFilter.toLowerCase()),
           );
 
-  const cards: TrackerCard[] = [
-    ...filterOffers(offers).map((data) => ({ type: "offer" as const, data })),
-    ...filterRequests(requests).map((data) => ({
+  // Split active vs history
+  const activeOffers = offers.filter((o) =>
+    o.isOwned
+      ? o.status === "Active"
+      : o.requesters.some((r) => r.bidStatus === "Pending"),
+  );
+  const historyOffers = offers.filter((o) =>
+    o.isOwned
+      ? o.status === "Closed"
+      : o.requesters.every((r) => r.bidStatus !== "Pending"),
+  );
+  const activeRequests = requests.filter((r) => r.status !== "Completed");
+  const historyRequests = requests.filter((r) => r.status === "Completed");
+
+  const activeCards: TrackerCard[] = [
+    ...filterOffers(activeOffers).map((data) => ({
+      type: "offer" as const,
+      data,
+    })),
+    ...filterRequests(activeRequests).map((data) => ({
+      type: "request" as const,
+      data,
+    })),
+  ];
+
+  const historyCards: TrackerCard[] = [
+    ...filterOffers(historyOffers).map((data) => ({
+      type: "offer" as const,
+      data,
+    })),
+    ...filterRequests(historyRequests).map((data) => ({
       type: "request" as const,
       data,
     })),
   ];
 
   const searchLower = searchQuery.trim().toLowerCase();
-  const filteredCards = searchLower
-    ? cards.filter((c) => c.data.itemName.toLowerCase().includes(searchLower))
-    : cards;
 
-  const sortedCards = (() => {
-    const base = filteredCards.map((card, i) => ({ card, i }));
+  const filteredActiveCards = searchLower
+    ? activeCards.filter((c) =>
+        c.data.itemName.toLowerCase().includes(searchLower),
+      )
+    : activeCards;
+
+  const filteredHistoryCards = searchLower
+    ? historyCards.filter((c) =>
+        c.data.itemName.toLowerCase().includes(searchLower),
+      )
+    : historyCards;
+
+  const sortCards = (cards: TrackerCard[]) => {
+    const base = cards.map((card, i) => ({ card, i }));
     base.sort((a, b) => {
       if (priceSort) {
         const pA = a.card.data.price;
@@ -302,10 +356,13 @@ export default function TrackerPage() {
         if (diff !== 0) return priceSort === "price-lowest" ? diff : -diff;
       }
       if (dateSort === "date-oldest") return b.i - a.i;
-      return a.i - b.i; // date-newest / default
+      return a.i - b.i;
     });
     return base.map(({ card }) => card);
-  })();
+  };
+
+  const sortedActiveCards = sortCards(filteredActiveCards);
+  const sortedHistoryCards = sortCards(filteredHistoryCards);
 
   const handleAddFilter = () => {
     const name = newFilterName.trim();
@@ -329,14 +386,37 @@ export default function TrackerPage() {
     );
   };
 
-  const handleDeleteOffer = async (offerId: string) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
-    const { error } = await removeOffer(offerId);
+  const handleCloseOffer = async (offerId: string) => {
+    if (!window.confirm("Close this offer? All open inquiries will be ended."))
+      return;
+    const { error } = await closeOffer(offerId);
     if (error) {
-      alert("Failed to delete item. Please try again.");
+      alert("Failed to close offer. Please try again.");
       return;
     }
-    setOffers((prev) => prev.filter((o) => o.id !== offerId));
+    setOffers((prev) =>
+      prev.map((o) => (o.id === offerId ? { ...o, status: "Closed" } : o)),
+    );
+  };
+
+  const handleWithdrawOfferBid = async (bidId: string) => {
+    if (!window.confirm("Withdraw your inquiry?")) return;
+    const { error } = await removeOfferBid(bidId);
+    if (error) {
+      alert("Failed to withdraw. Please try again.");
+      return;
+    }
+    setOffers((prev) => prev.filter((o) => o.rawBidId !== bidId));
+  };
+
+  const handleWithdrawRequestBid = async (bidId: string) => {
+    if (!window.confirm("Withdraw your bid?")) return;
+    const { error } = await removeRequestBid(bidId);
+    if (error) {
+      alert("Failed to withdraw. Please try again.");
+      return;
+    }
+    setRequests((prev) => prev.filter((r) => r.rawBidId !== bidId));
   };
 
   const handleDeleteRequest = async (requestId: string) => {
@@ -348,6 +428,98 @@ export default function TrackerPage() {
     }
     setRequests((prev) => prev.filter((r) => r.id !== requestId));
   };
+
+  const renderOfferCard = (card: TrackerOffer, isHistory: boolean) => (
+    <ItemRequestCard
+      key={`offer-${card.id}`}
+      variant="lent"
+      requestedBy={
+        card.isOwned
+          ? "Offered by: You"
+          : `Offered by: ${card.requesters[0]?.name ?? "User"}`
+      }
+      price={card.price}
+      typeBadge="Offer"
+      detail={{
+        title: card.itemName,
+        lentBy: card.isOwned ? "You" : (card.requesters[0]?.name ?? "User"),
+        quantity: 1,
+        price: card.price,
+        description: card.description ?? undefined,
+        imageUrl: card.imageUrl ?? undefined,
+      }}
+      onClick={
+        card.requesterCount > 0
+          ? () =>
+              setModalData({
+                id: card.id,
+                title: card.itemName,
+                people: card.requesters,
+                type: "offer",
+              })
+          : undefined
+      }
+      onEdit={
+        !isHistory && card.isOwned
+          ? () => router.push(`/create-offer?edit=${card.id}`)
+          : undefined
+      }
+      onDelete={
+        isHistory
+          ? undefined
+          : card.isOwned
+            ? () => handleCloseOffer(card.id)
+            : () => handleWithdrawOfferBid(card.rawBidId!)
+      }
+      deleteLabel={card.isOwned ? "Close" : "Withdraw"}
+    />
+  );
+
+  const renderRequestCard = (card: TrackerRequest, isHistory: boolean) => (
+    <ItemRequestCard
+      key={`request-${card.id}`}
+      variant="requested"
+      requestedBy={
+        card.isOwned
+          ? "Requested by: You"
+          : `Requested by: ${card.bidders[0]?.name ?? "User"}`
+      }
+      price={card.price}
+      typeBadge="Request"
+      detail={{
+        title: card.itemName,
+        requestedBy: card.isOwned ? "You" : (card.bidders[0]?.name ?? "User"),
+        quantity: 1,
+        price: card.price,
+        description: card.description ?? undefined,
+        imageUrl: card.imageUrl ?? undefined,
+      }}
+      onClick={
+        card.bidders.length > 0
+          ? () =>
+              setModalData({
+                id: card.id,
+                title: card.itemName,
+                people: card.bidders,
+                type: "request",
+              })
+          : undefined
+      }
+      onEdit={
+        !isHistory && card.isOwned
+          ? () => router.push(`/create-request?edit=${card.id}`)
+          : undefined
+      }
+      onDelete={
+        isHistory
+          ? undefined
+          : card.isOwned
+            ? () => handleDeleteRequest(card.id)
+            : () => handleWithdrawRequestBid(card.rawBidId!)
+      }
+      deleteLabel={card.isOwned ? "Delete" : "Withdraw"}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -379,104 +551,43 @@ export default function TrackerPage() {
       ) : (
         <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
           <section aria-label="Tracker">
+            {/* Active cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-              {sortedCards.map((card) => {
-                if (card.type === "offer") {
-                  return (
-                    <ItemRequestCard
-                      key={`offer-${card.data.id}`}
-                      variant="lent"
-                      requestedBy={
-                        card.data.isOwned
-                          ? "Offered by: You"
-                          : `Offered by: ${card.data.requesters[0]?.name ?? "User"}`
-                      }
-                      price={card.data.price}
-                      typeBadge="Offer"
-                      detail={{
-                        title: card.data.itemName,
-                        lentBy: card.data.isOwned
-                          ? "You"
-                          : (card.data.requesters[0]?.name ?? "User"),
-                        quantity: 1,
-                        price: card.data.price,
-                        description: card.data.description ?? undefined,
-                        imageUrl: card.data.imageUrl ?? undefined,
-                      }}
-                      onClick={
-                        card.data.requesterCount > 0
-                          ? () =>
-                              setModalData({
-                                title: card.data.itemName,
-                                people: (card.data as TrackerOffer).requesters,
-                                type: "offer",
-                              })
-                          : undefined
-                      }
-                      onEdit={
-                        card.data.isOwned
-                          ? () =>
-                              router.push(`/create-offer?edit=${card.data.id}`)
-                          : undefined
-                      }
-                      onDelete={
-                        card.data.isOwned
-                          ? () => handleDeleteOffer(card.data.id)
-                          : undefined
-                      }
-                    />
-                  );
-                } else {
-                  return (
-                    <ItemRequestCard
-                      key={`request-${card.data.id}`}
-                      variant="requested"
-                      requestedBy={
-                        card.data.isOwned
-                          ? "Requested by: You"
-                          : `Requested by: ${card.data.bidders[0]?.name ?? "User"}`
-                      }
-                      price={card.data.price}
-                      typeBadge="Request"
-                      detail={{
-                        title: card.data.itemName,
-                        requestedBy: card.data.isOwned
-                          ? "You"
-                          : (card.data.bidders[0]?.name ?? "User"),
-                        quantity: 1,
-                        price: card.data.price,
-                        description: card.data.description ?? undefined,
-                        imageUrl: card.data.imageUrl ?? undefined,
-                      }}
-                      onClick={
-                        card.data.bidders.length > 0
-                          ? () =>
-                              setModalData({
-                                title: card.data.itemName,
-                                people: (card.data as TrackerRequest).bidders,
-                                type: "request",
-                              })
-                          : undefined
-                      }
-                      onEdit={
-                        card.data.isOwned
-                          ? () =>
-                              router.push(
-                                `/create-request?edit=${card.data.id}`,
-                              )
-                          : undefined
-                      }
-                      onDelete={
-                        card.data.isOwned
-                          ? () => handleDeleteRequest(card.data.id)
-                          : undefined
-                      }
-                    />
-                  );
-                }
-              })}
+              {sortedActiveCards.map((card) =>
+                card.type === "offer"
+                  ? renderOfferCard(card.data, false)
+                  : renderRequestCard(card.data, false),
+              )}
             </div>
+
+            {/* History section */}
+            {sortedHistoryCards.length > 0 && (
+              <div className="max-w-7xl mx-auto w-full mt-6">
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((o) => !o)}
+                  className="flex items-center gap-2 w-full text-sm font-semibold text-gray-500 py-2 border-t border-gray-200"
+                >
+                  {historyOpen ? (
+                    <ChevronDown size={14} />
+                  ) : (
+                    <ChevronRight size={14} />
+                  )}
+                  History ({sortedHistoryCards.length})
+                </button>
+                {historyOpen && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 opacity-50 pointer-events-none">
+                    {sortedHistoryCards.map((card) =>
+                      card.type === "offer"
+                        ? renderOfferCard(card.data, true)
+                        : renderRequestCard(card.data, true),
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
+
           {modalData && (
             <ChatListModal
               title={modalData.title}
@@ -498,6 +609,48 @@ export default function TrackerPage() {
                 goToChat(bidId, modalData.type, modalData.title, otherId)
               }
               onClose={() => setModalData(null)}
+              itemId={modalData.id}
+              kind={modalData.type}
+              onMarkDone={
+                modalData.type === "request"
+                  ? async (bidId) => {
+                      if (!window.confirm("Mark this deal as done?")) return;
+                      const { error } = await completeRequest(
+                        modalData.id,
+                        bidId,
+                      );
+                      if (error) {
+                        alert("Failed. Please try again.");
+                        return;
+                      }
+                      setModalData(null);
+                      setRequests((prev) =>
+                        prev.map((r) =>
+                          r.id === modalData.id
+                            ? { ...r, status: "Completed" }
+                            : r,
+                        ),
+                      );
+                    }
+                  : async (bidId) => {
+                      if (!window.confirm("Mark this deal as done?")) return;
+                      const { error } = await completeOfferBid(bidId);
+                      if (error) {
+                        alert("Failed. Please try again.");
+                        return;
+                      }
+                      setModalData((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              people: prev.people.filter(
+                                (p) => p.bidId !== bidId,
+                              ),
+                            }
+                          : null,
+                      );
+                    }
+              }
             />
           )}
         </main>
@@ -516,6 +669,7 @@ function ChatListModal({
   iconClass,
   onSelect,
   onClose,
+  onMarkDone,
 }: {
   title: string;
   people: { id: string; name: string; bidId: string }[];
@@ -524,6 +678,9 @@ function ChatListModal({
   iconClass: string;
   onSelect: (bidId: string, id: string) => void;
   onClose: () => void;
+  onMarkDone?: (bidId: string) => Promise<void>;
+  itemId?: string;
+  kind?: "offer" | "request";
 }) {
   return (
     <div
@@ -547,14 +704,14 @@ function ChatListModal({
         </div>
         <ul className="overflow-y-auto space-y-2">
           {people.map((p) => (
-            <li key={p.bidId}>
+            <li key={p.bidId} className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => {
                   onSelect(p.bidId, p.id);
                   onClose();
                 }}
-                className={`w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
+                className={`flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span
@@ -568,6 +725,18 @@ function ChatListModal({
                 </div>
                 <ChatDotsFill className={`shrink-0 ${iconClass}`} size={16} />
               </button>
+              {onMarkDone && (
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await onMarkDone(p.bidId);
+                  }}
+                  className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors ml-1"
+                >
+                  Mark done
+                </button>
+              )}
             </li>
           ))}
         </ul>
