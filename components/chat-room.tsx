@@ -1,7 +1,6 @@
 "use client";
 
 import { RealtimeChat } from "@/components/realtime-chat";
-import { DealActionBanner } from "@/components/deal-action-banner";
 import { RatingModal } from "@/components/rating-modal";
 import { createMessage, getConversation } from "@/lib/actions/messages";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
@@ -183,10 +182,6 @@ export const ChatRoom = ({
     })();
   }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id]);
 
-  const handleDealFinished = () => {
-    setRatingOpen(true);
-  };
-
   const handleRatingClose = () => {
     setRatingOpen(false);
     setHasReviewed(true);
@@ -202,15 +197,6 @@ export const ChatRoom = ({
     return <div>Loading messages...</div>;
   }
 
-  const dealButton = bid_id ? (
-    <DealActionBanner
-      bidId={bid_id}
-      kind={dealKind}
-      currentUserId={publicUser.id}
-      onFinished={handleDealFinished}
-    />
-  ) : undefined;
-
   return (
     <>
       <RealtimeChat
@@ -219,7 +205,6 @@ export const ChatRoom = ({
         currentUserId={publicUser.id}
         onMessage={handleMessage}
         messages={formattedMessages}
-        actionButton={dealButton}
         otherAvatarUrl={otherAvatarUrl}
         disabled={disabled}
       />
