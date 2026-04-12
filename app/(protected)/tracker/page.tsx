@@ -472,6 +472,7 @@ export default function TrackerPage() {
             : () => handleWithdrawOfferBid(card.rawBidId!)
       }
       deleteLabel={card.isOwned ? "Close" : "Withdraw"}
+      deleteDestructive={false}
     />
   );
 
@@ -517,7 +518,8 @@ export default function TrackerPage() {
             ? () => handleDeleteRequest(card.id)
             : () => handleWithdrawRequestBid(card.rawBidId!)
       }
-      deleteLabel={card.isOwned ? "Delete" : "Withdraw"}
+      deleteLabel={card.isOwned ? "Close" : "Withdraw"}
+      deleteDestructive={false}
     />
   );
 

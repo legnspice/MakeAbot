@@ -14,6 +14,7 @@ export interface ItemRequestCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   deleteLabel?: string;
+  deleteDestructive?: boolean;
 }
 
 export default function ItemRequestCard({
@@ -28,6 +29,7 @@ export default function ItemRequestCard({
   onEdit,
   onDelete,
   deleteLabel,
+  deleteDestructive = true,
 }: ItemRequestCardProps) {
   const hasLocation = section && section !== "—";
   const hasDate = time && time !== "—";
@@ -110,7 +112,11 @@ export default function ItemRequestCard({
                     e.stopPropagation();
                     onDelete();
                   }}
-                  className="px-2.5 py-0.5 text-xs font-medium border border-red-300 rounded-full text-red-600 hover:bg-red-50 transition-colors"
+                  className={`px-2.5 py-0.5 text-xs font-medium border rounded-full transition-colors ${
+                    deleteDestructive
+                      ? "border-red-300 text-red-600 hover:bg-red-50"
+                      : "border-gray-300 text-gray-600 hover:border-gray-500 hover:bg-gray-50"
+                  }`}
                 >
                   {deleteLabel ?? "Delete"}
                 </button>
