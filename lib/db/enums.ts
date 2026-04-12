@@ -40,7 +40,7 @@ export const PostStatusEnum = z.enum(POST_STATUS_VALUES);
 export type PostStatus = z.infer<typeof PostStatusEnum>;
 
 // Bid Status
-export const BID_STATUS_VALUES = ["Pending", "Accepted", "Closed"] as const;
+export const BID_STATUS_VALUES = ["Pending", "Completed", "Closed"] as const;
 export const bidStatusEnum = pgEnum("bid_status", BID_STATUS_VALUES);
 export const BidStatusEnum = z.enum(BID_STATUS_VALUES);
 export type BidStatus = z.infer<typeof BidStatusEnum>;
