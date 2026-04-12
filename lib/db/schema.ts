@@ -188,3 +188,5 @@ export type InsertPushSubscription = typeof push_subscriptions.$inferInsert;
 export type SelectPushSubscription = typeof push_subscriptions.$inferSelect;
 export type SelectNotificationPreferences =
   typeof notification_preferences.$inferSelect;
+export type InsertOfferBid = typeof offer_bids.$inferInsert;
+export type SelectOfferBid = typeof offer_bids.$inferSelect;

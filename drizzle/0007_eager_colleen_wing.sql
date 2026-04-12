@@ -23,7 +23,6 @@ ALTER TABLE "offer_bids" ALTER COLUMN "status" SET DEFAULT 'Pending'::"public"."
 ALTER TABLE "offer_bids" ALTER COLUMN "status" SET DATA TYPE "public"."bid_status" USING "status"::"public"."bid_status";--> statement-breakpoint
 ALTER TABLE "request_bids" ALTER COLUMN "status" SET DEFAULT 'Pending'::"public"."bid_status";--> statement-breakpoint
 ALTER TABLE "request_bids" ALTER COLUMN "status" SET DATA TYPE "public"."bid_status" USING "status"::"public"."bid_status";--> statement-breakpoint
-ALTER TABLE "offer_bids" ADD COLUMN "status" "bid_status" DEFAULT 'Pending' NOT NULL;--> statement-breakpoint
 ALTER TABLE "offers" ADD COLUMN "updated_at" timestamp DEFAULT now() NOT NULL;--> statement-breakpoint
 ALTER TABLE "requests" ADD COLUMN "updated_at" timestamp DEFAULT now() NOT NULL;--> statement-breakpoint
 ALTER TABLE "messages" ADD CONSTRAINT "messages_offer_bid_id_offer_bids_id_fk" FOREIGN KEY ("offer_bid_id") REFERENCES "public"."offer_bids"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
