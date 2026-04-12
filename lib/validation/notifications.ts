@@ -5,6 +5,9 @@ export const NOTIFICATION_TYPES = [
   "new_message",
   "new_review",
   "new_request",
+  "request_completed_winner",
+  "request_completed_loser",
+  "offer_bid_completed",
 ] as const;
 
 export const NotificationTypeEnum = z.enum(NOTIFICATION_TYPES);

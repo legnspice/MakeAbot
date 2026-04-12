@@ -4,6 +4,7 @@ import { handleAction } from "@/lib/error/actions-handler";
 import { requireAuth } from "@/lib/actions/auth";
 import * as offersService from "@/lib/services/offers.service";
 import * as requestsService from "@/lib/services/requests.service";
+import * as usersService from "@/lib/services/users.service";
 import { sendPushToUser } from "@/lib/services/push.service";
 
 type DealKind = "offer" | "request";
@@ -39,27 +40,31 @@ export async function completeRequest(requestId: string, winningBidId: string) {
     const { winnerBid, loserBids, request } =
       await requestsService.completeRequest(requestId, winningBidId);
 
-    if (!request) return { success: true };
+    // Fetch requester display name
+    const requesterUsers = await usersService.getUsers({ id: request.user_id ?? undefined });
+    const requesterName = requesterUsers[0]?.name ?? "Someone";
 
     // Notify winner
     if (winnerBid) {
       await sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
         title: "Your offer was accepted!",
-        body: `${request.title} has been marked as done.`,
+        body: `${requesterName} marked your bid on ${request.title} as done.`,
         url: `/reviews/new?targetId=${request.user_id}&context=${requestId}`,
         contextId: null,
       }).catch(() => {});
     }
 
     // Notify losers
-    for (const loser of loserBids) {
-      await sendPushToUser(loser.bidder_id, "request_completed_loser", {
-        title: "Request fulfilled",
-        body: `${request.title} has been fulfilled by someone else.`,
-        url: `/`,
-        contextId: null,
-      }).catch(() => {});
-    }
+    await Promise.allSettled(
+      loserBids.map((loser) =>
+        sendPushToUser(loser.bidder_id, "request_completed_loser", {
+          title: "Request fulfilled",
+          body: `${request.title} has been fulfilled by someone else.`,
+          url: `/`,
+          contextId: null,
+        })
+      )
+    );
 
     return { success: true };
   });
@@ -77,11 +82,15 @@ export async function completeOfferBid(bidId: string) {
     const offer = offersList[0];
     if (!offer) throw new Error("Offer not found");
 
+    // Fetch offerer display name
+    const offererUsers = await usersService.getUsers({ id: offer.user_id ?? undefined });
+    const offererName = offererUsers[0]?.name ?? "Someone";
+
     await offersService.completeOfferBid(bidId);
 
     await sendPushToUser(bid.bidder_id, "offer_bid_completed", {
       title: "Deal confirmed!",
-      body: `${offer.user_id} marked your deal on ${offer.title} as done.`,
+      body: `${offererName} marked your deal on ${offer.title} as done.`,
       url: `/reviews/new?targetId=${offer.user_id}&context=${offer.id}`,
       contextId: null,
     }).catch(() => {});
