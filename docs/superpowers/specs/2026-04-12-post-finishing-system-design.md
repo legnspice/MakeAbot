@@ -171,16 +171,30 @@ Pinned below the active cards grid. Collapsed by default.
 
 **Offer modal:** Each person row gains "Mark done". Tapping calls `completeOfferBid(bidId)`. Modal stays open. Completed person row disappears from list. Offer stays active.
 
-### Chat screen — finishing
+### Chat screen redesign
 
-Small "Mark done" button in chat header (outlined, not filled — avoid accidental taps). Confirm dialog before firing.
+**Sidebar removed entirely.** Chat route is locked to a single bid session. Entry points:
+1. Tracker modal — tap a person row → `/chat?bidId=X&kind=Y&title=Z&otherId=A`
+2. Notification deep-link — all `new_inquiry`, `new_message`, `request_completed_winner`, `offer_bid_completed` notifications set their `url` to the full `/chat?bidId=...` path so tapping goes directly to the relevant thread in one step
 
-- Offer chat: calls `completeOfferBid(bidId)`
-- Request chat: calls `completeRequest(requestId, bidId)` — request owner only; inquirer sees button but it's hidden/disabled on their side
+**Route guard:** If `/chat` is loaded without valid `bidId` + `otherId` params, redirect immediately to `/tracker`.
 
-After completion: non-dismissable banner below header — `"This deal has been marked done."` Chat input disabled. Thread stays readable.
+**Layout:** Single-panel, identical on mobile and desktop. No responsive split. `BottomNav` removed from chat page entirely (back button replaces it).
 
-**Completed/closed request chats (all parties):** Banner — `"This request has been fulfilled."` Input disabled. Read-only.
+**State removed:** `loadConversations`, `ConversationEntry` type, `conversations` state, `chatTab` state, sidebar conversation list, Active/Completed tabs.
+
+**Imports removed:** `ChatSidebarSkeleton`, `getLatestTimestampsForBids`, `getReviews`, `getPostBids` (bulk load), `getRequestBids` (bulk load), rating/avatar fetch logic, `ArrowLeft`.
+
+**`completed` flag:** Derived from a single lightweight `getDealStatus(bidId, kind)` call on mount. No full conversation waterfall.
+
+**Header:** Back button (→ `router.back()`) + item title + other user's name + their rating (fetched via `getUserAvatarUrl` + `getReviews` for that one user only) + **"Mark done" button** (outlined, right-aligned).
+
+- Offer chat: "Mark done" calls `completeOfferBid(bidId)` — only offer owner can trigger (button hidden for inquirer)
+- Request chat: "Mark done" calls `completeRequest(requestId, bidId)` — request owner only; button hidden for inquirer
+
+**After mark done:** Non-dismissable banner below header — `"This deal has been marked done."` Input disabled. Thread readable.
+
+**Completed/closed chats on load:** If `getDealStatus` returns completed/closed parent, show banner immediately — `"This request has been fulfilled."` or `"This offer is closed."` Input disabled. Read-only.
 
 ---
 
@@ -211,6 +225,14 @@ After completion: non-dismissable banner below header — `"This deal has been m
 - Body: `"[offer/request title] has been inactive for 2 weeks. Your inquiry was automatically closed."`
 - `url`: `/`
 - Delivery: push (immediate) + in-app only (no email)
+
+### Notification `url` format for chat deep-links
+
+All chat-related notifications (`new_inquiry`, `new_message`, `request_completed_winner`, `offer_bid_completed`) must set `url` to:
+```
+/chat?bidId=<bidId>&kind=<offer|request>&title=<encoded title>&otherId=<otherUserId>
+```
+This enables 1-tap access from push/in-app notifications directly to the correct thread, bypassing the tracker modal.
 
 ### Trigger points
 
@@ -266,7 +288,7 @@ New endpoint: `app/api/cron/expire-bids/route.ts`
 - `lib/services/requests.service.ts` — remove `acceptRequestBid` / `rejectRequestBid`, add `expireStaleRequestBids`
 - `lib/repo/requests.repo.ts` — remove accept/reject query
 - `app/(protected)/tracker/page.tsx` — Close replaces Delete for offers, Withdraw for non-owned, History section
-- `app/(protected)/chat/page.tsx` (or equivalent) — Mark done button, completion banners
+- `app/(protected)/chat/page.tsx` — full rewrite: remove sidebar, conversation waterfall, chatTab state; add route guard, single-panel layout, Mark done button, completion banners, lightweight getDealStatus on mount
 - `components/ui/ChatListModal` (inline in tracker) — add Mark done per row
 - `vercel.json` — add expire-bids cron schedule
 - All files importing `posts.*` — update to `offers.*`
@@ -276,6 +298,7 @@ New endpoint: `app/api/cron/expire-bids/route.ts`
 - `lib/services/posts.service.ts` (replaced)
 - `lib/repo/posts.repo.ts` (replaced)
 - `lib/validation/posts.ts` (replaced)
+- `components/ui/skeletons/chat-skeleton.tsx` — `ChatSidebarSkeleton` no longer needed
 
 ---
 
