@@ -9,7 +9,7 @@ import {
 } from "../validation/messages";
 
 export async function findConversation(filters: FindConversationSchema) {
-  const { user1_id, user2_id, request_bid_id, post_bid_id } = filters;
+  const { user1_id, user2_id, request_bid_id, offer_bid_id } = filters;
   const conditions = [];
 
   // Messages between these two users
@@ -22,8 +22,8 @@ export async function findConversation(filters: FindConversationSchema) {
 
   if (request_bid_id) {
     conditions.push(eq(messages.request_bid_id, request_bid_id));
-  } else if (post_bid_id) {
-    conditions.push(eq(messages.post_bid_id, post_bid_id));
+  } else if (offer_bid_id) {
+    conditions.push(eq(messages.offer_bid_id, offer_bid_id));
   }
 
   return await db.query.messages.findMany({
@@ -38,7 +38,7 @@ export async function findMessages(filters: FindMessagesSchema) {
     sender_id,
     receiver_id,
     request_bid_id,
-    post_bid_id,
+    offer_bid_id,
     content,
     timestamp,
   } = filters;
@@ -50,7 +50,7 @@ export async function findMessages(filters: FindMessagesSchema) {
   if (request_bid_id)
     conditions.push(eq(messages.request_bid_id, request_bid_id));
   if (receiver_id) conditions.push(eq(messages.receiver_id, receiver_id));
-  if (post_bid_id) conditions.push(eq(messages.post_bid_id, post_bid_id));
+  if (offer_bid_id) conditions.push(eq(messages.offer_bid_id, offer_bid_id));
   if (content) conditions.push(ilike(messages.content, `%${content}%`));
 
   //   Selects all messages made in the day in general; TODO: Maybe add more specific ranges(?)
@@ -80,10 +80,10 @@ export async function findLatestTimestampsForBids(
   const [postRows, reqRows] = await Promise.all([
     postBidIds.length > 0
       ? db
-          .select({ bidId: messages.post_bid_id, latest: max(messages.timestamp) })
+          .select({ bidId: messages.offer_bid_id, latest: max(messages.timestamp) })
           .from(messages)
-          .where(inArray(messages.post_bid_id, postBidIds))
-          .groupBy(messages.post_bid_id)
+          .where(inArray(messages.offer_bid_id, postBidIds))
+          .groupBy(messages.offer_bid_id)
       : [],
     requestBidIds.length > 0
       ? db
@@ -104,7 +104,7 @@ export async function findLatestTimestampsForBids(
 /** Returns true if userId has sent at least one message in the given thread. */
 export async function hasUserSentMessageInThread(
   userId: string,
-  field: "request_bid_id" | "post_bid_id",
+  field: "request_bid_id" | "offer_bid_id",
   threadId: string,
 ): Promise<boolean> {
   const result = await db
@@ -115,7 +115,7 @@ export async function hasUserSentMessageInThread(
         eq(messages.sender_id, userId),
         field === "request_bid_id"
           ? eq(messages.request_bid_id, threadId)
-          : eq(messages.post_bid_id, threadId),
+          : eq(messages.offer_bid_id, threadId),
       ),
     );
   return (result[0]?.value ?? 0) > 0;

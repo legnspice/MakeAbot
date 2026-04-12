@@ -13,7 +13,7 @@ export async function findReviews(filters: FindReviewsSchema) {
     rated_user_id,
     creator_id,
     request_bid_id,
-    post_bid_id,
+    offer_bid_id,
     comment,
     created_at,
     rating,
@@ -26,7 +26,7 @@ export async function findReviews(filters: FindReviewsSchema) {
   if (creator_id) conditions.push(eq(reviews.creator_id, creator_id));
   if (request_bid_id)
     conditions.push(eq(reviews.request_bid_id, request_bid_id));
-  if (post_bid_id) conditions.push(eq(reviews.post_bid_id, post_bid_id));
+  if (offer_bid_id) conditions.push(eq(reviews.offer_bid_id, offer_bid_id));
   if (comment) conditions.push(ilike(reviews.comment, `%${comment}%`));
   if (rating) conditions.push(eq(reviews.rating, rating));
 

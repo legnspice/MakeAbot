@@ -13,6 +13,10 @@ export async function findOfferById(id: string) {
   return await db.query.offers.findFirst({ where: eq(offers.id, id) });
 }
 
+export async function findOfferBidById(id: string) {
+  return await db.query.offer_bids.findFirst({ where: eq(offer_bids.id, id) });
+}
+
 export async function findOffers(filters: FindOffersSchema) {
   const { id, user_id, price, title, status, created_at } = filters;
   const conditions = [];
@@ -60,7 +64,9 @@ export async function insertOfferBid(data: InsertOfferBidSchema) {
 }
 
 export async function deleteOffer(id: string, userId: string) {
-  return await db.delete(offers).where(and(eq(offers.id, id), eq(offers.user_id, userId)));
+  return await db
+    .delete(offers)
+    .where(and(eq(offers.id, id), eq(offers.user_id, userId)));
 }
 
 export async function deleteOfferBid(id: string, userId: string) {
@@ -82,7 +88,10 @@ export async function updateOffer(
 
 /** Set a single offer_bid to Completed */
 export async function completeOfferBid(bidId: string) {
-  return await db.update(offer_bids).set({ status: "Completed" }).where(eq(offer_bids.id, bidId));
+  return await db
+    .update(offer_bids)
+    .set({ status: "Completed" })
+    .where(eq(offer_bids.id, bidId));
 }
 
 /** Set all Pending bids on an offer to Closed */
@@ -90,7 +99,9 @@ export async function closeOfferBids(offerId: string) {
   return await db
     .update(offer_bids)
     .set({ status: "Closed" })
-    .where(and(eq(offer_bids.post_id, offerId), eq(offer_bids.status, "Pending")));
+    .where(
+      and(eq(offer_bids.post_id, offerId), eq(offer_bids.status, "Pending")),
+    );
 }
 
 /** Expire Pending offer_bids where parent offer updated_at < 14 days ago */
@@ -107,10 +118,7 @@ export async function expireStaleOfferBids(): Promise<
     .from(offer_bids)
     .innerJoin(offers, eq(offer_bids.post_id, offers.id))
     .where(
-      and(
-        eq(offer_bids.status, "Pending"),
-        lt(offers.updated_at, cutoff),
-      ),
+      and(eq(offer_bids.status, "Pending"), lt(offers.updated_at, cutoff)),
     );
 
   if (stale.length === 0) return [];
@@ -119,7 +127,9 @@ export async function expireStaleOfferBids(): Promise<
   await db
     .update(offer_bids)
     .set({ status: "Closed" })
-    .where(and(eq(offer_bids.status, "Pending"), inArray(offer_bids.id, staleIds)));
+    .where(
+      and(eq(offer_bids.status, "Pending"), inArray(offer_bids.id, staleIds)),
+    );
 
   return stale;
 }
