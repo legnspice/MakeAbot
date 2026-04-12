@@ -1,5 +1,4 @@
-import { and, eq, lte, ilike, gte, desc, lt } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { and, eq, lte, ilike, gte, desc, lt, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { offers, offer_bids } from "../db/schema";
 import { getDayRange } from "./helper";
@@ -120,7 +119,7 @@ export async function expireStaleOfferBids(): Promise<
   await db
     .update(offer_bids)
     .set({ status: "Closed" })
-    .where(and(eq(offer_bids.status, "Pending"), sql`${offer_bids.id} = ANY(${staleIds})`));
+    .where(and(eq(offer_bids.status, "Pending"), inArray(offer_bids.id, staleIds)));
 
   return stale;
 }
