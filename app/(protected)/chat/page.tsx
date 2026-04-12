@@ -30,6 +30,7 @@ function ChatPageInner() {
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
+  const [justMarkedDone, setJustMarkedDone] = useState(false);
 
   // Route guard
   useEffect(() => {
@@ -67,9 +68,11 @@ function ChatPageInner() {
   const isOwner = ownerUserId === currentUser?.id;
 
   const bannerText = isDone
-    ? kind === "request"
-      ? "This request has been fulfilled."
-      : "This offer is closed."
+    ? justMarkedDone
+      ? "This deal has been marked done."
+      : kind === "request"
+        ? "This request has been fulfilled."
+        : "This offer is closed."
     : null;
 
   const handleMarkDone = async () => {
@@ -84,6 +87,7 @@ function ChatPageInner() {
     }
     if (error) { alert("Failed. Please try again."); return; }
     setIsDone(true);
+    setJustMarkedDone(true);
   };
 
   if (!bidId || !otherId) return null;
