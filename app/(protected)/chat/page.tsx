@@ -1,469 +1,166 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ChevronLeft, StarFill } from "react-bootstrap-icons";
+import { ChevronLeft, StarFill } from "react-bootstrap-icons";
 import Navbar from "@/components/ui/navbar";
-import BottomNav from "@/components/ui/bottomnavbar";
 import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
-import { ChatSidebarSkeleton } from "@/components/ui/skeletons/chat-skeleton";
-import { getOffers, getOfferBids } from "@/lib/actions/offers";
-import { getRequests, getRequestBids } from "@/lib/actions/requests";
+import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
+import { getDealStatus, completeRequest, completeOfferBid } from "@/lib/actions/deals";
 import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
-import { getLatestTimestampsForBids } from "@/lib/actions/messages";
 import { getReviews } from "@/lib/actions/reviews";
-
-type ConversationEntry = {
-  bidId: string;
-  kind: "offer" | "request";
-  title: string;
-  otherName: string;
-  otherId: string;
-  otherAvatarUrl: string | null;
-  lastMessageAt: Date | null;
-  otherRating: number | null;
-  completed: boolean;
-};
 
 function ChatPageInner() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const bidIdParam = params.get("bidId") ?? "";
-  const kindParam = (params.get("kind") ?? "offer") as "offer" | "request";
-  const titleParam = params.get("title") ?? "ITEM";
-  const otherIdParam = params.get("otherId") ?? "";
+  const bidId = params.get("bidId") ?? "";
+  const kind = (params.get("kind") ?? "offer") as "offer" | "request";
+  const title = params.get("title") ?? "";
+  const otherId = params.get("otherId") ?? "";
 
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
 
-  const [conversations, setConversations] = useState<ConversationEntry[]>([]);
-  const [selectedConv, setSelectedConv] = useState<ConversationEntry | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [chatTab, setChatTab] = useState<"active" | "completed">("active");
-  const initialised = useRef(false);
+  const [otherName, setOtherName] = useState("");
+  const [otherAvatarUrl, setOtherAvatarUrl] = useState<string | null>(null);
+  const [otherRating, setOtherRating] = useState<number | null>(null);
+  const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
+  const [parentId, setParentId] = useState("");
+  const [isDone, setIsDone] = useState(false);
 
-  const loadConversations = useCallback(async () => {
-    const items: ConversationEntry[] = [];
-
-    // Offers I own → bids on them (others requested my offer)
-    const myOffersResult = await getOffers({ user_id: currentUser.id });
-    const myOfferBidsResult = await getOfferBids({ bidder_id: currentUser.id });
-    const myRequestsResult = await getRequests({ user_id: currentUser.id });
-    const myReqBidsResult = await getRequestBids({ bidder_id: currentUser.id });
-
-    // Collect all user IDs we need to look up
-    const userIds = new Set<string>();
-
-    for (const offer of myOffersResult.data ?? []) {
-      const bidsResult = await getOfferBids({ offer_id: offer.id });
-      for (const bid of bidsResult.data ?? []) {
-        userIds.add(bid.bidder_id);
-        items.push({
-          bidId: bid.id,
-          kind: "offer",
-          title: offer.title,
-          otherName: "",
-          otherId: bid.bidder_id,
-          lastMessageAt: null,
-          otherAvatarUrl: null,
-          otherRating: null,
-          completed: offer.status === "Closed",
-        });
-      }
+  // Route guard
+  useEffect(() => {
+    if (!bidId || !otherId) {
+      router.replace("/tracker");
     }
-
-    for (const bid of myOfferBidsResult.data ?? []) {
-      const offerResult = await getOffers({ id: bid.offer_id });
-      const offer = offerResult.data?.[0];
-      if (offer && offer.user_id) {
-        userIds.add(offer.user_id);
-        items.push({
-          bidId: bid.id,
-          kind: "offer",
-          title: offer.title,
-          otherName: "",
-          otherId: offer.user_id,
-          lastMessageAt: null,
-          otherAvatarUrl: null,
-          otherRating: null,
-          completed: offer.status === "Closed",
-        });
-      }
-    }
-
-    for (const req of myRequestsResult.data ?? []) {
-      const bidsResult = await getRequestBids({ request_id: req.id });
-      for (const bid of bidsResult.data ?? []) {
-        userIds.add(bid.bidder_id);
-        items.push({
-          bidId: bid.id,
-          kind: "request",
-          title: req.title,
-          otherName: "",
-          otherId: bid.bidder_id,
-          lastMessageAt: null,
-          otherAvatarUrl: null,
-          otherRating: null,
-          completed: req.status === "Completed",
-        });
-      }
-    }
-
-    for (const bid of myReqBidsResult.data ?? []) {
-      const reqResult = await getRequests({ id: bid.request_id });
-      const req = reqResult.data?.[0];
-      if (req && req.user_id) {
-        userIds.add(req.user_id);
-        items.push({
-          bidId: bid.id,
-          kind: "request",
-          title: req.title,
-          otherName: "",
-          otherId: req.user_id,
-          lastMessageAt: null,
-          otherAvatarUrl: null,
-          otherRating: null,
-          completed: req.status === "Completed",
-        });
-      }
-    }
-
-    // Prepare arrays for batch fetching
-    const offerBidIds = items
-      .filter((i) => i.kind === "offer")
-      .map((i) => i.bidId);
-    const reqBidIds = items
-      .filter((i) => i.kind === "request")
-      .map((i) => i.bidId);
-    const idsArr = Array.from(userIds);
-
-    // 1. Batch fetch users and last-message timestamps
-    const [usersResult, timestampsResult] = await Promise.all([
-      idsArr.length > 0 ? getUsers({ ids: idsArr }) : { data: [] },
-      getLatestTimestampsForBids(offerBidIds, reqBidIds),
-    ]);
-
-    const usersMap = new Map<string, string>();
-    for (const u of usersResult.data ?? []) {
-      usersMap.set(u.id, u.name ?? "User");
-    }
-
-    const timestampsMap = timestampsResult.data ?? new Map<string, Date>();
-
-    // 2. Batch fetch ratings and avatars for each user
-    const ratingsMap = new Map<string, number | null>();
-    const avatarsMap = new Map<string, string | null>();
-    if (idsArr.length > 0) {
-      await Promise.all(
-        idsArr.map(async (uid) => {
-          const [reviewsResult, avatarUrl] = await Promise.all([
-            getReviews({ rated_user_id: uid }),
-            getUserAvatarUrl(uid),
-          ]);
-          const reviews = reviewsResult.data ?? [];
-          if (reviews.length > 0) {
-            const avg =
-              reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-            ratingsMap.set(uid, Math.round(avg * 10) / 10);
-          } else {
-            ratingsMap.set(uid, null);
-          }
-          avatarsMap.set(uid, avatarUrl);
-        }),
-      );
-    }
-
-    // 3. Fill in names, timestamps, ratings, and avatars
-    for (const item of items) {
-      item.otherName = usersMap.get(item.otherId) ?? "User";
-      item.lastMessageAt = timestampsMap.get(item.bidId) ?? null;
-      item.otherRating = ratingsMap.get(item.otherId) ?? null;
-      item.otherAvatarUrl = avatarsMap.get(item.otherId) ?? null;
-    }
-
-    // Sort by most recent message first; conversations with no messages go last
-    items.sort((a, b) => {
-      if (!a.lastMessageAt && !b.lastMessageAt) return 0;
-      if (!a.lastMessageAt) return 1;
-      if (!b.lastMessageAt) return -1;
-      return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
-    });
-
-    setConversations(items);
-    setLoading(false);
-    return items;
-  }, [currentUser.id]);
+  }, [bidId, otherId, router]);
 
   useEffect(() => {
-    if (initialised.current) return;
-    initialised.current = true;
+    if (!bidId || !otherId) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadConversations().then((items) => {
-      if (!bidIdParam) return;
-      const match = items.find((c) => c.bidId === bidIdParam);
-      setSelectedConv(
-        match ?? {
-          bidId: bidIdParam,
-          kind: kindParam,
-          title: titleParam,
-          otherName: "",
-          otherId: otherIdParam,
-          otherAvatarUrl: null,
-          lastMessageAt: null,
-          otherRating: null,
-          completed: false,
-        },
-      );
+    Promise.all([
+      getDealStatus(bidId, kind),
+      getUserAvatarUrl(otherId),
+      getReviews({ rated_user_id: otherId }),
+      getUsers({ id: otherId }),
+    ]).then(([statusResult, avatarUrl, reviewsResult, usersResult]) => {
+      if (statusResult.data) {
+        setOwnerUserId(statusResult.data.ownerUserId);
+        setParentId(statusResult.data.parentId);
+        const s = statusResult.data.parentStatus;
+        if (s === "Completed" || s === "Closed") setIsDone(true);
+      }
+      setOtherAvatarUrl(avatarUrl ?? null);
+      const reviews = reviewsResult.data ?? [];
+      if (reviews.length > 0) {
+        const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+        setOtherRating(Math.round(avg * 10) / 10);
+      }
+      const user = usersResult.data?.[0];
+      if (user) setOtherName(user.name ?? "");
     });
-  }, [loadConversations, bidIdParam, kindParam, titleParam, otherIdParam]);
+  }, [bidId, otherId, kind]);
 
-  const selectConversation = (conv: ConversationEntry) => {
-    setSelectedConv(conv);
-    router.replace(
-      `/chat?bidId=${conv.bidId}&kind=${conv.kind}&title=${encodeURIComponent(conv.title)}&otherId=${conv.otherId}`,
-    );
+  const isOwner = ownerUserId === currentUser?.id;
+
+  const bannerText = isDone
+    ? kind === "request"
+      ? "This request has been fulfilled."
+      : "This offer is closed."
+    : null;
+
+  const handleMarkDone = async () => {
+    if (!window.confirm("Mark this deal as done?")) return;
+    let error: string | null = null;
+    if (kind === "offer") {
+      const result = await completeOfferBid(bidId);
+      error = result.error ?? null;
+    } else {
+      const result = await completeRequest(parentId, bidId);
+      error = result.error ?? null;
+    }
+    if (error) { alert("Failed. Please try again."); return; }
+    setIsDone(true);
   };
 
-  // ── Mobile: invalid link guard ──
-  const mobileInvalid = !bidIdParam || !otherIdParam;
+  if (!bidId || !otherId) return null;
 
   return (
     <div className="h-screen bg-white flex flex-col overflow-hidden">
       <Navbar />
 
-      {/* ── Mobile layout ── */}
-      <div className="flex md:hidden flex-1 min-h-0 flex-col">
-        {mobileInvalid ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
-            <p>No conversation selected.</p>
-            <button
-              type="button"
-              onClick={() => router.push("/tracker")}
-              className="text-[#3761B0] underline text-sm"
-            >
-              Go to Tracker
-            </button>
-          </div>
-        ) : (
-          <>
-            <header className="h-14 border-b border-gray-200 bg-white flex items-center px-4 gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="w-9 h-9 rounded-full border border-[#3761B0] text-[#3761B0] flex items-center justify-center shrink-0"
-                aria-label="Back"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-bold text-gray-900 leading-tight line-clamp-1">
-                    {titleParam}
-                    {selectedConv?.otherName
-                      ? ` | ${selectedConv.otherName}`
-                      : ""}
-                  </p>
-                  {selectedConv?.otherRating != null ? (
-                    <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
-                      {selectedConv.otherRating}
-                      <StarFill className="text-[#DEA440]" size={14} />
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400 italic shrink-0">
-                      No reviews yet
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 leading-tight">
-                  {kindParam === "offer" ? "Offer" : "Request"}
-                </p>
-              </div>
-            </header>
-            <div className="flex-1 min-h-0">
-              <ChatRoom
-                other_user_id={otherIdParam}
-                offer_bid_id={kindParam === "offer" ? bidIdParam : null}
-                request_bid_id={kindParam === "request" ? bidIdParam : null}
-              />
-            </div>
-          </>
-        )}
-      </div>
+      {/* Header */}
+      <header className="h-14 border-b border-gray-200 bg-white flex items-center px-4 gap-3 shrink-0">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-9 h-9 rounded-full border border-[#3761B0] text-[#3761B0] flex items-center justify-center shrink-0"
+          aria-label="Back"
+        >
+          <ChevronLeft size={20} />
+        </button>
 
-      {/* ── Desktop layout ── */}
-      <div className="hidden md:flex flex-1 min-h-0">
-        {/* Sidebar */}
-        <div className="w-96 border-r border-gray-200 flex flex-col shrink-0">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 shrink-0">
-            <button
-              type="button"
-              onClick={() => setChatTab("active")}
-              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
-                chatTab === "active"
-                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              Active
-            </button>
-            <button
-              type="button"
-              onClick={() => setChatTab("completed")}
-              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
-                chatTab === "completed"
-                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              Completed
-            </button>
-          </div>
-
-          {/* Conversation list */}
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <ChatSidebarSkeleton />
-            ) : (
-              (() => {
-                const filtered = conversations.filter((c) =>
-                  chatTab === "completed" ? c.completed : !c.completed,
-                );
-                return filtered.length === 0 ? (
-                  <p className="text-center text-gray-400 text-sm pt-10">
-                    {chatTab === "completed"
-                      ? "No completed chats"
-                      : "No active chats"}
-                  </p>
-                ) : (
-                  filtered.map((conv) => (
-                    <button
-                      key={conv.bidId}
-                      type="button"
-                      onClick={() => selectConversation(conv)}
-                      className={`w-full text-left px-5 py-4 border-b border-gray-100 transition-colors hover:bg-gray-50 ${
-                        selectedConv?.bidId === conv.bidId ? "bg-gray-100" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                          {conv.otherAvatarUrl ? (
-                            <Image
-                              src={conv.otherAvatarUrl}
-                              alt={conv.otherName}
-                              width={40}
-                              height={40}
-                              className="object-cover w-full h-full"
-                            />
-                          ) : (
-                            <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
-                              {conv.otherName.charAt(0)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-gray-900 text-sm uppercase leading-tight truncate">
-                            {conv.title}
-                          </p>
-                          <p className="text-sm text-gray-500 truncate">
-                            {conv.otherName}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                );
-              })()
-            )}
-          </div>
-        </div>
-
-        {/* Chat panel */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {selectedConv ? (
-            <>
-              {/* Header */}
-              <header className="bg-[#E8ECFF] flex items-center px-5 py-3 gap-3 shrink-0 border-b border-blue-100">
-                <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                  {selectedConv.otherAvatarUrl ? (
-                    <Image
-                      src={selectedConv.otherAvatarUrl}
-                      alt={selectedConv.otherName}
-                      width={36}
-                      height={36}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
-                      {(selectedConv.otherName || "U").charAt(0)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-gray-900 text-sm leading-tight truncate">
-                      {selectedConv.title}
-                      {" | "}
-                      {selectedConv.otherName}
-                    </p>
-                    {selectedConv.otherRating != null ? (
-                      <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
-                        {selectedConv.otherRating}
-                        <StarFill className="text-[#DEA440]" size={14} />
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 italic shrink-0">
-                        No reviews yet
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 leading-tight truncate">
-                    {selectedConv.title}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedConv(null)}
-                  className="text-[#3761B0] hover:text-[#2a4d8a] transition-colors p-1 rounded-full hover:bg-blue-50"
-                  aria-label="Close"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              </header>
-
-              {/* Chat room */}
-              <div className="flex-1 min-h-0">
-                <ChatRoom
-                  other_user_id={selectedConv.otherId}
-                  offer_bid_id={
-                    selectedConv.kind === "offer" ? selectedConv.bidId : null
-                  }
-                  request_bid_id={
-                    selectedConv.kind === "request" ? selectedConv.bidId : null
-                  }
-                />
-              </div>
-            </>
+        <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
+          {otherAvatarUrl ? (
+            <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-              Select a conversation
-            </div>
+            <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
+              {(otherName || "U").charAt(0)}
+            </span>
           )}
         </div>
-      </div>
 
-      {mobileInvalid && <BottomNav />}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
+              {title}{otherName ? ` | ${otherName}` : ""}
+            </p>
+            {otherRating != null ? (
+              <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                {otherRating}<StarFill className="text-[#DEA440]" size={12} />
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 leading-tight">
+            {kind === "offer" ? "Offer" : "Request"}
+          </p>
+        </div>
+
+        {isOwner && !isDone && (
+          <button
+            type="button"
+            onClick={handleMarkDone}
+            className="shrink-0 text-xs font-medium border border-gray-400 rounded px-3 py-1.5 text-gray-600 hover:border-gray-600 transition-colors"
+          >
+            Mark done
+          </button>
+        )}
+      </header>
+
+      {/* Completion banner */}
+      {bannerText && (
+        <div className="bg-green-50 border-b border-green-200 px-4 py-2 text-sm text-green-700 font-medium text-center shrink-0">
+          {bannerText}
+        </div>
+      )}
+
+      {/* Chat */}
+      <div className="flex-1 min-h-0">
+        <ChatRoom
+          other_user_id={otherId}
+          offer_bid_id={kind === "offer" ? bidId : null}
+          request_bid_id={kind === "request" ? bidId : null}
+          disabled={isDone}
+        />
+      </div>
     </div>
   );
 }
-
-import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 
 export default function ChatPage() {
   return (

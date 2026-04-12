@@ -26,11 +26,13 @@ interface ChatRoomProps {
   other_user_id: string;
   request_bid_id?: string | null;
   offer_bid_id?: string | null;
+  disabled?: boolean;
 }
 export const ChatRoom = ({
   other_user_id,
   request_bid_id,
   offer_bid_id,
+  disabled = false,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
@@ -219,6 +221,7 @@ export const ChatRoom = ({
         messages={formattedMessages}
         actionButton={dealButton}
         otherAvatarUrl={otherAvatarUrl}
+        disabled={disabled}
       />
       <RatingModal
         open={ratingOpen}

@@ -13,6 +13,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
   return await handleAction<{
     parentStatus: string;
     ownerUserId: string | null;
+    parentId: string;
   }>(async () => {
     await requireAuth();
 
@@ -23,7 +24,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
       const reqs = await requestsService.getRequests({ id: bid.request_id });
       const req = reqs[0];
       if (!req) throw new Error("Request not found");
-      return { parentStatus: req.status, ownerUserId: req.user_id };
+      return { parentStatus: req.status, ownerUserId: req.user_id, parentId: req.id };
     }
 
     const bids = await offersService.getOfferBids({ id: bidId });
@@ -32,7 +33,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
     const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
     if (!offer) throw new Error("Offer not found");
-    return { parentStatus: offer.status, ownerUserId: offer.user_id };
+    return { parentStatus: offer.status, ownerUserId: offer.user_id, parentId: offer.id };
   });
 }
 
