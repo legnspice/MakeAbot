@@ -57,8 +57,9 @@ export async function createMessage(data: InsertMessageSchema) {
         data.content.length > 60
           ? data.content.slice(0, 60) + "…"
           : data.content;
+      const kind = data.request_bid_id ? "request" : "offer";
       const url = contextId
-        ? `/chat?bidId=${contextId}&otherId=${data.sender_id}`
+        ? `/chat?bidId=${contextId}&kind=${kind}&title=${encodeURIComponent(title)}&otherId=${data.sender_id}`
         : "/";
 
       if (!contextId) {
