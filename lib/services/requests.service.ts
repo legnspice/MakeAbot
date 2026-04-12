@@ -33,12 +33,27 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
   return await requestsRepo.insertRequestBid(data);
 }
 
-export async function acceptRequestBid(bidId: string, _requestOwnerId: string) {
-  await requestsRepo.updateRequestBidStatus(bidId, "Accepted");
+export async function completeRequest(requestId: string, winningBidId: string) {
+  await requestsRepo.updateRequestBidStatus(winningBidId, "Completed");
+  await requestsRepo.bulkCloseRequestBids(requestId, winningBidId);
+  const reqs = await requestsRepo.findRequests({ id: requestId });
+  const req = reqs[0];
+  if (req?.user_id) {
+    await requestsRepo.updateRequest(
+      requestId,
+      { status: "Completed", completed_at: new Date() },
+      req.user_id,
+    );
+  }
+  // Return winner/loser bids for notification dispatch by caller
+  const allBids = await requestsRepo.findRequestBids({ request_id: requestId });
+  const loserBids = allBids.filter((b) => b.id !== winningBidId && b.status === "Closed");
+  const winnerBid = allBids.find((b) => b.id === winningBidId);
+  return { winnerBid, loserBids, request: req };
 }
 
-export async function rejectRequestBid(bidId: string, _requestOwnerId: string) {
-  await requestsRepo.updateRequestBidStatus(bidId, "Closed");
+export async function expireStaleRequestBids() {
+  return await requestsRepo.expireStaleRequestBids();
 }
 
 export async function removeRequest(id: string, userId: string) {

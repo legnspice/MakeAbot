@@ -1,4 +1,4 @@
-import { and, eq, lte, ilike, gte, desc } from "drizzle-orm";
+import { and, eq, lte, ilike, gte, desc, ne, lt, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { requests, request_bids } from "../db/schema";
 import { getDayRange } from "./helper";
@@ -99,10 +99,55 @@ export async function updateRequest(
 
 export async function updateRequestBidStatus(
   bidId: string,
-  status: "Accepted" | "Closed",
+  status: "Pending" | "Completed" | "Closed",
 ) {
   return await db
     .update(request_bids)
     .set({ status })
     .where(eq(request_bids.id, bidId));
+}
+
+/** Set all Pending bids on a request to Closed, except the winner */
+export async function bulkCloseRequestBids(requestId: string, exceptBidId: string) {
+  return await db
+    .update(request_bids)
+    .set({ status: "Closed" })
+    .where(
+      and(
+        eq(request_bids.request_id, requestId),
+        eq(request_bids.status, "Pending"),
+        ne(request_bids.id, exceptBidId),
+      ),
+    );
+}
+
+/** Find all Pending request_bids whose parent request updated_at < 14 days ago */
+export async function expireStaleRequestBids(): Promise<
+  { bidId: string; bidderId: string; requestTitle: string }[]
+> {
+  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const stale = await db
+    .select({
+      bidId: request_bids.id,
+      bidderId: request_bids.bidder_id,
+      requestTitle: requests.title,
+    })
+    .from(request_bids)
+    .innerJoin(requests, eq(request_bids.request_id, requests.id))
+    .where(
+      and(
+        eq(request_bids.status, "Pending"),
+        lt(requests.updated_at, cutoff),
+      ),
+    );
+
+  if (stale.length === 0) return [];
+
+  const staleIds = stale.map((r) => r.bidId);
+  await db
+    .update(request_bids)
+    .set({ status: "Closed" })
+    .where(and(eq(request_bids.status, "Pending"), inArray(request_bids.id, staleIds)));
+
+  return stale;
 }
