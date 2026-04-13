@@ -297,19 +297,30 @@ export default function TrackerPage() {
             r.itemName.toLowerCase().includes(activeFilter.toLowerCase()),
           );
 
+  // Scope to active tab: Posts = owned, Inquiries = bid-on
+  const tabOffers =
+    activeTab === "posts"
+      ? offers.filter((o) => o.isOwned)
+      : offers.filter((o) => !o.isOwned);
+
+  const tabRequests =
+    activeTab === "posts"
+      ? requests.filter((r) => r.isOwned)
+      : requests.filter((r) => !r.isOwned);
+
   // Split active vs history
-  const activeOffers = offers.filter((o) =>
+  const activeOffers = tabOffers.filter((o) =>
     o.isOwned
       ? o.status === "Active"
       : o.requesters.some((r) => r.bidStatus === "Pending"),
   );
-  const historyOffers = offers.filter((o) =>
+  const historyOffers = tabOffers.filter((o) =>
     o.isOwned
       ? o.status === "Closed"
       : o.requesters.every((r) => r.bidStatus !== "Pending"),
   );
-  const activeRequests = requests.filter((r) => r.status !== "Completed");
-  const historyRequests = requests.filter((r) => r.status === "Completed");
+  const activeRequests = tabRequests.filter((r) => r.status !== "Completed");
+  const historyRequests = tabRequests.filter((r) => r.status === "Completed");
 
   const activeCards: TrackerCard[] = [
     ...filterOffers(activeOffers).map((data) => ({
