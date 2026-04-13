@@ -255,6 +255,7 @@ export default function TrackerPage() {
   const [offers, setOffers] = useState<TrackerOffer[]>([]);
   const [requests, setRequests] = useState<TrackerRequest[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"posts" | "inquiries">("posts");
   const [modalData, setModalData] = useState<{
     id: string;
     title: string;
@@ -527,6 +528,14 @@ export default function TrackerPage() {
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
 
+      <SegmentedTabs
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setActiveFilter("All");
+        }}
+      />
+
       <FilterBar
         filterLabels={allFilterLabels}
         activeFilter={activeFilter}
@@ -743,6 +752,33 @@ function ChatListModal({
           ))}
         </ul>
       </div>
+    </div>
+  );
+}
+
+function SegmentedTabs({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: "posts" | "inquiries";
+  onTabChange: (tab: "posts" | "inquiries") => void;
+}) {
+  return (
+    <div className="flex bg-gray-100 rounded-full p-1 mx-4 mt-3">
+      {(["posts", "inquiries"] as const).map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          onClick={() => onTabChange(tab)}
+          className={`flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+            activeTab === tab
+              ? "bg-white text-gray-900 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          {tab === "posts" ? "Posts" : "Inquiries"}
+        </button>
+      ))}
     </div>
   );
 }
