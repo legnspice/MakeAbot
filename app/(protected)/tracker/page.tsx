@@ -378,6 +378,9 @@ export default function TrackerPage() {
   const sortedActiveCards = sortCards(filteredActiveCards);
   const sortedHistoryCards = sortCards(filteredHistoryCards);
 
+  const hasUnfilteredActiveCards =
+    activeOffers.length > 0 || activeRequests.length > 0;
+
   const handleAddFilter = () => {
     const name = newFilterName.trim();
     if (name && !customFilters.includes(name)) {
@@ -589,9 +592,11 @@ export default function TrackerPage() {
             {sortedActiveCards.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-sm text-gray-500">
-                  {activeTab === "posts"
-                    ? "No posts yet. Create an offer or request to get started."
-                    : "No inquiries yet. Browse listings to find something you need."}
+                  {hasUnfilteredActiveCards
+                    ? "No results match your current filters."
+                    : activeTab === "posts"
+                      ? "No posts yet. Create an offer or request to get started."
+                      : "No inquiries yet. Browse listings to find something you need."}
                 </p>
               </div>
             )}
