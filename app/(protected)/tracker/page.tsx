@@ -533,6 +533,7 @@ export default function TrackerPage() {
         onTabChange={(tab) => {
           setActiveTab(tab);
           setActiveFilter("All");
+          setHistoryOpen(false);
         }}
       />
 
@@ -764,11 +765,13 @@ function SegmentedTabs({
   onTabChange: (tab: "posts" | "inquiries") => void;
 }) {
   return (
-    <div className="flex bg-gray-100 rounded-full p-1 mx-4 mt-3">
+    <div role="tablist" aria-label="Tracker view" className="flex bg-gray-100 rounded-full p-1 mx-4 mt-3">
       {(["posts", "inquiries"] as const).map((tab) => (
         <button
           key={tab}
+          role="tab"
           type="button"
+          aria-selected={activeTab === tab}
           onClick={() => onTabChange(tab)}
           className={`flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
             activeTab === tab
