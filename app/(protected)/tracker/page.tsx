@@ -309,16 +309,18 @@ export default function TrackerPage() {
       : requests.filter((r) => !r.isOwned);
 
   // Split active vs history
-  const activeOffers = tabOffers.filter((o) =>
-    o.isOwned
-      ? o.status === "Active"
-      : o.requesters.some((r) => r.bidStatus === "Pending"),
-  );
-  const historyOffers = tabOffers.filter((o) =>
-    o.isOwned
-      ? o.status === "Closed"
-      : o.requesters.every((r) => r.bidStatus !== "Pending"),
-  );
+  const activeOffers =
+    activeTab === "posts"
+      ? tabOffers.filter((o) => o.status === "Active")
+      : tabOffers.filter((o) =>
+          o.requesters.some((r) => r.bidStatus === "Pending"),
+        );
+  const historyOffers =
+    activeTab === "posts"
+      ? tabOffers.filter((o) => o.status === "Closed")
+      : tabOffers.filter((o) =>
+          o.requesters.every((r) => r.bidStatus !== "Pending"),
+        );
   const activeRequests = tabRequests.filter((r) => r.status !== "Completed");
   const historyRequests = tabRequests.filter((r) => r.status === "Completed");
 
@@ -583,6 +585,17 @@ export default function TrackerPage() {
               )}
             </div>
 
+            {/* Empty state */}
+            {sortedActiveCards.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-sm text-gray-500">
+                  {activeTab === "posts"
+                    ? "No posts yet. Create an offer or request to get started."
+                    : "No inquiries yet. Browse listings to find something you need."}
+                </p>
+              </div>
+            )}
+
             {/* History section */}
             {sortedHistoryCards.length > 0 && (
               <div className="max-w-7xl mx-auto w-full mt-6">
@@ -599,7 +612,7 @@ export default function TrackerPage() {
                   History ({sortedHistoryCards.length})
                 </button>
                 {historyOpen && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 opacity-50 pointer-events-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 grayscale opacity-60 pointer-events-none">
                     {sortedHistoryCards.map((card) =>
                       card.type === "offer"
                         ? renderOfferCard(card.data, true)
