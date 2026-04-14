@@ -20,6 +20,10 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
 import { URGENCY_VALUES, type Urgency } from "@/lib/db/enums";
 import { ImageCropModal } from "@/components/image-crop-modal";
+import {
+  PushPermissionModal,
+  PUSH_PROMPT_KEY,
+} from "@/components/push-permission-modal";
 
 export default function CreateRequest() {
   const router = useRouter();
@@ -32,6 +36,7 @@ export default function CreateRequest() {
   const [itemKind, setItemKind] = useState<"Item" | "Service">("Item");
   const [urgency, setUrgency] = useState<Urgency>("Now");
   const [isPosting, setIsPosting] = useState(false);
+  const [showPushModal, setShowPushModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -150,7 +155,14 @@ export default function CreateRequest() {
           status: "Active",
           type: itemKind,
         });
-        requestPermissionAndSubscribe().catch(() => {});
+        const seen = localStorage.getItem(PUSH_PROMPT_KEY);
+        const denied =
+          typeof Notification !== "undefined" &&
+          Notification.permission === "denied";
+        if (!seen && !denied) {
+          setShowPushModal(true);
+          return;
+        }
       }
       router.push(editId ? "/tracker" : "/");
     } finally {
@@ -351,6 +363,23 @@ export default function CreateRequest() {
           </div>
         </div>
       </div>
+
+      {/* Push permission modal */}
+      {showPushModal && (
+        <PushPermissionModal
+          onEnable={async () => {
+            localStorage.setItem(PUSH_PROMPT_KEY, "true");
+            await requestPermissionAndSubscribe().catch(() => {});
+            setShowPushModal(false);
+            router.push("/");
+          }}
+          onSkip={() => {
+            localStorage.setItem(PUSH_PROMPT_KEY, "true");
+            setShowPushModal(false);
+            router.push("/");
+          }}
+        />
+      )}
 
       {/* Image crop modal */}
       {rawImageSrc && (
