@@ -36,7 +36,7 @@ export function PushPermissionModal({
             when the app is closed.
           </p>
         </div>
-        <DialogFooter className="flex-col gap-2">
+        <DialogFooter className="flex-col sm:flex-col gap-2">
           <Button onClick={onEnable} className="w-full">
             Enable notifications
           </Button>
