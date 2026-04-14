@@ -6,14 +6,21 @@ import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PencilSquare, StarFill, Star, XLg, BoxArrowRight, CameraFill } from "react-bootstrap-icons";
+import {
+  PencilSquare,
+  StarFill,
+  Star,
+  XLg,
+  BoxArrowRight,
+  CameraFill,
+} from "react-bootstrap-icons";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { getReviews } from "@/lib/actions/reviews";
-import { getPosts } from "@/lib/actions/posts";
+import { getOffers } from "@/lib/actions/offers";
 import { editUser, getUsers } from "@/lib/actions/users";
 import { logout } from "@/app/auth/login/actions";
-import type { SelectPost } from "@/lib/db/schema";
+import type { SelectOffer } from "@/lib/db/schema";
 import imageCompression from "browser-image-compression";
 import { createClient } from "@/lib/supabase/client";
 
@@ -36,7 +43,7 @@ export default function ProfilePage() {
 
   const [avgRating, setAvgRating] = useState<number>(0);
   const [reviewCount, setReviewCount] = useState(0);
-  const [offers, setOffers] = useState<SelectPost[]>([]);
+  const [offers, setOffers] = useState<SelectOffer[]>([]);
 
   // Local copy of editable fields so UI updates after save
   const [name, setName] = useState(currentUser.name ?? googleName);
@@ -106,10 +113,10 @@ export default function ProfilePage() {
   };
 
   const loadData = useCallback(async () => {
-    const [userResult, reviewsResult, postsResult] = await Promise.all([
+    const [userResult, reviewsResult, offersResult] = await Promise.all([
       getUsers({ id: currentUser.id }),
       getReviews({ rated_user_id: currentUser.id }),
-      getPosts({ user_id: currentUser.id }),
+      getOffers({ user_id: currentUser.id }),
     ]);
 
     if (userResult.data?.[0]) {
@@ -126,8 +133,8 @@ export default function ProfilePage() {
       setReviewCount(reviewsResult.data.length);
     }
 
-    if (postsResult.data) {
-      setOffers(postsResult.data.filter((p) => p.status === "Active"));
+    if (offersResult.data) {
+      setOffers(offersResult.data.filter((p) => p.status === "Active"));
     }
   }, [currentUser.id, googleName]);
 
@@ -379,12 +386,8 @@ export default function ProfilePage() {
                           size={20}
                         />
                       ) : (
-                        <Star
-                          key={n}
-                          className="text-gray-200"
-                          size={20}
-                        />
-                      )
+                        <Star key={n} className="text-gray-200" size={20} />
+                      ),
                     )}
                   </div>
                   <span className="text-sm text-gray-600 font-medium">

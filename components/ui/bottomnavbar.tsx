@@ -17,7 +17,8 @@ export default function BottomNav() {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#3761B0] shadow-lg z-40">
       <div className="flex justify-around items-stretch gap-1 py-2 px-2 min-h-[68px]">
         {staticItems.map(({ href, label, Icon }) => {
-          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          const active =
+            pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
             <Link
               key={href}

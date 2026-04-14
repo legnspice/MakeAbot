@@ -1,6 +1,6 @@
 import * as messagesRepo from "../repo/messages.repo";
 import * as usersRepo from "../repo/users.repo";
-import * as postsRepo from "../repo/posts.repo";
+import * as offersRepo from "../repo/offers.repo";
 import * as requestsRepo from "../repo/requests.repo";
 import * as notificationsRepo from "../repo/notifications.repo";
 import { sendPushToUser } from "./push.service";
@@ -20,9 +20,10 @@ export async function getConversation(filters: FindConversationSchema) {
 
 export async function createMessage(data: InsertMessageSchema) {
   const result = await messagesRepo.insertMessage(data);
-  const contextId = data.request_bid_id ?? data.post_bid_id ?? null;
-  const threadField: "request_bid_id" | "post_bid_id" =
-    data.request_bid_id ? "request_bid_id" : "post_bid_id";
+  const contextId = data.request_bid_id ?? data.offer_bid_id ?? null;
+  const threadField = (
+    data.request_bid_id ? "request_bid_id" : "offer_bid_id"
+  ) as "request_bid_id" | "offer_bid_id";
 
   // fire-and-forget — failure must not throw
   (async () => {
@@ -32,17 +33,18 @@ export async function createMessage(data: InsertMessageSchema) {
         usersRepo.findUsers({ id: data.sender_id }),
         (async () => {
           if (data.request_bid_id) {
-            const bid = await requestsRepo.findRequestBidById(data.request_bid_id);
+            const bid = await requestsRepo.findRequestBidById(
+              data.request_bid_id,
+            );
             if (bid) {
               const req = await requestsRepo.findRequestById(bid.request_id);
               return req?.title ?? null;
             }
-          } else if (data.post_bid_id) {
-            const bids = await postsRepo.findPostBids({ id: data.post_bid_id });
-            const bid = bids[0];
+          } else if (data.offer_bid_id) {
+            const bid = await offersRepo.findOfferBidById(data.offer_bid_id);
             if (bid) {
-              const post = await postsRepo.findPostById(bid.post_id);
-              return post?.title ?? null;
+              const offer = await offersRepo.findOfferById(bid.offer_id);
+              return offer?.title ?? null;
             }
           }
           return null;
@@ -52,9 +54,12 @@ export async function createMessage(data: InsertMessageSchema) {
       const senderName = senderUsers[0]?.name ?? "Someone";
       const title = conversationTitle ?? "New message";
       const truncated =
-        data.content.length > 60 ? data.content.slice(0, 60) + "…" : data.content;
+        data.content.length > 60
+          ? data.content.slice(0, 60) + "…"
+          : data.content;
+      const kind = data.request_bid_id ? "request" : "offer";
       const url = contextId
-        ? `/chat?bidId=${contextId}&otherId=${data.sender_id}`
+        ? `/chat?bidId=${contextId}&kind=${kind}&title=${encodeURIComponent(title)}&otherId=${data.sender_id}`
         : "/";
 
       if (!contextId) {
@@ -70,9 +75,17 @@ export async function createMessage(data: InsertMessageSchema) {
 
       // --- Phase detection ---
       // Phase 1: receiver hasn't replied yet AND inquiry notification is unread (or doesn't exist yet)
+      const nonNullContextId = contextId as string;
       const [receiverHasReplied, existingInquiry] = await Promise.all([
-        messagesRepo.hasUserSentMessageInThread(data.receiver_id, threadField, contextId),
-        notificationsRepo.findInquiryNotification(data.receiver_id, contextId),
+        messagesRepo.hasUserSentMessageInThread(
+          data.receiver_id,
+          threadField,
+          nonNullContextId,
+        ),
+        notificationsRepo.findInquiryNotification(
+          data.receiver_id,
+          nonNullContextId,
+        ),
       ]);
 
       const isPhase2 = receiverHasReplied || existingInquiry?.is_read === true;
@@ -117,10 +130,13 @@ export async function createMessage(data: InsertMessageSchema) {
 }
 
 export async function getLatestTimestampsForBids(
-  postBidIds: string[],
+  offerBidIds: string[],
   requestBidIds: string[],
 ) {
-  return await messagesRepo.findLatestTimestampsForBids(postBidIds, requestBidIds);
+  return await messagesRepo.findLatestTimestampsForBids(
+    offerBidIds,
+    requestBidIds,
+  );
 }
 
 export async function removeMessage(id: string, userId: string) {

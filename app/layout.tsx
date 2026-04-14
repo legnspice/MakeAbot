@@ -10,7 +10,8 @@ const instrumentSans = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: "MakeAbot",
-  description: "The campus marketplace for borrowing, lending, and getting things done.",
+  description:
+    "The campus marketplace for borrowing, lending, and getting things done.",
 };
 
 export default function RootLayout({
@@ -20,9 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${instrumentSans.variable} antialiased`}
-      >
+      <body className={`${instrumentSans.variable} antialiased`}>
         {children}
       </body>
     </html>

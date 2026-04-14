@@ -4,7 +4,13 @@ import Link from "next/link";
 export default function ErrorPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 gap-6">
-      <Image src="/logo.svg" alt="MakeAbot logo" width={80} height={72} priority />
+      <Image
+        src="/logo.svg"
+        alt="MakeAbot logo"
+        width={80}
+        height={72}
+        priority
+      />
 
       <div className="flex flex-col items-center gap-1">
         <h1 className="text-5xl md:text-6xl font-black tracking-tight text-[#3761B0]">
@@ -13,7 +19,9 @@ export default function ErrorPage() {
       </div>
 
       <div className="flex flex-col items-center gap-2 text-center max-w-xs">
-        <p className="text-gray-800 font-semibold text-lg">Something went wrong</p>
+        <p className="text-gray-800 font-semibold text-lg">
+          Something went wrong
+        </p>
         <p className="text-gray-500 text-sm">
           An unexpected error occurred. Please try refreshing the page.
         </p>

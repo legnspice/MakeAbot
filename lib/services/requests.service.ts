@@ -1,5 +1,6 @@
 import * as requestsRepo from "../repo/requests.repo";
 import { sendPushToAllUsers } from "./push.service";
+import { AppError } from "@/lib/error/app-error";
 import {
   FindRequestsSchema,
   FindRequestBidsSchema,
@@ -33,12 +34,28 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
   return await requestsRepo.insertRequestBid(data);
 }
 
-export async function acceptRequestBid(bidId: string, _requestOwnerId: string) {
-  await requestsRepo.updateRequestBidStatus(bidId, "Accepted");
+export async function completeRequest(requestId: string, winningBidId: string) {
+  const req = await requestsRepo.findRequestById(requestId);
+  if (!req) throw new AppError("Request not found", 404);
+
+  await requestsRepo.updateRequestBidStatus(winningBidId, "Completed");
+  await requestsRepo.bulkCloseRequestBids(requestId, winningBidId);
+  await requestsRepo.updateRequest(
+    requestId,
+    { status: "Completed", completed_at: new Date() },
+    req.user_id!,
+  );
+  // Return winner/loser bids for notification dispatch by caller
+  const allBids = await requestsRepo.findRequestBids({ request_id: requestId });
+  const loserBids = allBids.filter(
+    (b) => b.id !== winningBidId && b.status === "Closed",
+  );
+  const winnerBid = allBids.find((b) => b.id === winningBidId);
+  return { winnerBid, loserBids, request: req };
 }
 
-export async function rejectRequestBid(bidId: string, _requestOwnerId: string) {
-  await requestsRepo.updateRequestBidStatus(bidId, "Closed");
+export async function expireStaleRequestBids() {
+  return await requestsRepo.expireStaleRequestBids();
 }
 
 export async function removeRequest(id: string, userId: string) {
@@ -47,6 +64,14 @@ export async function removeRequest(id: string, userId: string) {
 
 export async function removeRequestBid(id: string, userId: string) {
   return await requestsRepo.deleteRequestBid(id, userId);
+}
+
+export async function withdrawRequestBid(bidId: string) {
+  return await requestsRepo.updateRequestBidStatus(bidId, "Closed");
+}
+
+export async function reopenRequestBid(bidId: string) {
+  return await requestsRepo.updateRequestBidStatus(bidId, "Pending");
 }
 
 export async function editRequest(

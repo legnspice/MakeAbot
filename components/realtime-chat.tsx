@@ -17,6 +17,7 @@ interface RealtimeChatProps {
   messages?: ChatMessage[];
   actionButton?: React.ReactNode;
   otherAvatarUrl?: string;
+  disabled?: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export const RealtimeChat = ({
   messages: initialMessages = [],
   actionButton,
   otherAvatarUrl,
+  disabled = false,
 }: RealtimeChatProps) => {
   const { containerRef, scrollToBottom } = useChatScroll();
 
@@ -110,7 +112,9 @@ export const RealtimeChat = ({
                   message={message}
                   isOwnMessage={message.user.name === username}
                   showHeader={showHeader}
-                  avatarUrl={message.user.name !== username ? otherAvatarUrl : undefined}
+                  avatarUrl={
+                    message.user.name !== username ? otherAvatarUrl : undefined
+                  }
                 />
               </div>
             );
@@ -119,26 +123,25 @@ export const RealtimeChat = ({
       </div>
 
       <div className="flex w-full items-center gap-2 border-t border-border p-4 z-10 bg-gray-100">
-        <form
-          onSubmit={handleSendMessage}
-          className="flex flex-1 gap-2"
-        >
+        <form onSubmit={handleSendMessage} className="flex flex-1 gap-2">
           <Input
             className={cn(
               "rounded-full bg-background text-sm transition-all duration-300",
-              isConnected && newMessage.trim() ? "w-[calc(100%-36px)]" : "w-full",
+              isConnected && !disabled && newMessage.trim()
+                ? "w-[calc(100%-36px)]"
+                : "w-full",
             )}
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            disabled={!isConnected}
+            placeholder={disabled ? "This conversation is closed." : "Type a message..."}
+            disabled={!isConnected || disabled}
           />
-          {isConnected && newMessage.trim() && (
+          {isConnected && !disabled && newMessage.trim() && (
             <Button
               className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
               type="submit"
-              disabled={!isConnected}
+              disabled={!isConnected || disabled}
             >
               <SendFill size={16} />
             </Button>

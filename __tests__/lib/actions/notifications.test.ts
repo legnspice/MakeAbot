@@ -55,7 +55,9 @@ describe("notifications actions", () => {
         .spyOn(notificationsService, "updatePreferences")
         .mockResolvedValue(undefined as never);
       await updateNotificationPreferences({ new_message: false });
-      expect(mockUpdate).toHaveBeenCalledWith("user-123", { new_message: false });
+      expect(mockUpdate).toHaveBeenCalledWith("user-123", {
+        new_message: false,
+      });
     });
 
     it("passes remaining valid preference fields through to service", async () => {

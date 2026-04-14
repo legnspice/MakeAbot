@@ -14,6 +14,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[cron/daily-digest] failed", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

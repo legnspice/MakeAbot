@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ImageFill, XLg } from "react-bootstrap-icons";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { createRequest, getRequests, editRequest } from "@/lib/actions/requests";
+import {
+  createRequest,
+  getRequests,
+  editRequest,
+} from "@/lib/actions/requests";
 import { createClient } from "@/lib/supabase/client";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import imageCompression from "browser-image-compression";
@@ -52,7 +56,8 @@ export default function CreateRequest() {
           description: req.description ?? "",
           incentive: req.fee != null ? String(req.fee) : "",
         });
-        if (req.type === "Item" || req.type === "Service") setItemKind(req.type);
+        if (req.type === "Item" || req.type === "Service")
+          setItemKind(req.type);
         if (req.urgency) setUrgency(req.urgency);
         if (req.imgUrl) setUploadedImageUrl(req.imgUrl);
       } else {
@@ -326,10 +331,21 @@ export default function CreateRequest() {
               <Button
                 type="button"
                 onClick={handlePost}
-                disabled={isPosting || isUploading || isLoadingEdit || !form.title.trim()}
+                disabled={
+                  isPosting ||
+                  isUploading ||
+                  isLoadingEdit ||
+                  !form.title.trim()
+                }
                 className="w-full rounded-full bg-[#3761B0] hover:bg-[#2d52a0] text-white font-bold uppercase disabled:opacity-60"
               >
-                {isPosting ? (editId ? "Saving..." : "Posting...") : (editId ? "SAVE" : "POST!")}
+                {isPosting
+                  ? editId
+                    ? "Saving..."
+                    : "Posting..."
+                  : editId
+                    ? "SAVE"
+                    : "POST!"}
               </Button>
             </div>
           </div>

@@ -11,7 +11,11 @@ declare global {
 }
 
 // Reuse the client in development to avoid exhausting the connection pool
-const client = global.pgClient || postgres(process.env.DATABASE_URL!);
+const client =
+  global.pgClient ||
+  postgres(process.env.DATABASE_URL!, {
+    prepare: false, // required for transaction-mode pooler (pgBouncer port 6543)
+  });
 
 if (process.env.NODE_ENV !== "production") {
   global.pgClient = client;

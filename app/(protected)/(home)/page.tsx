@@ -9,14 +9,23 @@ import ItemRequestCard from "@/components/ui/item";
 import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
-import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
+import FilterBar, {
+  type DateSort,
+  type PriceSort,
+} from "@/components/ui/filter-bar";
 import { TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
-import { getPosts, getPostBids, createPostBid } from "@/lib/actions/posts";
+import {
+  getOffers,
+  getOfferBids,
+  createOfferBid,
+  reopenOfferBid,
+} from "@/lib/actions/offers";
 import {
   getRequests,
   getRequestBids,
   createRequestBid,
+  reopenRequestBid,
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
@@ -54,7 +63,7 @@ async function fetchHomeItems(
   userName: string | null | undefined,
 ) {
   const [postsResult, requestsResult] = await Promise.all([
-    getPosts({}),
+    getOffers({}),
     getRequests({}),
   ]);
 
@@ -208,19 +217,22 @@ export default function Home() {
     let bidId: string | null = null;
 
     if (kind === "offer") {
-      const existing = await getPostBids({
-        post_id: item.itemDbId,
+      const existing = await getOfferBids({
+        offer_id: item.itemDbId,
         bidder_id: currentUser.id,
       });
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
+        if (existing.data[0].status === "Closed") {
+          await reopenOfferBid(bidId);
+        }
       } else {
-        await createPostBid({
-          post_id: item.itemDbId,
+        await createOfferBid({
+          offer_id: item.itemDbId,
           bidder_id: currentUser.id,
         });
-        const created = await getPostBids({
-          post_id: item.itemDbId,
+        const created = await getOfferBids({
+          offer_id: item.itemDbId,
           bidder_id: currentUser.id,
         });
         bidId = created.data?.[0]?.id ?? null;
@@ -232,6 +244,9 @@ export default function Home() {
       });
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
+        if (existing.data[0].status === "Closed") {
+          await reopenRequestBid(bidId);
+        }
       } else {
         await createRequestBid({
           request_id: item.itemDbId,
@@ -330,7 +345,6 @@ export default function Home() {
             />
             <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
               <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 px-6 pt-5 pb-8">
-
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-800">
@@ -380,7 +394,10 @@ export default function Home() {
                     className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#3761B0] hover:bg-blue-50 active:bg-blue-100 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
-                      <QuestionCircleFill size={24} className="text-[#3761B0]" />
+                      <QuestionCircleFill
+                        size={24}
+                        className="text-[#3761B0]"
+                      />
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-gray-800 text-sm">
@@ -404,8 +421,12 @@ export default function Home() {
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen(true)}
         >
-          <span className="hidden md:inline text-black font-regular">Create</span>
-          <span className="text-black text-3xl md:text-3xl leading-none -mt-1">+</span>
+          <span className="hidden md:inline text-black font-regular">
+            Create
+          </span>
+          <span className="text-black text-3xl md:text-3xl leading-none -mt-1">
+            +
+          </span>
         </Button>
       </div>
 

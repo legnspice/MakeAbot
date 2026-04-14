@@ -33,7 +33,9 @@ export async function getNotificationPreferences() {
   });
 }
 
-export async function updateNotificationPreferences(data: UpdatePreferencesSchema) {
+export async function updateNotificationPreferences(
+  data: UpdatePreferencesSchema,
+) {
   return await handleAction(async () => {
     const user = await requireAuth();
     return notificationsService.updatePreferences(user.id, data);

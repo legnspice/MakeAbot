@@ -2,122 +2,115 @@
 
 import { handleAction } from "@/lib/error/actions-handler";
 import { requireAuth } from "@/lib/actions/auth";
-import * as postsService from "@/lib/services/posts.service";
+import * as offersService from "@/lib/services/offers.service";
 import * as requestsService from "@/lib/services/requests.service";
+import * as usersService from "@/lib/services/users.service";
+import { sendPushToUser } from "@/lib/services/push.service";
 
 type DealKind = "offer" | "request";
 
-interface DealStatusResult {
-  ownerUserId: string | null;
-  bidStatus: string | null;
-  parentStatus: string;
-}
-
 export async function getDealStatus(bidId: string, kind: DealKind) {
-  return await handleAction<DealStatusResult>(async () => {
+  return await handleAction<{
+    parentStatus: string;
+    ownerUserId: string | null;
+    parentId: string;
+  }>(async () => {
     await requireAuth();
 
     if (kind === "request") {
       const bids = await requestsService.getRequestBids({ id: bidId });
       const bid = bids[0];
       if (!bid) throw new Error("Request bid not found");
-
       const reqs = await requestsService.getRequests({ id: bid.request_id });
       const req = reqs[0];
       if (!req) throw new Error("Request not found");
-
-      return {
-        ownerUserId: req.user_id,
-        bidStatus: bid.status,
-        parentStatus: req.status,
-      };
+      return { parentStatus: req.status, ownerUserId: req.user_id, parentId: req.id };
     }
 
-    // offer
-    const bids = await postsService.getPostBids({ id: bidId });
+    const bids = await offersService.getOfferBids({ id: bidId });
     const bid = bids[0];
-    if (!bid) throw new Error("Post bid not found");
-
-    const posts = await postsService.getPosts({ id: bid.post_id });
-    const post = posts[0];
-    if (!post) throw new Error("Post not found");
-
-    return {
-      ownerUserId: post.user_id,
-      bidStatus: null,
-      parentStatus: post.status,
-    };
+    if (!bid) throw new Error("Offer bid not found");
+    const offersList = await offersService.getOffers({ id: bid.offer_id });
+    const offer = offersList[0];
+    if (!offer) throw new Error("Offer not found");
+    return { parentStatus: offer.status, ownerUserId: offer.user_id, parentId: offer.id };
   });
 }
 
-export async function acceptDeal(bidId: string, kind: DealKind) {
+export async function completeRequest(requestId: string, winningBidId: string) {
   return await handleAction(async () => {
     await requireAuth();
 
-    if (kind === "request") {
-      const bids = await requestsService.getRequestBids({ id: bidId });
-      const bid = bids[0];
-      if (!bid) throw new Error("Request bid not found");
+    const { winnerBid, loserBids, request } =
+      await requestsService.completeRequest(requestId, winningBidId);
 
-      await requestsService.acceptRequestBid(bidId, bid.bidder_id);
+    // Fetch requester display name
+    const requesterUsers = await usersService.getUsers({
+      id: request.user_id ?? undefined,
+    });
+    const requesterName = requesterUsers[0]?.name ?? "Someone";
 
-      // Look up the request owner to pass to editRequest
-      const reqs = await requestsService.getRequests({ id: bid.request_id });
-      const req = reqs[0];
-      if (req?.user_id) {
-        await requestsService.editRequest(bid.request_id, { status: "Ongoing" }, req.user_id);
-      }
-      return { success: true };
+    // Notify winner
+    if (winnerBid) {
+      await sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
+        title: "Your offer was accepted!",
+        body: `${requesterName} marked your bid on ${request.title} as done.`,
+        url: `/reviews/new?targetId=${request.user_id}&context=${requestId}`,
+        contextId: null,
+      }).catch(() => {});
     }
 
-    // offer — the post owner is the offerer
-    const bids = await postsService.getPostBids({ id: bidId });
-    const bid = bids[0];
-    if (!bid) throw new Error("Post bid not found");
+    // Notify losers
+    await Promise.allSettled(
+      loserBids.map((loser) =>
+        sendPushToUser(loser.bidder_id, "request_completed_loser", {
+          title: "Request fulfilled",
+          body: `${request.title} has been fulfilled by someone else.`,
+          url: `/`,
+          contextId: null,
+        }),
+      ),
+    );
 
-    const posts = await postsService.getPosts({ id: bid.post_id });
-    const post = posts[0];
-    if (!post?.user_id) throw new Error("Post not found");
-
-    await postsService.editPost(bid.post_id, { status: "Busy" }, post.user_id);
     return { success: true };
   });
 }
 
-export async function finishDeal(bidId: string, kind: DealKind) {
+export async function completeOfferBid(bidId: string) {
   return await handleAction(async () => {
     await requireAuth();
 
-    if (kind === "request") {
-      const bids = await requestsService.getRequestBids({ id: bidId });
-      const bid = bids[0];
-      if (!bid) throw new Error("Request bid not found");
-
-      await requestsService.rejectRequestBid(bidId, bid.bidder_id);
-
-      // Look up the request owner to pass to editRequest
-      const reqs = await requestsService.getRequests({ id: bid.request_id });
-      const req = reqs[0];
-      if (req?.user_id) {
-        await requestsService.editRequest(
-          bid.request_id,
-          { status: "Completed", completed_at: new Date() },
-          req.user_id,
-        );
-      }
-      return { success: true };
-    }
-
-    // offer — the post owner is the offerer
-    const bids = await postsService.getPostBids({ id: bidId });
+    const bids = await offersService.getOfferBids({ id: bidId });
     const bid = bids[0];
-    if (!bid) throw new Error("Post bid not found");
+    if (!bid) throw new Error("Offer bid not found");
 
-    const posts = await postsService.getPosts({ id: bid.post_id });
-    const post = posts[0];
-    if (!post?.user_id) throw new Error("Post not found");
+    const offersList = await offersService.getOffers({ id: bid.offer_id });
+    const offer = offersList[0];
+    if (!offer) throw new Error("Offer not found");
 
-    await postsService.editPost(bid.post_id, { status: "Closed" }, post.user_id);
+    // Fetch offerer display name
+    const offererUsers = await usersService.getUsers({
+      id: offer.user_id ?? undefined,
+    });
+    const offererName = offererUsers[0]?.name ?? "Someone";
+
+    await offersService.completeOfferBid(bidId);
+
+    await sendPushToUser(bid.bidder_id, "offer_bid_completed", {
+      title: "Deal confirmed!",
+      body: `${offererName} marked your deal on ${offer.title} as done.`,
+      url: `/reviews/new?targetId=${offer.user_id}&context=${offer.id}`,
+      contextId: null,
+    }).catch(() => {});
+
+    return { success: true };
+  });
+}
+
+export async function closeOffer(offerId: string) {
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    await offersService.closeOffer(offerId, user.id);
     return { success: true };
   });
 }

@@ -1,4 +1,14 @@
-import { eq, desc, and, count, sql, ne, or, isNull, inArray } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  and,
+  count,
+  sql,
+  ne,
+  or,
+  isNull,
+  inArray,
+} from "drizzle-orm";
 import { db } from "../db";
 import {
   notifications,
@@ -76,7 +86,10 @@ export async function markAllNotificationsRead(userId: string) {
     );
 }
 
-export async function findInquiryNotification(userId: string, contextId: string) {
+export async function findInquiryNotification(
+  userId: string,
+  contextId: string,
+) {
   return await db.query.notifications.findFirst({
     where: and(
       eq(notifications.user_id, userId),
@@ -214,7 +227,15 @@ export async function insertBroadcastNotifications(
 // --- Daily digest ---
 
 export async function findUsersWithUnreadMessageNotifications(): Promise<
-  { user_id: string; rows: { type: string; title: string; body: string | null; url: string | null }[] }[]
+  {
+    user_id: string;
+    rows: {
+      type: string;
+      title: string;
+      body: string | null;
+      url: string | null;
+    }[];
+  }[]
 > {
   const unread = await db
     .select({
@@ -238,9 +259,17 @@ export async function findUsersWithUnreadMessageNotifications(): Promise<
   >();
   for (const row of unread) {
     const existing = grouped.get(row.user_id) ?? [];
-    existing.push({ type: row.type, title: row.title, body: row.body, url: row.url });
+    existing.push({
+      type: row.type,
+      title: row.title,
+      body: row.body,
+      url: row.url,
+    });
     grouped.set(row.user_id, existing);
   }
 
-  return Array.from(grouped.entries()).map(([user_id, rows]) => ({ user_id, rows }));
+  return Array.from(grouped.entries()).map(([user_id, rows]) => ({
+    user_id,
+    rows,
+  }));
 }

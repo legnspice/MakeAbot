@@ -138,10 +138,7 @@ export function TutorialModal() {
             <div
               className={`w-16 h-16 rounded-full ${current.iconBg} flex items-center justify-center`}
             >
-              <Icon
-                className={current.iconColor}
-                size={32}
-              />
+              <Icon className={current.iconColor} size={32} />
             </div>
           )}
           <DialogTitle className="text-center text-lg font-bold text-gray-800">
@@ -176,7 +173,11 @@ export function TutorialModal() {
           </button>
           <div className="flex items-center gap-2">
             {step > 0 && (
-              <Button variant="outline" onClick={handleBack} className="min-w-[90px]">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                className="min-w-[90px]"
+              >
                 ← Back
               </Button>
             )}

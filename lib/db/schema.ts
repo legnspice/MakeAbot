@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   urgencyEnum,
-  postStatusEnum,
+  offerStatusEnum,
   requestStatusEnum,
   bidStatusEnum,
   typeEnum,
@@ -46,7 +46,7 @@ export const messages = pgTable("messages", {
   request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
     onDelete: "cascade",
   }),
-  post_bid_id: uuid("post_bid_id").references(() => post_bids.id, {
+  offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
     onDelete: "cascade",
   }),
   content: text("content").notNull(),
@@ -65,7 +65,7 @@ export const reviews = pgTable("reviews", {
   request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
     onDelete: "cascade",
   }),
-  post_bid_id: uuid("post_bid_id").references(() => post_bids.id, {
+  offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
     onDelete: "cascade",
   }),
   comment: text("comment"),
@@ -82,24 +82,25 @@ export const requests = pgTable("requests", {
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
   urgency: urgencyEnum("urgency").notNull().default("Now"),
   type: typeEnum("type").notNull().default("Unknown"),
   status: requestStatusEnum("status").notNull().default("Active"),
 });
 
-export const posts = pgTable("posts", {
+export const offers = pgTable("offers", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-
   imgUrl: text("imgUrl"),
   // For currency we use the smallest unit: Php in cents
   price: integer("price"),
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
   type: typeEnum("type").notNull().default("Unknown"),
-  status: postStatusEnum("status").notNull().default("Active"),
+  status: offerStatusEnum("status").notNull().default("Active"),
 });
 
 export const request_bids = pgTable("request_bids", {
@@ -116,17 +117,18 @@ export const request_bids = pgTable("request_bids", {
   status: bidStatusEnum("status").notNull().default("Pending"),
 });
 
-export const post_bids = pgTable("post_bids", {
+export const offer_bids = pgTable("offer_bids", {
   id: uuid("id").primaryKey().defaultRandom(),
-  post_id: uuid("post_id")
+  offer_id: uuid("offer_id")
     .notNull()
-    .references(() => posts.id, { onDelete: "cascade" }),
+    .references(() => offers.id, { onDelete: "cascade" }),
   bidder_id: uuid("bidder_id")
     .notNull()
     .references(() => users.id, {
       onDelete: "cascade",
     }),
   created_at: timestamp("created_at").notNull().defaultNow(),
+  status: bidStatusEnum("status").notNull().default("Pending"),
 });
 
 export const notifications = pgTable(
@@ -178,11 +180,13 @@ export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
 export type SelectMessage = typeof messages.$inferSelect;
-export type InsertPost = typeof posts.$inferInsert;
-export type SelectPost = typeof posts.$inferSelect;
+export type InsertOffer = typeof offers.$inferInsert;
+export type SelectOffer = typeof offers.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 export type SelectNotification = typeof notifications.$inferSelect;
 export type InsertPushSubscription = typeof push_subscriptions.$inferInsert;
 export type SelectPushSubscription = typeof push_subscriptions.$inferSelect;
 export type SelectNotificationPreferences =
   typeof notification_preferences.$inferSelect;
+export type InsertOfferBid = typeof offer_bids.$inferInsert;
+export type SelectOfferBid = typeof offer_bids.$inferSelect;

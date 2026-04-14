@@ -11,7 +11,10 @@ function TrackerCardSkeleton() {
       <div className="mt-3 flex items-center justify-between">
         <div className="flex -space-x-2">
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="w-8 h-8 rounded-full border-2 border-white" />
+            <Skeleton
+              key={i}
+              className="w-8 h-8 rounded-full border-2 border-white"
+            />
           ))}
         </div>
         <Skeleton className="w-16 h-4 rounded" />

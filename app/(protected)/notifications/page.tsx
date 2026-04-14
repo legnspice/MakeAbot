@@ -54,9 +54,7 @@ function NotificationRow({
               {n.title}
             </p>
           </div>
-          {n.body && (
-            <p className="mt-1 text-sm text-gray-600">{n.body}</p>
-          )}
+          {n.body && <p className="mt-1 text-sm text-gray-600">{n.body}</p>}
         </div>
         <span className="shrink-0 text-xs text-gray-500 mt-1">
           {formatTime(new Date(n.created_at))}
@@ -79,7 +77,9 @@ export default function NotificationsPage() {
         setLoading(false);
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleClick(n: SelectNotification) {

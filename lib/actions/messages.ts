@@ -31,12 +31,15 @@ export async function createMessage(data: InsertMessageSchema) {
 }
 
 export async function getLatestTimestampsForBids(
-  postBidIds: string[],
+  offerBidIds: string[],
   requestBidIds: string[],
 ) {
   return await handleAction(async () => {
     await requireAuth();
-    return messagesService.getLatestTimestampsForBids(postBidIds, requestBidIds);
+    return messagesService.getLatestTimestampsForBids(
+      offerBidIds,
+      requestBidIds,
+    );
   });
 }
 
