@@ -15,11 +15,17 @@ import FilterBar, {
 } from "@/components/ui/filter-bar";
 import { TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
-import { getOffers, getOfferBids, createOfferBid } from "@/lib/actions/offers";
+import {
+  getOffers,
+  getOfferBids,
+  createOfferBid,
+  reopenOfferBid,
+} from "@/lib/actions/offers";
 import {
   getRequests,
   getRequestBids,
   createRequestBid,
+  reopenRequestBid,
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
@@ -217,6 +223,9 @@ export default function Home() {
       });
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
+        if (existing.data[0].status === "Closed") {
+          await reopenOfferBid(bidId);
+        }
       } else {
         await createOfferBid({
           offer_id: item.itemDbId,
@@ -235,6 +244,9 @@ export default function Home() {
       });
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
+        if (existing.data[0].status === "Closed") {
+          await reopenRequestBid(bidId);
+        }
       } else {
         await createRequestBid({
           request_id: item.itemDbId,

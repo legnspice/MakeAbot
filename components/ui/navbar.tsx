@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { PersonFill, QuestionCircleFill } from "react-bootstrap-icons";
+import { PersonFill, QuestionCircleFill, HouseFill, BoxSeamFill } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { useTutorial } from "@/contexts/tutorial-context";
 import NotificationsPanel from "@/components/ui/notifications-panel";
@@ -61,12 +61,14 @@ export default function Navbar() {
             href="/"
             className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
           >
+            <HouseFill size={16} />
             Home
           </Link>
           <Link
             href="/tracker"
             className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
           >
+            <BoxSeamFill size={16} />
             Tracker
           </Link>
           <NotificationsBell onClick={() => setNotificationsOpen((v) => !v)} />

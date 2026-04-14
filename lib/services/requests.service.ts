@@ -66,6 +66,14 @@ export async function removeRequestBid(id: string, userId: string) {
   return await requestsRepo.deleteRequestBid(id, userId);
 }
 
+export async function withdrawRequestBid(bidId: string) {
+  return await requestsRepo.updateRequestBidStatus(bidId, "Closed");
+}
+
+export async function reopenRequestBid(bidId: string) {
+  return await requestsRepo.updateRequestBidStatus(bidId, "Pending");
+}
+
 export async function editRequest(
   id: string,
   data: UpdateRequestSchema,

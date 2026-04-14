@@ -53,6 +53,20 @@ export async function removeRequestBid(id: string) {
   });
 }
 
+export async function withdrawRequestBid(bidId: string) {
+  return await handleAction(async () => {
+    await requireAuth();
+    return requestsService.withdrawRequestBid(bidId);
+  });
+}
+
+export async function reopenRequestBid(bidId: string) {
+  return await handleAction(async () => {
+    await requireAuth();
+    return requestsService.reopenRequestBid(bidId);
+  });
+}
+
 export async function editRequest(id: string, data: UpdateRequestSchema) {
   return await handleAction(async () => {
     const user = await requireAuth();

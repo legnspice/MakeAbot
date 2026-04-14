@@ -99,7 +99,7 @@ export async function updateRequest(
 
 export async function updateRequestBidStatus(
   bidId: string,
-  status: "Completed" | "Closed",
+  status: "Pending" | "Completed" | "Closed",
 ) {
   return await db
     .update(request_bids)

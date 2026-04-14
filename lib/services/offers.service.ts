@@ -41,6 +41,14 @@ export async function removeOfferBid(id: string, userId: string) {
   return await offersRepo.deleteOfferBid(id, userId);
 }
 
+export async function withdrawOfferBid(bidId: string) {
+  return await offersRepo.updateOfferBidStatus(bidId, "Closed");
+}
+
+export async function reopenOfferBid(bidId: string) {
+  return await offersRepo.updateOfferBidStatus(bidId, "Pending");
+}
+
 export async function editOffer(
   id: string,
   data: UpdateOfferSchema,

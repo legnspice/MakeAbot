@@ -14,18 +14,29 @@ import {
   getOffers,
   getOfferBids,
   removeOfferBid,
+  withdrawOfferBid,
 } from "@/lib/actions/offers";
 import {
   getRequests,
   getRequestBids,
   removeRequest,
   removeRequestBid,
+  withdrawRequestBid,
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
-import { ChatDotsFill, XLg, ChevronDown, ChevronRight } from "react-bootstrap-icons";
+import {
+  ChatDotsFill,
+  XLg,
+  ChevronDown,
+  ChevronRight,
+} from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
-import { closeOffer, completeRequest, completeOfferBid } from "@/lib/actions/deals";
+import {
+  closeOffer,
+  completeRequest,
+  completeOfferBid,
+} from "@/lib/actions/deals";
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -67,7 +78,7 @@ type TrackerRequest = {
   urgency: string | null;
   isOwned: boolean;
   rawBidId?: string;
-  bidders: { id: string; name: string; bidId: string }[];
+  bidders: { id: string; name: string; bidId: string; bidStatus: string }[];
   notificationCount?: number;
 };
 
@@ -206,6 +217,7 @@ async function fetchTrackerData(userId: string) {
       id: bid.bidder_id,
       name: usersMap.get(bid.bidder_id) ?? "User",
       bidId: bid.id,
+      bidStatus: bid.status,
     })),
     notificationCount: bids.length > 0 ? bids.length : undefined,
   }));
@@ -229,6 +241,7 @@ async function fetchTrackerData(userId: string) {
           id: req.user_id,
           name: usersMap.get(req.user_id) ?? "User",
           bidId: bid.id,
+          bidStatus: bid.status,
         },
       ],
     });
@@ -261,6 +274,11 @@ export default function TrackerPage() {
     title: string;
     people: { id: string; name: string; bidId: string }[];
     type: "offer" | "request";
+    isHistory: boolean;
+  } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    message: string;
+    onConfirm: () => Promise<void> | void;
   } | null>(null);
 
   useEffect(() => {
@@ -312,17 +330,35 @@ export default function TrackerPage() {
   const activeOffers =
     activeTab === "posts"
       ? tabOffers.filter((o) => o.status === "Active")
-      : tabOffers.filter((o) =>
-          o.requesters.some((r) => r.bidStatus === "Pending"),
+      : tabOffers.filter(
+          (o) =>
+            o.status === "Active" &&
+            o.requesters.some((r) => r.bidStatus === "Pending"),
         );
   const historyOffers =
     activeTab === "posts"
       ? tabOffers.filter((o) => o.status === "Closed")
-      : tabOffers.filter((o) =>
-          o.requesters.every((r) => r.bidStatus !== "Pending"),
+      : tabOffers.filter(
+          (o) =>
+            o.status !== "Active" ||
+            o.requesters.every((r) => r.bidStatus !== "Pending"),
         );
-  const activeRequests = tabRequests.filter((r) => r.status !== "Completed");
-  const historyRequests = tabRequests.filter((r) => r.status === "Completed");
+  const activeRequests =
+    activeTab === "posts"
+      ? tabRequests.filter((r) => r.status !== "Completed")
+      : tabRequests.filter(
+          (r) =>
+            r.status !== "Completed" &&
+            r.bidders.some((b) => b.bidStatus === "Pending"),
+        );
+  const historyRequests =
+    activeTab === "posts"
+      ? tabRequests.filter((r) => r.status === "Completed")
+      : tabRequests.filter(
+          (r) =>
+            r.status === "Completed" ||
+            r.bidders.every((b) => b.bidStatus !== "Pending"),
+        );
 
   const activeCards: TrackerCard[] = [
     ...filterOffers(activeOffers).map((data) => ({
@@ -403,142 +439,213 @@ export default function TrackerPage() {
     );
   };
 
-  const handleCloseOffer = async (offerId: string) => {
-    if (!window.confirm("Close this offer? All open inquiries will be ended."))
-      return;
-    const { error } = await closeOffer(offerId);
-    if (error) {
-      alert("Failed to close offer. Please try again.");
-      return;
-    }
-    setOffers((prev) =>
-      prev.map((o) => (o.id === offerId ? { ...o, status: "Closed" } : o)),
+  const handleCloseOffer = (offerId: string) => {
+    setConfirmModal({
+      message: "Close this offer? All open inquiries will be ended.",
+      onConfirm: async () => {
+        const { error } = await closeOffer(offerId);
+        if (error) {
+          alert("Failed to close offer. Please try again.");
+          return;
+        }
+        setOffers((prev) =>
+          prev.map((o) => (o.id === offerId ? { ...o, status: "Closed" } : o)),
+        );
+      },
+    });
+  };
+
+  const handleWithdrawOfferBid = (bidId: string) => {
+    setConfirmModal({
+      message: "Withdraw your inquiry?",
+      onConfirm: async () => {
+        const { error } = await withdrawOfferBid(bidId);
+        if (error) {
+          alert("Failed to withdraw. Please try again.");
+          return;
+        }
+        setOffers((prev) =>
+          prev.map((o) =>
+            o.rawBidId === bidId
+              ? {
+                  ...o,
+                  requesters: o.requesters.map((r) =>
+                    r.bidId === bidId ? { ...r, bidStatus: "Closed" } : r,
+                  ),
+                }
+              : o,
+          ),
+        );
+      },
+    });
+  };
+
+  const handleWithdrawRequestBid = (bidId: string) => {
+    setConfirmModal({
+      message: "Withdraw your bid?",
+      onConfirm: async () => {
+        const { error } = await withdrawRequestBid(bidId);
+        if (error) {
+          alert("Failed to withdraw. Please try again.");
+          return;
+        }
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.rawBidId === bidId
+              ? {
+                  ...r,
+                  bidders: r.bidders.map((b) =>
+                    b.bidId === bidId ? { ...b, bidStatus: "Closed" } : b,
+                  ),
+                }
+              : r,
+          ),
+        );
+      },
+    });
+  };
+
+  const handleDeleteRequest = (requestId: string) => {
+    setConfirmModal({
+      message: "Are you sure you want to delete this item?",
+      onConfirm: async () => {
+        const { error } = await removeRequest(requestId);
+        if (error) {
+          alert("Failed to delete item. Please try again.");
+          return;
+        }
+        setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      },
+    });
+  };
+
+  const renderOfferCard = (card: TrackerOffer, isHistory: boolean) => {
+    const counterparty = card.requesters[0];
+    const activePeople = card.requesters.filter(
+      (r) => isHistory || r.bidStatus !== "Closed",
+    );
+    const onClickHandler = card.isOwned
+      ? activePeople.length > 0
+        ? () =>
+            setModalData({
+              id: card.id,
+              title: card.itemName,
+              people: activePeople,
+              type: "offer",
+              isHistory,
+            })
+        : undefined
+      : counterparty
+        ? () =>
+            goToChat(
+              counterparty.bidId,
+              "offer",
+              card.itemName,
+              counterparty.id,
+            )
+        : undefined;
+
+    return (
+      <ItemRequestCard
+        key={`offer-${card.id}`}
+        variant="lent"
+        requestedBy={
+          card.isOwned
+            ? "Offered by: You"
+            : `Offered by: ${counterparty?.name ?? "User"}`
+        }
+        price={card.price}
+        typeBadge="Offer"
+        detail={{
+          title: card.itemName,
+          lentBy: card.isOwned ? "You" : (counterparty?.name ?? "User"),
+          quantity: 1,
+          price: card.price,
+          description: card.description ?? undefined,
+          imageUrl: card.imageUrl ?? undefined,
+        }}
+        onClick={onClickHandler}
+        onEdit={
+          !isHistory && card.isOwned
+            ? () => router.push(`/create-offer?edit=${card.id}`)
+            : undefined
+        }
+        onDelete={
+          isHistory
+            ? undefined
+            : card.isOwned
+              ? () => handleCloseOffer(card.id)
+              : () => handleWithdrawOfferBid(card.rawBidId!)
+        }
+        deleteLabel={card.isOwned ? "Close" : "Withdraw"}
+        deleteDestructive={false}
+      />
     );
   };
 
-  const handleWithdrawOfferBid = async (bidId: string) => {
-    if (!window.confirm("Withdraw your inquiry?")) return;
-    const { error } = await removeOfferBid(bidId);
-    if (error) {
-      alert("Failed to withdraw. Please try again.");
-      return;
-    }
-    setOffers((prev) => prev.filter((o) => o.rawBidId !== bidId));
+  const renderRequestCard = (card: TrackerRequest, isHistory: boolean) => {
+    const counterparty = card.bidders[0];
+    const activePeople = card.bidders.filter(
+      (b) => isHistory || b.bidStatus !== "Closed",
+    );
+    const onClickHandler = card.isOwned
+      ? activePeople.length > 0
+        ? () =>
+            setModalData({
+              id: card.id,
+              title: card.itemName,
+              people: activePeople,
+              type: "request",
+              isHistory,
+            })
+        : undefined
+      : counterparty
+        ? () =>
+            goToChat(
+              counterparty.bidId,
+              "request",
+              card.itemName,
+              counterparty.id,
+            )
+        : undefined;
+
+    return (
+      <ItemRequestCard
+        key={`request-${card.id}`}
+        variant="requested"
+        requestedBy={
+          card.isOwned
+            ? "Requested by: You"
+            : `Requested by: ${counterparty?.name ?? "User"}`
+        }
+        price={card.price}
+        typeBadge="Request"
+        detail={{
+          title: card.itemName,
+          requestedBy: card.isOwned ? "You" : (counterparty?.name ?? "User"),
+          quantity: 1,
+          price: card.price,
+          description: card.description ?? undefined,
+          imageUrl: card.imageUrl ?? undefined,
+        }}
+        onClick={onClickHandler}
+        onEdit={
+          !isHistory && card.isOwned
+            ? () => router.push(`/create-request?edit=${card.id}`)
+            : undefined
+        }
+        onDelete={
+          isHistory
+            ? undefined
+            : card.isOwned
+              ? () => handleDeleteRequest(card.id)
+              : () => handleWithdrawRequestBid(card.rawBidId!)
+        }
+        deleteLabel={card.isOwned ? "Close" : "Withdraw"}
+        deleteDestructive={false}
+      />
+    );
   };
-
-  const handleWithdrawRequestBid = async (bidId: string) => {
-    if (!window.confirm("Withdraw your bid?")) return;
-    const { error } = await removeRequestBid(bidId);
-    if (error) {
-      alert("Failed to withdraw. Please try again.");
-      return;
-    }
-    setRequests((prev) => prev.filter((r) => r.rawBidId !== bidId));
-  };
-
-  const handleDeleteRequest = async (requestId: string) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
-    const { error } = await removeRequest(requestId);
-    if (error) {
-      alert("Failed to delete item. Please try again.");
-      return;
-    }
-    setRequests((prev) => prev.filter((r) => r.id !== requestId));
-  };
-
-  const renderOfferCard = (card: TrackerOffer, isHistory: boolean) => (
-    <ItemRequestCard
-      key={`offer-${card.id}`}
-      variant="lent"
-      requestedBy={
-        card.isOwned
-          ? "Offered by: You"
-          : `Offered by: ${card.requesters[0]?.name ?? "User"}`
-      }
-      price={card.price}
-      typeBadge="Offer"
-      detail={{
-        title: card.itemName,
-        lentBy: card.isOwned ? "You" : (card.requesters[0]?.name ?? "User"),
-        quantity: 1,
-        price: card.price,
-        description: card.description ?? undefined,
-        imageUrl: card.imageUrl ?? undefined,
-      }}
-      onClick={
-        card.requesterCount > 0
-          ? () =>
-              setModalData({
-                id: card.id,
-                title: card.itemName,
-                people: card.requesters,
-                type: "offer",
-              })
-          : undefined
-      }
-      onEdit={
-        !isHistory && card.isOwned
-          ? () => router.push(`/create-offer?edit=${card.id}`)
-          : undefined
-      }
-      onDelete={
-        isHistory
-          ? undefined
-          : card.isOwned
-            ? () => handleCloseOffer(card.id)
-            : () => handleWithdrawOfferBid(card.rawBidId!)
-      }
-      deleteLabel={card.isOwned ? "Close" : "Withdraw"}
-      deleteDestructive={false}
-    />
-  );
-
-  const renderRequestCard = (card: TrackerRequest, isHistory: boolean) => (
-    <ItemRequestCard
-      key={`request-${card.id}`}
-      variant="requested"
-      requestedBy={
-        card.isOwned
-          ? "Requested by: You"
-          : `Requested by: ${card.bidders[0]?.name ?? "User"}`
-      }
-      price={card.price}
-      typeBadge="Request"
-      detail={{
-        title: card.itemName,
-        requestedBy: card.isOwned ? "You" : (card.bidders[0]?.name ?? "User"),
-        quantity: 1,
-        price: card.price,
-        description: card.description ?? undefined,
-        imageUrl: card.imageUrl ?? undefined,
-      }}
-      onClick={
-        card.bidders.length > 0
-          ? () =>
-              setModalData({
-                id: card.id,
-                title: card.itemName,
-                people: card.bidders,
-                type: "request",
-              })
-          : undefined
-      }
-      onEdit={
-        !isHistory && card.isOwned
-          ? () => router.push(`/create-request?edit=${card.id}`)
-          : undefined
-      }
-      onDelete={
-        isHistory
-          ? undefined
-          : card.isOwned
-            ? () => handleDeleteRequest(card.id)
-            : () => handleWithdrawRequestBid(card.rawBidId!)
-      }
-      deleteLabel={card.isOwned ? "Close" : "Withdraw"}
-      deleteDestructive={false}
-    />
-  );
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -617,7 +724,7 @@ export default function TrackerPage() {
                   History ({sortedHistoryCards.length})
                 </button>
                 {historyOpen && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 grayscale opacity-60 pointer-events-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 grayscale opacity-60">
                     {sortedHistoryCards.map((card) =>
                       card.type === "offer"
                         ? renderOfferCard(card.data, true)
@@ -628,6 +735,14 @@ export default function TrackerPage() {
               </div>
             )}
           </section>
+
+          {confirmModal && (
+            <ConfirmModal
+              message={confirmModal.message}
+              onConfirm={confirmModal.onConfirm}
+              onClose={() => setConfirmModal(null)}
+            />
+          )}
 
           {modalData && (
             <ChatListModal
@@ -653,43 +768,53 @@ export default function TrackerPage() {
               itemId={modalData.id}
               kind={modalData.type}
               onMarkDone={
-                modalData.type === "request"
-                  ? async (bidId) => {
-                      if (!window.confirm("Mark this deal as done?")) return;
-                      const { error } = await completeRequest(
-                        modalData.id,
-                        bidId,
-                      );
-                      if (error) {
-                        alert("Failed. Please try again.");
-                        return;
-                      }
-                      setModalData(null);
-                      setRequests((prev) =>
-                        prev.map((r) =>
-                          r.id === modalData.id
-                            ? { ...r, status: "Completed" }
-                            : r,
-                        ),
-                      );
+                modalData.isHistory
+                  ? undefined
+                  : modalData.type === "request"
+                  ? (bidId) => {
+                      setConfirmModal({
+                        message: "Mark this deal as done?",
+                        onConfirm: async () => {
+                          const { error } = await completeRequest(
+                            modalData.id,
+                            bidId,
+                          );
+                          if (error) {
+                            alert("Failed. Please try again.");
+                            return;
+                          }
+                          setModalData(null);
+                          setRequests((prev) =>
+                            prev.map((r) =>
+                              r.id === modalData.id
+                                ? { ...r, status: "Completed" }
+                                : r,
+                            ),
+                          );
+                        },
+                      });
                     }
-                  : async (bidId) => {
-                      if (!window.confirm("Mark this deal as done?")) return;
-                      const { error } = await completeOfferBid(bidId);
-                      if (error) {
-                        alert("Failed. Please try again.");
-                        return;
-                      }
-                      setModalData((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              people: prev.people.filter(
-                                (p) => p.bidId !== bidId,
-                              ),
-                            }
-                          : null,
-                      );
+                  : (bidId) => {
+                      setConfirmModal({
+                        message: "Mark this deal as done?",
+                        onConfirm: async () => {
+                          const { error } = await completeOfferBid(bidId);
+                          if (error) {
+                            alert("Failed. Please try again.");
+                            return;
+                          }
+                          setModalData((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  people: prev.people.filter(
+                                    (p) => p.bidId !== bidId,
+                                  ),
+                                }
+                              : null,
+                          );
+                        },
+                      });
                     }
               }
             />
@@ -719,7 +844,7 @@ function ChatListModal({
   iconClass: string;
   onSelect: (bidId: string, id: string) => void;
   onClose: () => void;
-  onMarkDone?: (bidId: string) => Promise<void>;
+  onMarkDone?: (bidId: string) => void;
   itemId?: string;
   kind?: "offer" | "request";
 }) {
@@ -769,9 +894,9 @@ function ChatListModal({
               {onMarkDone && (
                 <button
                   type="button"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation();
-                    await onMarkDone(p.bidId);
+                    onMarkDone(p.bidId);
                   }}
                   className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors ml-1"
                 >
@@ -794,7 +919,11 @@ function SegmentedTabs({
   onTabChange: (tab: "posts" | "inquiries") => void;
 }) {
   return (
-    <div role="tablist" aria-label="Tracker view" className="flex bg-gray-100 rounded-full p-1 mx-4 mt-3">
+    <div
+      role="tablist"
+      aria-label="Tracker view"
+      className="flex mx-4 mt-3 bg-gray-100 rounded-full p-1 md:bg-transparent md:rounded-none md:p-0 md:border-b md:border-gray-200 md:mx-auto md:mt-2 md:w-full"
+    >
       {(["posts", "inquiries"] as const).map((tab) => (
         <button
           key={tab}
@@ -802,15 +931,65 @@ function SegmentedTabs({
           type="button"
           aria-selected={activeTab === tab}
           onClick={() => onTabChange(tab)}
-          className={`flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-            activeTab === tab
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
+          className={`flex-1 py-1.5 text-sm font-semibold transition-colors
+            rounded-full md:rounded-none md:flex-none md:w-[50%] md:-mb-px
+            ${
+              activeTab === tab
+                ? "bg-white text-gray-900 shadow-sm md:bg-transparent md:shadow-none md:border-b-2 md:border-blue-600 md:text-blue-600"
+                : "text-gray-500 hover:text-gray-700 md:bg-transparent"
+            }`}
         >
           {tab === "posts" ? "Posts" : "Inquiries"}
         </button>
       ))}
+    </div>
+  );
+}
+
+function ConfirmModal({
+  message,
+  onConfirm,
+  onClose,
+}: {
+  message: string;
+  onConfirm: () => Promise<void> | void;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-sm text-gray-800 mb-5">{message}</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              await onConfirm();
+              setLoading(false);
+              onClose();
+            }}
+            className="px-4 py-2 text-sm font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            {loading ? "…" : "Confirm"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

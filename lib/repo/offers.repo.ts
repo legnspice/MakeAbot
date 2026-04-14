@@ -86,6 +86,17 @@ export async function updateOffer(
     .where(and(eq(offers.id, id), eq(offers.user_id, userId)));
 }
 
+/** Set a single offer_bid status */
+export async function updateOfferBidStatus(
+  bidId: string,
+  status: "Pending" | "Completed" | "Closed",
+) {
+  return await db
+    .update(offer_bids)
+    .set({ status })
+    .where(eq(offer_bids.id, bidId));
+}
+
 /** Set a single offer_bid to Completed */
 export async function completeOfferBid(bidId: string) {
   return await db
