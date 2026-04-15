@@ -12,11 +12,7 @@ webpush.setVapidDetails(
 );
 
 // Events that trigger an immediate transactional email
-const EMAIL_EVENTS = new Set<NotificationType>([
-  "new_inquiry",
-  "request_completed_winner",
-  "offer_bid_completed",
-]);
+const EMAIL_EVENTS = new Set<NotificationType>(["new_inquiry"]);
 
 // Types that coalesce per-thread via upsert
 const COALESCED_TYPES = new Set<NotificationType>([
