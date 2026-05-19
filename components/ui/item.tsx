@@ -43,7 +43,7 @@ export default function ItemRequestCard({
             }
           : undefined
       }
-      className={`w-full h-28 text-left bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-row ${
+      className={`w-full h-28 md:h-44 text-left bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-row ${
         onClick || onEdit || onDelete
           ? "cursor-pointer hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
           : "opacity-75"
@@ -56,7 +56,7 @@ export default function ItemRequestCard({
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
             fill
-            sizes="112px"
+            sizes="(min-width: 768px) 180px, 112px"
             className="object-cover"
           />
         ) : (
@@ -82,7 +82,7 @@ export default function ItemRequestCard({
             : requestedBy}
         </p>
         {detail?.description && (
-          <p className="hidden md:block mt-0.5 text-[11px] text-gray-400 line-clamp-1 whitespace-pre-wrap leading-snug">
+          <p className="hidden md:block mt-1.5 text-xs text-gray-500 line-clamp-3 whitespace-pre-wrap leading-snug">
             {detail.description}
           </p>
         )}

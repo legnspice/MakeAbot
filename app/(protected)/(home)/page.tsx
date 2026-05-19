@@ -10,7 +10,7 @@ import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
 import FilterBar, { type DateSort, type PriceSort } from "@/components/ui/filter-bar";
-import { TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
+import { TagFill, QuestionCircleFill, XLg, ArrowDown } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { getPosts, getPostBids, createPostBid } from "@/lib/actions/posts";
 import {
@@ -282,7 +282,7 @@ export default function Home() {
           <HomePageSkeleton />
         ) : (
           <main className="px-4 py-6 pb-28 md:pb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 max-w-7xl mx-auto">
               {filteredItems.map((item) => {
                 const isOwn = item.userId === currentUser.id;
                 return (
@@ -320,18 +320,16 @@ export default function Home() {
           }}
         />
 
-        {/* Type picker modal */}
+        {/* Mobile type picker modal */}
         {isTypePickerOpen && (
           <>
             <div
-              className="fixed inset-0 z-20 bg-black/40"
+              className="fixed inset-0 z-20 bg-black/40 md:hidden"
               onClick={() => setIsTypePickerOpen(false)}
               aria-hidden
             />
-            <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
+            <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none md:hidden">
               <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 px-6 pt-5 pb-8">
-
-                {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-800">
                     What are you creating?
@@ -345,10 +343,7 @@ export default function Home() {
                     <XLg size={20} className="text-gray-500" />
                   </button>
                 </div>
-
-                {/* Options */}
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Offer */}
                   <button
                     type="button"
                     onClick={() => {
@@ -361,16 +356,10 @@ export default function Home() {
                       <TagFill size={24} className="text-[#DEA440]" />
                     </div>
                     <div className="text-center">
-                      <div className="font-semibold text-gray-800 text-sm">
-                        Offer
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        I have something to share
-                      </div>
+                      <div className="font-semibold text-gray-800 text-sm">Offer</div>
+                      <div className="text-xs text-gray-500 mt-0.5">I have something to share</div>
                     </div>
                   </button>
-
-                  {/* Request */}
                   <button
                     type="button"
                     onClick={() => {
@@ -383,12 +372,8 @@ export default function Home() {
                       <QuestionCircleFill size={24} className="text-[#3761B0]" />
                     </div>
                     <div className="text-center">
-                      <div className="font-semibold text-gray-800 text-sm">
-                        Request
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        I need something
-                      </div>
+                      <div className="font-semibold text-gray-800 text-sm">Request</div>
+                      <div className="text-xs text-gray-500 mt-0.5">I need something</div>
                     </div>
                   </button>
                 </div>
@@ -397,16 +382,66 @@ export default function Home() {
           </>
         )}
 
-        {/* Floating action button */}
-        <Button
-          size="icon"
-          className="font-regular text-lg fixed bottom-30 md:bottom-6 right-6 w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black shadow-lg z-10 p-0 flex items-center justify-center"
-          aria-label="Create item"
-          onClick={() => setIsTypePickerOpen(true)}
-        >
-          <span className="hidden md:inline text-black font-regular">Create</span>
-          <span className="text-black text-3xl md:text-3xl leading-none -mt-1">+</span>
-        </Button>
+        {/* Desktop popover dismiss layer */}
+        {isTypePickerOpen && (
+          <div
+            className="fixed inset-0 z-10 hidden md:block"
+            onClick={() => setIsTypePickerOpen(false)}
+            aria-hidden
+          />
+        )}
+
+        {/* Floating action button + desktop popover */}
+        <div className="fixed bottom-30 md:bottom-6 right-6 z-10">
+          {/* Desktop popover anchored above the FAB */}
+          {isTypePickerOpen && (
+            <div className="hidden md:block absolute bottom-full right-0 mb-3 w-56 rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] px-4 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-black">Create a new...</p>
+                <button
+                  type="button"
+                  onClick={() => setIsTypePickerOpen(false)}
+                  className="text-gray-600 hover:text-black"
+                  aria-label="Close"
+                >
+                  <ArrowDown size={18} />
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTypePickerOpen(false);
+                  router.push("/create-request");
+                }}
+                className="flex items-center justify-center gap-2 w-full h-8.5 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black text-sm font-semibold transition-colors mb-2"
+              >
+                <img src="/icons/hand-request.svg" alt="" width={20} height={20} className="shrink-0" aria-hidden />
+                Request
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTypePickerOpen(false);
+                  router.push("/create-offer");
+                }}
+                className="flex items-center justify-center gap-2 w-full h-8.5 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black text-sm font-semibold transition-colors"
+              >
+                <img src="/icons/heart-hand-offer.svg" alt="" width={20} height={20} className="shrink-0" aria-hidden />
+                Offer
+              </button>
+            </div>
+          )}
+
+          <Button
+            size="icon"
+            className="font-regular text-lg w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black shadow-lg p-0 flex items-center justify-center"
+            aria-label="Create item"
+            onClick={() => setIsTypePickerOpen((v) => !v)}
+          >
+            <span className="hidden md:inline text-black font-regular">Create</span>
+            <span className="text-black text-3xl md:text-3xl leading-none -mt-1">+</span>
+          </Button>
+        </div>
       </div>
 
       <BottomNav />

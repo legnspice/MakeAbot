@@ -2,7 +2,21 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(npx jest:*)"
+      "Bash(npx jest:*)",
+      "Bash(git -C /Users/jjpardo/Documents/MakeAbot log --oneline -20)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:brainstorming:*)",
+      "Bash(curl -sS -o /Users/jjpardo/Documents/MakeAbot/public/login-noise.png \"https://www.figma.com/api/mcp/asset/eeeedd4c-66dd-4a7e-a371-fcddeb979fbf\")",
+      "Bash(curl -sS -o /tmp/ma-monogram-raw \"https://www.figma.com/api/mcp/asset/12cadaed-c9b8-4056-984c-281143a3e8da\")",
+      "Read(//tmp/**)",
+      "Bash(mv /tmp/ma-monogram-raw /Users/jjpardo/Documents/MakeAbot/public/ma-monogram.svg && ls -la public/ma-monogram.svg public/login-noise.png)",
+      "Bash(nslookup mufvdhphtgvvrladaqlw.supabase.co 8.8.8.8)",
+      "Bash(curl -sS -o /tmp/figma-rect.png \"https://www.figma.com/api/mcp/asset/8d433973-5c84-4dc1-94f2-7bc7cdb071c4\")",
+      "Bash(curl -sS -o /tmp/figma-hand.svg \"https://www.figma.com/api/mcp/asset/11beafcf-f0e5-485c-9648-5549079f9f41\")",
+      "Bash(curl -sS -o /tmp/figma-heart.svg \"https://www.figma.com/api/mcp/asset/cf9faae3-5f48-48ad-a463-b7024fa3afad\")"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
     ]
   }
 }

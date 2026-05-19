@@ -1,0 +1,36 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 126 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Vector">
+<path d="M0 75V0H24.9724L45.7827 72.2917H36.7302L57.5405 0H82.617V75H66.8011V4.47916H69.5065L49.2164 75H32.6722L12.5902 5.10417H15.1915V75H0Z" fill="url(#paint0_linear_0_4)"/>
+<path d="M67.471 75V0H92.4434L113.806 75H100.143L80.0612 5.10417H82.6625V75H67.471Z" fill="url(#paint1_linear_0_4)"/>
+<path d="M87.7935 48.8281V62.0306H78.0387V48.8281H87.7935Z" fill="url(#paint2_linear_0_4)"/>
+<path d="M91.4517 62.0304L87.7935 48.8281V62.0306L91.4517 62.0304Z" fill="url(#paint3_linear_0_4)"/>
+<path d="M111.368 48.8281L115.026 62.0305H119.497V48.8281H111.368Z" fill="url(#paint4_linear_0_4)"/>
+<path d="M126 55.7454L119.497 62.0333L119.497 48.8281L126 55.7454Z" fill="url(#paint5_linear_0_4)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_4" x1="63" y1="0" x2="63" y2="75" gradientUnits="userSpaceOnUse">
+<stop stop-color="#3761B0"/>
+<stop offset="1" stop-color="#17294A"/>
+</linearGradient>
+<linearGradient id="paint1_linear_0_4" x1="63" y1="0" x2="63" y2="75" gradientUnits="userSpaceOnUse">
+<stop stop-color="#3761B0"/>
+<stop offset="1" stop-color="#17294A"/>
+</linearGradient>
+<linearGradient id="paint2_linear_0_4" x1="63" y1="0" x2="63" y2="75" gradientUnits="userSpaceOnUse">
+<stop stop-color="#3761B0"/>
+<stop offset="1" stop-color="#17294A"/>
+</linearGradient>
+<linearGradient id="paint3_linear_0_4" x1="63" y1="0" x2="63" y2="75" gradientUnits="userSpaceOnUse">
+<stop stop-color="#3761B0"/>
+<stop offset="1" stop-color="#17294A"/>
+</linearGradient>
+<linearGradient id="paint4_linear_0_4" x1="63" y1="0" x2="63" y2="75" gradientUnits="userSpaceOnUse">
+<stop stop-color="#3761B0"/>
+<stop offset="1" stop-color="#17294A"/>
+</linearGradient>
+<linearGradient id="paint5_linear_0_4" x1="63" y1="0" x2="63" y2="75" gradientUnits="userSpaceOnUse">
+<stop stop-color="#3761B0"/>
+<stop offset="1" stop-color="#17294A"/>
+</linearGradient>
+</defs>
+</svg>

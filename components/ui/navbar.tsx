@@ -13,10 +13,11 @@ export default function Navbar() {
   const { userData } = useAuth();
   const meta = userData.supabaseUser.user_metadata ?? {};
   const avatarUrl = (meta.avatar_url ?? meta.picture ?? "") as string;
-  const displayName = (userData.publicUser.name ??
+  const fullName = (userData.publicUser.name ??
     meta.full_name ??
     meta.name ??
     "Profile") as string;
+  const displayName = fullName.trim().split(/\s+/)[0];
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -83,7 +84,7 @@ export default function Navbar() {
             href="/profile"
             className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#3761B0] transition-colors"
           >
-            {/* {displayName} */}
+            <span className="max-w-32 truncate">{displayName}</span>
             <div className="relative w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">
               {avatarUrl ? (
                 <Image
@@ -98,7 +99,6 @@ export default function Navbar() {
                 </span>
               )}
             </div>
-            Profile
           </Link>
         </div>
 
