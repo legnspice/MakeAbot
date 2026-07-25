@@ -9,7 +9,8 @@ const config = {
     "^@/(.*)$": "<rootDir>/$1",
   },
   testMatch: ["**/__tests__/**/*.test.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/.worktrees/"],
+  testPathIgnorePatterns: ["/node_modules/", "/.worktrees/", "/.claude/"],
+  modulePathIgnorePatterns: ["<rootDir>/.claude/"],
 };
 
 module.exports = createJestConfig(config);
