@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
-import { Button } from "@/components/ui/button";
 import ItemRequestCard from "@/components/ui/item";
+import CreateFab from "@/components/create-fab";
 import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
@@ -13,7 +13,6 @@ import FilterBar, {
   type DateSort,
   type PriceSort,
 } from "@/components/ui/filter-bar";
-import { TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getOffers,
@@ -28,6 +27,7 @@ import {
   reopenRequestBid,
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
+import { excludeOwnItems } from "@/lib/feed";
 import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
 
 type ListItem = {
@@ -63,8 +63,8 @@ async function fetchHomeItems(
   userName: string | null | undefined,
 ) {
   const [postsResult, requestsResult] = await Promise.all([
-    getOffers({}),
-    getRequests({}),
+    getOffers({ status: "Active" }),
+    getRequests({ status: "Active" }),
   ]);
 
   const userIds = new Set<string>();
@@ -126,11 +126,12 @@ async function fetchHomeItems(
         price: formatPrice(req.fee),
         description: req.description ?? undefined,
         imageUrl: req.imgUrl ?? undefined,
+        urgency: req.urgency ?? undefined,
       },
     });
   }
 
-  return mapped;
+  return excludeOwnItems(mapped, userId);
 }
 
 export default function Home() {
@@ -150,7 +151,6 @@ export default function Home() {
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
-  const [isTypePickerOpen, setIsTypePickerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -297,23 +297,21 @@ export default function Home() {
           <HomePageSkeleton />
         ) : (
           <main className="px-4 py-6 pb-28 md:pb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-              {filteredItems.map((item) => {
-                const isOwn = item.userId === currentUser.id;
-                return (
-                  <ItemRequestCard
-                    key={item.id}
-                    variant={item.variant}
-                    requestedBy={item.requestedBy}
-                    section={item.section}
-                    time={item.time}
-                    price={item.price}
-                    typeBadge={item.typeBadge}
-                    detail={item.detail}
-                    onClick={isOwn ? undefined : () => setSelectedItem(item)}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 max-w-7xl mx-auto">
+              {filteredItems.map((item) => (
+                <ItemRequestCard
+                  key={item.id}
+                  variant={item.variant}
+                  requestedBy={item.requestedBy}
+                  section={item.section}
+                  time={item.time}
+                  price={item.price}
+                  typeBadge={item.typeBadge}
+                  urgency={item.detail.urgency}
+                  detail={item.detail}
+                  onClick={() => setSelectedItem(item)}
+                />
+              ))}
             </div>
           </main>
         )}
@@ -335,99 +333,7 @@ export default function Home() {
           }}
         />
 
-        {/* Type picker modal */}
-        {isTypePickerOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-20 bg-black/40"
-              onClick={() => setIsTypePickerOpen(false)}
-              aria-hidden
-            />
-            <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
-              <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 px-6 pt-5 pb-8">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-gray-800">
-                    What are you creating?
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setIsTypePickerOpen(false)}
-                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                    aria-label="Close"
-                  >
-                    <XLg size={20} className="text-gray-500" />
-                  </button>
-                </div>
-
-                {/* Options */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Offer */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTypePickerOpen(false);
-                      router.push("/create-offer");
-                    }}
-                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#DEA440] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center transition-colors">
-                      <TagFill size={24} className="text-[#DEA440]" />
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-gray-800 text-sm">
-                        Offer
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        I have something to share
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Request */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTypePickerOpen(false);
-                      router.push("/create-request");
-                    }}
-                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#3761B0] hover:bg-blue-50 active:bg-blue-100 transition-colors group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
-                      <QuestionCircleFill
-                        size={24}
-                        className="text-[#3761B0]"
-                      />
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-gray-800 text-sm">
-                        Request
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        I need something
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Floating action button */}
-        <Button
-          size="icon"
-          className="font-regular text-lg fixed bottom-30 md:bottom-6 right-6 w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black shadow-lg z-10 p-0 flex items-center justify-center"
-          aria-label="Create item"
-          onClick={() => setIsTypePickerOpen(true)}
-        >
-          <span className="hidden md:inline text-black font-regular">
-            Create
-          </span>
-          <span className="text-black text-3xl md:text-3xl leading-none -mt-1">
-            +
-          </span>
-        </Button>
+        <CreateFab />
       </div>
 
       <BottomNav />
