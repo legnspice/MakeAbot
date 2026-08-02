@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChatDotsFill, X } from "react-bootstrap-icons";
+import { ChevronLeft, ChatDotsFill, X, Clock } from "react-bootstrap-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -129,7 +129,10 @@ export default function ItemDetailModal({
               <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>
             )}
             {item.urgency && (
-              <p className="text-sm text-gray-600 mb-1">⏱ Urgency: {item.urgency}</p>
+              <p className="flex items-center gap-1.5 text-sm text-gray-600 mb-1">
+                <Clock size={14} className="shrink-0" />
+                Urgency: {item.urgency}
+              </p>
             )}
             {item.incentive && (
               <p className="text-sm text-gray-600 mb-1">🎁 Incentive: {item.incentive}</p>

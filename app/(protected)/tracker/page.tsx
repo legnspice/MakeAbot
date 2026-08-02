@@ -684,7 +684,7 @@ export default function TrackerPage() {
         <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
           <section aria-label="Tracker">
             {/* Active cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-7xl mx-auto">
               {sortedActiveCards.map((card) =>
                 card.type === "offer"
                   ? renderOfferCard(card.data, false)
@@ -721,7 +721,7 @@ export default function TrackerPage() {
                   History ({sortedHistoryCards.length})
                 </button>
                 {historyOpen && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3 grayscale opacity-60">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3 grayscale opacity-60">
                     {sortedHistoryCards.map((card) =>
                       card.type === "offer"
                         ? renderOfferCard(card.data, true)

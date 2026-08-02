@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { TagFill, QuestionCircleFill } from "react-bootstrap-icons";
+import { TagFill, QuestionCircleFill, Clock } from "react-bootstrap-icons";
 import type { ItemDetailData } from "@/components/ui/item-detail-modal";
 
 export interface ItemRequestCardProps {
@@ -64,14 +64,14 @@ export default function ItemRequestCard({
             }
           : undefined
       }
-      className={`w-full text-left bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-col ${
+      className={`w-full text-left bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-row ${
         onClick || onEdit || onDelete
           ? "cursor-pointer hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
           : ""
       }`}
     >
-      {/* Image area — square frame; fit (no crop) */}
-      <div className="relative w-full aspect-square bg-gray-100">
+      {/* Image area — square left thumbnail; fit (no crop) */}
+      <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 shrink-0 self-start bg-gray-100">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -112,8 +112,9 @@ export default function ItemRequestCard({
             : requestedBy}
         </p>
         {urgency && (
-          <span className="text-[11px] font-medium text-gray-500">
-            ⏱ {urgency}
+          <span className="flex items-center gap-1 text-[11px] font-medium text-gray-500">
+            <Clock size={11} className="shrink-0" />
+            {urgency}
           </span>
         )}
         {incentive && (
