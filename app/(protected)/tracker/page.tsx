@@ -33,6 +33,8 @@ import {
 import ItemRequestCard from "@/components/ui/item";
 import CreateFab from "@/components/create-fab";
 import { formatIncentive } from "@/lib/incentive";
+import { useUnreadCounts } from "@/hooks/use-unread-counts";
+import { sumUnreadForBids } from "@/lib/unread";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
 import {
   closeOffer,
@@ -251,6 +253,7 @@ export default function TrackerPage() {
   const router = useRouter();
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
+  const { unreadByContext } = useUnreadCounts();
 
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [customFilters, setCustomFilters] = useState<string[]>([]);
@@ -551,6 +554,10 @@ export default function TrackerPage() {
         }
         price={card.price}
         typeBadge="Offer"
+        badgeCount={sumUnreadForBids(
+          unreadByContext,
+          activePeople.map((p) => p.bidId),
+        )}
         detail={{
           title: card.itemName,
           lentBy: card.isOwned ? "You" : (counterparty?.name ?? "User"),
@@ -613,6 +620,10 @@ export default function TrackerPage() {
         }
         price={card.price}
         typeBadge="Request"
+        badgeCount={sumUnreadForBids(
+          unreadByContext,
+          activePeople.map((p) => p.bidId),
+        )}
         detail={{
           title: card.itemName,
           requestedBy: card.isOwned ? "You" : (counterparty?.name ?? "User"),
@@ -757,6 +768,7 @@ export default function TrackerPage() {
               emptyLabel={
                 modalData.type === "request" ? "No offers yet" : "No requests yet"
               }
+              unreadByBid={unreadByContext}
               onSelect={(bidId, otherId) =>
                 goToChat(bidId, modalData.type, modalData.title, otherId)
               }
@@ -832,6 +844,7 @@ function ChatListModal({
   avatarClass,
   iconClass,
   emptyLabel,
+  unreadByBid,
   onSelect,
   onClose,
   onMarkDone,
@@ -842,6 +855,7 @@ function ChatListModal({
   avatarClass: string;
   iconClass: string;
   emptyLabel: string;
+  unreadByBid: Record<string, number>;
   onSelect: (bidId: string, id: string) => void;
   onClose: () => void;
   onMarkDone?: (bidId: string) => void;
@@ -892,7 +906,14 @@ function ChatListModal({
                     {p.name}
                   </span>
                 </div>
-                <ChatDotsFill className={`shrink-0 ${iconClass}`} size={16} />
+                <div className="flex items-center gap-2 shrink-0">
+                  {unreadByBid[p.bidId] > 0 && (
+                    <span className="min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+                      {unreadByBid[p.bidId] > 99 ? "99+" : unreadByBid[p.bidId]}
+                    </span>
+                  )}
+                  <ChatDotsFill className={iconClass} size={16} />
+                </div>
               </button>
               {onMarkDone && (
                 <button
