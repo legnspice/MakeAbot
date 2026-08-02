@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FindUserSchema, UpdateUserSchema } from "@/lib/validation/users";
 import { AppError } from "@/lib/error/app-error";
+import { resolveMetaAvatar } from "@/lib/avatar";
 
 export async function getUsers(filters: FindUserSchema) {
   return await handleAction(async () => {
@@ -36,4 +37,12 @@ export async function getUserAvatarUrl(userId: string): Promise<string | null> {
     const meta = data?.user?.user_metadata;
     return (meta?.avatar_url ?? meta?.picture ?? null) as string | null;
   }).then((r) => r.data ?? null);
+}
+
+export async function syncAvatarUrl() {
+  return await handleAction(async () => {
+    const user = await requireAuth();
+    const next = resolveMetaAvatar(user.user_metadata);
+    await usersService.syncAvatarUrl(user.id, next);
+  });
 }
