@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { TagFill, QuestionCircleFill } from "react-bootstrap-icons";
 import type { ItemDetailData } from "@/components/ui/item-detail-modal";
 
 export interface ItemRequestCardProps {
@@ -9,6 +10,9 @@ export interface ItemRequestCardProps {
   price?: string;
   variant?: "lent" | "requested";
   typeBadge?: string;
+  urgency?: string;
+  incentive?: string;
+  badgeCount?: number;
   detail?: ItemDetailData;
   onClick?: () => void;
   onEdit?: () => void;
@@ -24,6 +28,9 @@ export default function ItemRequestCard({
   price = "$$$",
   variant = "requested",
   typeBadge,
+  urgency,
+  incentive,
+  badgeCount,
   detail,
   onClick,
   onEdit,
@@ -34,6 +41,16 @@ export default function ItemRequestCard({
   const hasLocation = section && section !== "—";
   const hasDate = time && time !== "—";
   const imageUrl = detail?.imageUrl;
+  const isOffer = variant === "lent";
+
+  const accentText = isOffer ? "text-[#DEA440]" : "text-[#3761B0]";
+  const badgeClasses = isOffer
+    ? "text-[#DEA440] bg-amber-50"
+    : "text-[#3761B0] bg-blue-50";
+  const placeholderClasses = isOffer
+    ? "bg-amber-50 text-[#DEA440]"
+    : "bg-blue-50 text-[#3761B0]";
+  const PlaceholderIcon = isOffer ? TagFill : QuestionCircleFill;
 
   return (
     <div
@@ -47,37 +64,46 @@ export default function ItemRequestCard({
             }
           : undefined
       }
-      className={`w-full h-28 text-left bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-row ${
+      className={`w-full text-left bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-colors focus:outline-none flex flex-col ${
         onClick || onEdit || onDelete
           ? "cursor-pointer hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-[#3761B0] focus-visible:ring-offset-2"
-          : "opacity-75"
+          : ""
       }`}
     >
-      {/* Image area — square */}
-      <div className="relative h-full aspect-square shrink-0 bg-gray-100">
+      {/* Image area — 4:3 on top */}
+      <div className="relative w-full aspect-[4/3] bg-gray-100">
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
             fill
-            sizes="112px"
+            sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <span className="text-xs text-gray-400">No image</span>
+          <div
+            className={`flex items-center justify-center h-full w-full ${placeholderClasses}`}
+          >
+            <PlaceholderIcon size={40} className="opacity-70" />
           </div>
+        )}
+        {typeBadge && (
+          <span
+            className={`absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${badgeClasses}`}
+          >
+            {typeBadge}
+          </span>
+        )}
+        {badgeCount != null && badgeCount > 0 && (
+          <span className="absolute top-2 right-2 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="relative flex-1 min-w-0 p-2.5 flex flex-col">
-        {typeBadge && (
-          <span className="absolute top-2 right-2 text-[10px] font-bold uppercase tracking-wider text-[#3761B0] bg-blue-50 px-1.5 py-0.5 rounded">
-            {typeBadge}
-          </span>
-        )}
-        <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 pr-16">
+      <div className="flex-1 min-w-0 p-3 flex flex-col gap-1">
+        <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">
           {detail?.title ?? "Item"}
         </h3>
         <p className="text-xs text-gray-600 truncate">
@@ -85,12 +111,17 @@ export default function ItemRequestCard({
             ? requestedBy.replace(/^Offered by:/i, "Lent by:")
             : requestedBy}
         </p>
-        {detail?.description && (
-          <p className="hidden md:block mt-0.5 text-[11px] text-gray-400 line-clamp-1 whitespace-pre-wrap leading-snug">
-            {detail.description}
-          </p>
+        {urgency && (
+          <span className="text-[11px] font-medium text-gray-500">
+            ⏱ {urgency}
+          </span>
         )}
-        <div className="mt-auto flex justify-between items-end">
+        {incentive && (
+          <span className="text-[11px] font-medium text-gray-500 truncate">
+            🎁 {incentive}
+          </span>
+        )}
+        <div className="mt-auto flex justify-between items-end gap-2 pt-1">
           {onEdit || onDelete ? (
             <div className="flex gap-1.5">
               {onEdit && (
@@ -130,7 +161,7 @@ export default function ItemRequestCard({
               </div>
             )
           )}
-          <span className="text-[#3761B0] font-semibold text-sm ml-auto">
+          <span className={`font-semibold text-sm ml-auto ${accentText}`}>
             {price}
           </span>
         </div>
