@@ -77,8 +77,9 @@ export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   imgUrl: text("imgUrl"),
-  // For currency we use the smallest unit: Php in cents
+  // Optional ₱ amount (whole pesos)
   fee: integer("fee"),
+  incentive: text("incentive"),
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
@@ -93,8 +94,9 @@ export const offers = pgTable("offers", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   imgUrl: text("imgUrl"),
-  // For currency we use the smallest unit: Php in cents
+  // Optional ₱ amount (whole pesos)
   price: integer("price"),
+  incentive: text("incentive"),
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
