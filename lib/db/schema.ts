@@ -33,6 +33,7 @@ export const users = pgTable("users", {
   phone_number: text("phone_number"),
   description: text("description"),
   contributions: integer("contributions").notNull().default(0),
+  avatar_url: text("avatar_url"),
 });
 
 export const messages = pgTable("messages", {
