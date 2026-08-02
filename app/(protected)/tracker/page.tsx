@@ -32,6 +32,7 @@ import {
 } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
 import CreateFab from "@/components/create-fab";
+import { formatIncentive } from "@/lib/incentive";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
 import {
   closeOffer,
@@ -47,11 +48,6 @@ function getPriceRank(price: string): number {
   if (p === "$$") return 2;
   if (p === "$$$") return 3;
   return 4;
-}
-
-function formatPrice(value: number | null | undefined): string {
-  if (value == null || value === 0) return "FREE";
-  return `₱${value}`;
 }
 
 type TrackerOffer = {
@@ -165,7 +161,7 @@ async function fetchTrackerData(userId: string) {
     itemName: offer.title,
     description: offer.description ?? null,
     imageUrl: offer.imgUrl ?? null,
-    price: formatPrice(offer.price),
+    price: formatIncentive(offer.incentive),
     type: offer.type ?? null,
     status: offer.status,
     isOwned: true,
@@ -186,7 +182,7 @@ async function fetchTrackerData(userId: string) {
       itemName: offer.title,
       description: offer.description ?? null,
       imageUrl: offer.imgUrl ?? null,
-      price: formatPrice(offer.price),
+      price: formatIncentive(offer.incentive),
       type: offer.type ?? null,
       status: offer.status,
       isOwned: false,
@@ -210,7 +206,7 @@ async function fetchTrackerData(userId: string) {
     description: req.description ?? null,
     imageUrl: req.imgUrl ?? null,
     status: req.status,
-    price: formatPrice(req.fee),
+    price: formatIncentive(req.incentive),
     type: req.type ?? null,
     urgency: req.urgency ?? null,
     isOwned: true,
@@ -232,7 +228,7 @@ async function fetchTrackerData(userId: string) {
       description: req.description ?? null,
       imageUrl: req.imgUrl ?? null,
       status: req.status,
-      price: formatPrice(req.fee),
+      price: formatIncentive(req.incentive),
       type: req.type ?? null,
       urgency: req.urgency ?? null,
       isOwned: false,
