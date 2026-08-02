@@ -134,9 +134,6 @@ export default function ItemDetailModal({
                 Urgency: {item.urgency}
               </p>
             )}
-            {item.incentive && (
-              <p className="text-sm text-gray-600 mb-1">🎁 Incentive: {item.incentive}</p>
-            )}
             {item.note && (
               <p className="text-sm text-gray-600">
                 <span className="font-medium">Note:</span> {item.note}

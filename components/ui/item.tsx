@@ -11,7 +11,6 @@ export interface ItemRequestCardProps {
   variant?: "lent" | "requested";
   typeBadge?: string;
   urgency?: string;
-  incentive?: string;
   badgeCount?: number;
   detail?: ItemDetailData;
   onClick?: () => void;
@@ -29,7 +28,6 @@ export default function ItemRequestCard({
   variant = "requested",
   typeBadge,
   urgency,
-  incentive,
   badgeCount,
   detail,
   onClick,
@@ -117,11 +115,6 @@ export default function ItemRequestCard({
             {urgency}
           </span>
         )}
-        {incentive && (
-          <span className="text-[11px] font-medium text-gray-500 truncate">
-            🎁 {incentive}
-          </span>
-        )}
         <div className="mt-auto flex justify-between items-end gap-2 pt-1">
           {onEdit || onDelete ? (
             <div className="flex gap-1.5">
@@ -162,7 +155,9 @@ export default function ItemRequestCard({
               </div>
             )
           )}
-          <span className={`font-semibold text-sm ml-auto ${accentText}`}>
+          <span
+            className={`font-semibold text-sm ml-auto truncate max-w-[55%] ${accentText}`}
+          >
             {price}
           </span>
         </div>

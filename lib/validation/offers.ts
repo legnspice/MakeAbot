@@ -1,13 +1,20 @@
 import { z } from "zod";
 import { OfferStatusEnum, TypeEnum, BidStatusEnum } from "../db/enums";
 import { PRICE_CAP } from "../constants";
+import { incentiveOverCap } from "../incentive";
 
 export const offerSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
   imgUrl: z.string().nullable(),
-  price: z.number().int().nonnegative().max(PRICE_CAP).nullable(),
-  incentive: z.string().max(60).nullable(),
+  price: z.number().int().nonnegative().nullable(),
+  incentive: z
+    .string()
+    .max(60)
+    .nullable()
+    .refine((s) => !incentiveOverCap(s), {
+      message: `Please keep incentives at ₱${PRICE_CAP} or under.`,
+    }),
   title: z.string(),
   description: z.string().nullable(),
   created_at: z.date(),
@@ -37,7 +44,6 @@ export const findOffersSchema = offerSchema
 export const insertOfferSchema = offerSchema.pick({
   user_id: true,
   title: true,
-  price: true,
   incentive: true,
   description: true,
   imgUrl: true,
@@ -47,7 +53,6 @@ export const insertOfferSchema = offerSchema.pick({
 
 export const updateOfferSchema = offerSchema
   .pick({
-    price: true,
     incentive: true,
     title: true,
     description: true,

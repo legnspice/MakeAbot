@@ -28,6 +28,7 @@ import {
 } from "@/lib/actions/requests";
 import { getUsers } from "@/lib/actions/users";
 import { excludeOwnItems } from "@/lib/feed";
+import { formatIncentive } from "@/lib/incentive";
 import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
 
 type ListItem = {
@@ -42,11 +43,6 @@ type ListItem = {
   typeBadge?: string;
   detail: ItemDetailData;
 };
-
-function formatPrice(value: number | null | undefined): string {
-  if (value == null || value === 0) return "FREE";
-  return `₱${value}`;
-}
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -93,13 +89,13 @@ async function fetchHomeItems(
       userId: post.user_id ?? "",
       variant: "lent",
       requestedBy: `Offered by: ${posterName}`,
-      price: formatPrice(post.price),
+      price: formatIncentive(post.incentive),
       typeBadge: "Offer",
       detail: {
         title: post.title,
         lentBy: posterName,
         quantity: 1,
-        price: formatPrice(post.price),
+        price: formatIncentive(post.incentive),
         description: post.description ?? undefined,
         imageUrl: post.imgUrl ?? undefined,
       },
@@ -117,13 +113,13 @@ async function fetchHomeItems(
       userId: req.user_id ?? "",
       variant: "requested",
       requestedBy: `Requested by: ${posterName}`,
-      price: formatPrice(req.fee),
+      price: formatIncentive(req.incentive),
       typeBadge: "Request",
       detail: {
         title: req.title,
         requestedBy: posterName,
         quantity: 1,
-        price: formatPrice(req.fee),
+        price: formatIncentive(req.incentive),
         description: req.description ?? undefined,
         imageUrl: req.imgUrl ?? undefined,
         urgency: req.urgency ?? undefined,

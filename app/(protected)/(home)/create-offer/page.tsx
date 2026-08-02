@@ -19,6 +19,8 @@ import {
   PushPermissionModal,
   PUSH_PROMPT_KEY,
 } from "@/components/push-permission-modal";
+import { PRICE_CAP } from "@/lib/constants";
+import { incentiveOverCap } from "@/lib/incentive";
 
 export default function CreateOffer() {
   const router = useRouter();
@@ -28,7 +30,6 @@ export default function CreateOffer() {
 
   const { requestPermissionAndSubscribe } = usePushSubscription();
 
-  const [itemKind, setItemKind] = useState<"Item" | "Service">("Item");
   const [isPosting, setIsPosting] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -37,7 +38,7 @@ export default function CreateOffer() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    price: "",
+    incentive: "",
   });
 
   const searchParams = useSearchParams();
@@ -53,10 +54,8 @@ export default function CreateOffer() {
         setForm({
           title: post.title ?? "",
           description: post.description ?? "",
-          price: post.price != null ? String(post.price) : "",
+          incentive: post.incentive ?? "",
         });
-        if (post.type === "Item" || post.type === "Service")
-          setItemKind(post.type);
         if (post.imgUrl) setUploadedImageUrl(post.imgUrl);
       } else {
         router.push("/tracker");
@@ -122,29 +121,29 @@ export default function CreateOffer() {
   const handlePost = async () => {
     const title = form.title.trim();
     if (!title) return;
-    const priceValue = form.price.trim()
-      ? parseInt(form.price.trim(), 10) || null
-      : null;
+    const incentive = form.incentive.trim() || null;
+    if (incentiveOverCap(incentive)) {
+      alert(`Please keep incentives at ₱${PRICE_CAP} or under.`);
+      return;
+    }
 
     setIsPosting(true);
     try {
       if (editId) {
         await editOffer(editId, {
           title,
-          price: priceValue,
+          incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
-          type: itemKind,
         });
       } else {
         await createOffer({
           user_id: currentUser.id,
           title,
-          price: priceValue,
+          incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
           status: "Active",
-          type: itemKind,
         });
         const seen = localStorage.getItem(PUSH_PROMPT_KEY);
         const denied =
@@ -184,35 +183,6 @@ export default function CreateOffer() {
 
           {/* Form */}
           <div className="space-y-4">
-            {/* Type: Item / Service */}
-            <div className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-sm text-gray-600">Type</div>
-              <div className="inline-flex rounded-full bg-gray-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => setItemKind("Item")}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    itemKind === "Item"
-                      ? "bg-white text-black font-semibold shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  Item
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setItemKind("Service")}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    itemKind === "Service"
-                      ? "bg-white text-black font-semibold shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  Service
-                </button>
-              </div>
-            </div>
-
             {/* Title */}
             <div className="flex items-center gap-3">
               <div className="w-28 shrink-0 text-sm text-gray-600">Title</div>
@@ -242,19 +212,18 @@ export default function CreateOffer() {
               />
             </div>
 
-            {/* Price */}
+            {/* Incentive */}
             <div className="flex items-center gap-3">
               <div className="w-28 shrink-0 text-sm text-gray-600">
-                Price (₱)
+                Incentive
               </div>
               <Input
-                type="number"
-                min={0}
-                value={form.price}
+                value={form.incentive}
+                maxLength={60}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, price: e.target.value }))
+                  setForm((f) => ({ ...f, incentive: e.target.value }))
                 }
-                placeholder="20.00"
+                placeholder="e.g. ₱20, a coffee, just goodwill"
                 className="flex-1 rounded-xl bg-gray-100 border-0"
               />
             </div>
