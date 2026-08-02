@@ -12,6 +12,7 @@ import {
 import type { SelectNotification } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
+import { Spinner } from "@/components/ui/spinner";
 
 function formatTime(date: Date): string {
   const now = new Date();
@@ -265,7 +266,9 @@ export default function NotificationsPanel({
         {/* List */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="text-center text-gray-400 text-sm pt-10">Loading…</p>
+            <div className="flex justify-center pt-10 text-gray-400">
+              <Spinner size={24} />
+            </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-400 text-sm pt-10">
               No notifications yet

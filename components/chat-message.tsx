@@ -6,6 +6,7 @@ interface ChatMessageItemProps {
   message: ChatMessage;
   isOwnMessage: boolean;
   showHeader: boolean;
+  showAvatar: boolean;
   avatarUrl?: string;
 }
 
@@ -13,30 +14,34 @@ export const ChatMessageItem = ({
   message,
   isOwnMessage,
   showHeader,
+  showAvatar,
   avatarUrl,
 }: ChatMessageItemProps) => {
   return (
     <div
       className={`flex mt-2 ${isOwnMessage ? "justify-end" : "justify-start"}`}
     >
-      {/* Avatar for other user */}
-      {!isOwnMessage && (
-        <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 mr-2 mt-auto">
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt={message.user.name}
-              width={32}
-              height={32}
-              className="object-cover w-full h-full"
-            />
-          ) : (
-            <span className="flex items-center justify-center w-full h-full text-xs font-medium text-gray-500 uppercase">
-              {message.user.name.charAt(0)}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Avatar for other user — only on the last message of a run */}
+      {!isOwnMessage &&
+        (showAvatar ? (
+          <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 mr-2 mt-auto">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={message.user.name}
+                width={32}
+                height={32}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <span className="flex items-center justify-center w-full h-full text-xs font-medium text-gray-500 uppercase">
+                {message.user.name.charAt(0)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="w-8 mr-2 shrink-0" aria-hidden />
+        ))}
       <div
         className={cn("max-w-[75%] w-fit flex flex-col gap-1", {
           "items-end": isOwnMessage,

@@ -100,8 +100,14 @@ export const RealtimeChat = ({
         <div className="space-y-1">
           {allMessages.map((message, index) => {
             const prevMessage = index > 0 ? allMessages[index - 1] : null;
+            const nextMessage =
+              index < allMessages.length - 1 ? allMessages[index + 1] : null;
             const showHeader =
               !prevMessage || prevMessage.user.name !== message.user.name;
+            const isOwnMessage = message.user.name === username;
+            const showAvatar =
+              !isOwnMessage &&
+              (!nextMessage || nextMessage.user.name !== message.user.name);
 
             return (
               <div
@@ -110,11 +116,10 @@ export const RealtimeChat = ({
               >
                 <ChatMessageItem
                   message={message}
-                  isOwnMessage={message.user.name === username}
+                  isOwnMessage={isOwnMessage}
                   showHeader={showHeader}
-                  avatarUrl={
-                    message.user.name !== username ? otherAvatarUrl : undefined
-                  }
+                  showAvatar={showAvatar}
+                  avatarUrl={!isOwnMessage ? otherAvatarUrl : undefined}
                 />
               </div>
             );

@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import { getDealStatus } from "@/lib/actions/deals";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ChatMessage {
   id: string;
@@ -194,7 +195,11 @@ export const ChatRoom = ({
 
   // NOW you can do the early return - AFTER all hooks
   if (chatDataLoading) {
-    return <div>Loading messages...</div>;
+    return (
+      <div className="h-full flex items-center justify-center text-gray-400">
+        <Spinner size={28} />
+      </div>
+    );
   }
 
   return (
