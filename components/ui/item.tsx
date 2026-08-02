@@ -70,15 +70,15 @@ export default function ItemRequestCard({
           : ""
       }`}
     >
-      {/* Image area — 4:3 on top */}
-      <div className="relative w-full aspect-[4/3] bg-gray-100">
+      {/* Image area — square frame; fit (no crop) */}
+      <div className="relative w-full aspect-square bg-gray-100">
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={detail?.title ?? "Post image"}
             fill
             sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover"
+            className="object-contain"
           />
         ) : (
           <div

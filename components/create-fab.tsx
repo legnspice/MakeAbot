@@ -94,7 +94,7 @@ export default function CreateFab() {
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen((v) => !v)}
         >
-          <span className="hidden md:inline text-black font-medium">Create</span>
+          <span className="hidden md:inline text-white font-medium">Create</span>
           <Plus size={30} strokeWidth={3} className="text-white" />
         </Button>
       </div>
