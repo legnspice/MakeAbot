@@ -93,7 +93,7 @@ function ChatPageInner() {
   if (!bidId || !otherId) return null;
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden">
+    <div className="h-dvh bg-white flex flex-col overflow-hidden">
       <Navbar />
 
       {/* Header */}

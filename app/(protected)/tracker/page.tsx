@@ -31,6 +31,7 @@ import {
   ChevronRight,
 } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
+import CreateFab from "@/components/create-fab";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
 import {
   closeOffer,
@@ -525,16 +526,14 @@ export default function TrackerPage() {
       (r) => isHistory || r.bidStatus !== "Closed",
     );
     const onClickHandler = card.isOwned
-      ? activePeople.length > 0
-        ? () =>
-            setModalData({
-              id: card.id,
-              title: card.itemName,
-              people: activePeople,
-              type: "offer",
-              isHistory,
-            })
-        : undefined
+      ? () =>
+          setModalData({
+            id: card.id,
+            title: card.itemName,
+            people: activePeople,
+            type: "offer",
+            isHistory,
+          })
       : counterparty
         ? () =>
             goToChat(
@@ -589,16 +588,14 @@ export default function TrackerPage() {
       (b) => isHistory || b.bidStatus !== "Closed",
     );
     const onClickHandler = card.isOwned
-      ? activePeople.length > 0
-        ? () =>
-            setModalData({
-              id: card.id,
-              title: card.itemName,
-              people: activePeople,
-              type: "request",
-              isHistory,
-            })
-        : undefined
+      ? () =>
+          setModalData({
+            id: card.id,
+            title: card.itemName,
+            people: activePeople,
+            type: "request",
+            isHistory,
+          })
       : counterparty
         ? () =>
             goToChat(
@@ -761,6 +758,9 @@ export default function TrackerPage() {
               iconClass={
                 modalData.type === "offer" ? "text-gray-400" : "text-blue-400"
               }
+              emptyLabel={
+                modalData.type === "request" ? "No offers yet" : "No requests yet"
+              }
               onSelect={(bidId, otherId) =>
                 goToChat(bidId, modalData.type, modalData.title, otherId)
               }
@@ -822,6 +822,8 @@ export default function TrackerPage() {
         </main>
       )}
 
+      <CreateFab />
+
       <BottomNav />
     </div>
   );
@@ -833,6 +835,7 @@ function ChatListModal({
   accentClass,
   avatarClass,
   iconClass,
+  emptyLabel,
   onSelect,
   onClose,
   onMarkDone,
@@ -842,6 +845,7 @@ function ChatListModal({
   accentClass: string;
   avatarClass: string;
   iconClass: string;
+  emptyLabel: string;
   onSelect: (bidId: string, id: string) => void;
   onClose: () => void;
   onMarkDone?: (bidId: string) => void;
@@ -868,6 +872,9 @@ function ChatListModal({
             <XLg className="text-gray-500" size={16} />
           </button>
         </div>
+        {people.length === 0 && (
+          <p className="text-center text-gray-400 text-sm py-6">{emptyLabel}</p>
+        )}
         <ul className="overflow-y-auto space-y-2">
           {people.map((p) => (
             <li key={p.bidId} className="flex items-center gap-1">
