@@ -9,6 +9,7 @@ export const userSchema = z.object({
   phone_number: z.string().nullable(),
   description: z.string().nullable(),
   contributions: z.int(),
+  avatar_url: z.string().nullable(),
 });
 
 // export const CurrentUserData = z.object({ supabaseUser, publicUser });
