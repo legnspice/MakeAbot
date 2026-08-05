@@ -9,7 +9,7 @@ import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 import { getDealStatus, completeRequest, completeOfferBid } from "@/lib/actions/deals";
-import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
+import { getUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 
 function ChatPageInner() {
@@ -44,24 +44,25 @@ function ChatPageInner() {
 
     Promise.all([
       getDealStatus(bidId, kind),
-      getUserAvatarUrl(otherId),
       getReviews({ rated_user_id: otherId }),
       getUsers({ id: otherId }),
-    ]).then(([statusResult, avatarUrl, reviewsResult, usersResult]) => {
+    ]).then(([statusResult, reviewsResult, usersResult]) => {
       if (statusResult.data) {
         setOwnerUserId(statusResult.data.ownerUserId);
         setParentId(statusResult.data.parentId);
         const s = statusResult.data.parentStatus;
         if (s === "Completed" || s === "Closed") setIsDone(true);
       }
-      setOtherAvatarUrl(avatarUrl ?? null);
       const reviews = reviewsResult.data ?? [];
       if (reviews.length > 0) {
         const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
         setOtherRating(Math.round(avg * 10) / 10);
       }
       const user = usersResult.data?.[0];
-      if (user) setOtherName(user.name ?? "");
+      if (user) {
+        setOtherName(user.name ?? "");
+        setOtherAvatarUrl(user.avatar_url ?? null);
+      }
     });
   }, [bidId, otherId, kind]);
 
