@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { TagFill, QuestionCircleFill, Clock } from "react-bootstrap-icons";
 import type { ItemDetailData } from "@/components/ui/item-detail-modal";
 
@@ -18,6 +19,10 @@ export interface ItemRequestCardProps {
   onDelete?: () => void;
   deleteLabel?: string;
   deleteDestructive?: boolean;
+  posterId?: string;
+  posterName?: string;
+  posterAvatarUrl?: string;
+  isOwnPoster?: boolean;
 }
 
 export default function ItemRequestCard({
@@ -35,6 +40,10 @@ export default function ItemRequestCard({
   onDelete,
   deleteLabel,
   deleteDestructive = true,
+  posterId,
+  posterName,
+  posterAvatarUrl,
+  isOwnPoster = false,
 }: ItemRequestCardProps) {
   const hasLocation = section && section !== "—";
   const hasDate = time && time !== "—";
@@ -104,11 +113,40 @@ export default function ItemRequestCard({
         <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">
           {detail?.title ?? "Item"}
         </h3>
-        <p className="text-xs text-gray-600 truncate">
-          {variant === "lent"
-            ? requestedBy.replace(/^Offered by:/i, "Lent by:")
-            : requestedBy}
-        </p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {posterName != null && (
+            <span className="w-[18px] h-[18px] rounded-full bg-gray-200 overflow-hidden shrink-0 flex items-center justify-center text-[9px] font-semibold text-gray-500 uppercase">
+              {posterAvatarUrl ? (
+                <Image
+                  src={posterAvatarUrl}
+                  alt={posterName || "User"}
+                  width={18}
+                  height={18}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                (posterName || "U").charAt(0)
+              )}
+            </span>
+          )}
+          {posterId && !isOwnPoster ? (
+            <Link
+              href={`/profile/${posterId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-gray-600 truncate hover:underline"
+            >
+              {variant === "lent"
+                ? requestedBy.replace(/^Offered by:/i, "Lent by:")
+                : requestedBy}
+            </Link>
+          ) : (
+            <p className="text-xs text-gray-600 truncate">
+              {variant === "lent"
+                ? requestedBy.replace(/^Offered by:/i, "Lent by:")
+                : requestedBy}
+            </p>
+          )}
+        </div>
         {urgency && (
           <span className="flex items-center gap-1 text-[11px] font-medium text-gray-500">
             <Clock size={11} className="shrink-0" />
