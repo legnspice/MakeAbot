@@ -67,6 +67,7 @@ export default function ItemRequestCard({
       onKeyDown={
         onClick
           ? (e) => {
+              if (e.target !== e.currentTarget) return;
               if (e.key === "Enter" || e.key === " ") onClick();
             }
           : undefined
