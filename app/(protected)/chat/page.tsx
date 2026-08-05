@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, StarFill } from "react-bootstrap-icons";
 import Navbar from "@/components/ui/navbar";
@@ -108,33 +109,38 @@ function ChatPageInner() {
           <ChevronLeft size={20} />
         </button>
 
-        <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
-          {otherAvatarUrl ? (
-            <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
-          ) : (
-            <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
-              {(otherName || "U").charAt(0)}
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
-              {title}{otherName ? ` | ${otherName}` : ""}
-            </p>
-            {otherRating != null ? (
-              <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
-                {otherRating}<StarFill className="text-[#DEA440]" size={12} />
-              </span>
+        <Link
+          href={`/profile/${otherId}`}
+          className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-90"
+        >
+          <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
+            {otherAvatarUrl ? (
+              <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
             ) : (
-              <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+              <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
+                {(otherName || "U").charAt(0)}
+              </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 leading-tight">
-            {kind === "offer" ? "Offer" : "Request"}
-          </p>
-        </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
+                {title}{otherName ? ` | ${otherName}` : ""}
+              </p>
+              {otherRating != null ? (
+                <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                  {otherRating}<StarFill className="text-[#DEA440]" size={12} />
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 leading-tight">
+              {kind === "offer" ? "Offer" : "Request"}
+            </p>
+          </div>
+        </Link>
 
         {isOwner && !isDone && (
           <button

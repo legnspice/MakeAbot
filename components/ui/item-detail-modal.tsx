@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChatDotsFill, X, Clock } from "react-bootstrap-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -119,11 +120,35 @@ export default function ItemDetailModal({
               </div>
             </div>
             {item.lentBy && (
-              <p className="text-sm text-gray-600">Lent by {item.lentBy}</p>
+              <p className="text-sm text-gray-600">
+                Lent by{" "}
+                {item.posterId && !isOwner ? (
+                  <Link
+                    href={`/profile/${item.posterId}`}
+                    className="font-medium text-[#3761B0] hover:underline"
+                    onClick={onClose}
+                  >
+                    {item.lentBy}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{item.lentBy}</span>
+                )}
+              </p>
             )}
             {item.requestedBy && (
               <p className="text-sm text-gray-600">
-                Requested by {item.requestedBy}
+                Requested by{" "}
+                {item.posterId && !isOwner ? (
+                  <Link
+                    href={`/profile/${item.posterId}`}
+                    className="font-medium text-[#3761B0] hover:underline"
+                    onClick={onClose}
+                  >
+                    {item.requestedBy}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{item.requestedBy}</span>
+                )}
               </p>
             )}
             {item.location && (
