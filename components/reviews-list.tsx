@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { StarFill, Star } from "react-bootstrap-icons";
 import type { SelectReview } from "@/lib/db/schema";
-import { getUsers } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
 import { timeAgo } from "@/lib/date";
 
 type Reviewer = { name: string | null; avatar_url: string | null };
@@ -28,7 +28,7 @@ export default function ReviewsList({ reviews }: { reviews: SelectReview[] }) {
     const ids = Array.from(new Set(reviews.map((r) => r.creator_id)));
     if (ids.length === 0) return;
     let cancelled = false;
-    getUsers({ ids }).then((res) => {
+    getPublicUsers(ids).then((res) => {
       if (cancelled) return;
       const map: Record<string, Reviewer> = {};
       for (const u of res.data ?? [])

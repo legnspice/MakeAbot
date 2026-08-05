@@ -114,10 +114,10 @@ export default function PublicProfilePage() {
             </div>
 
             {/* Contextual disclosure — only present when server deems the viewer a counterparty */}
-            {(profile.phone_number || profile.id_number != null) && (
+            {(profile.phone_number || !!profile.id_number) && (
               <div className="flex items-center gap-4 mt-2 text-gray-500 text-sm">
                 {profile.phone_number && <span>{profile.phone_number}</span>}
-                {profile.id_number != null && <span>ID: {profile.id_number}</span>}
+                {!!profile.id_number && <span>ID: {profile.id_number}</span>}
               </div>
             )}
 

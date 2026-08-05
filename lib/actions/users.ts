@@ -15,6 +15,13 @@ export async function getUsers(filters: FindUserSchema) {
   });
 }
 
+export async function getPublicUsers(ids: string[]) {
+  return await handleAction(async () => {
+    await requireAuth();
+    return usersService.getPublicUsers(ids);
+  });
+}
+
 export async function editUser(id: string, data: UpdateUserSchema) {
   return await handleAction(async () => {
     const user = await requireAuth();

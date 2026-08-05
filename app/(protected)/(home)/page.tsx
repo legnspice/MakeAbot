@@ -26,7 +26,7 @@ import {
   createRequestBid,
   reopenRequestBid,
 } from "@/lib/actions/requests";
-import { getUsers } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
 import { excludeOwnItems } from "@/lib/feed";
 import { formatIncentive } from "@/lib/incentive";
 import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
@@ -75,7 +75,7 @@ async function fetchHomeItems(
 
   const usersMap = new Map<string, { name: string; avatarUrl?: string }>();
   if (userIds.size > 0) {
-    const usersResult = await getUsers({ ids: Array.from(userIds) });
+    const usersResult = await getPublicUsers(Array.from(userIds));
     for (const u of usersResult.data ?? [])
       usersMap.set(u.id, {
         name: u.name ?? "User",

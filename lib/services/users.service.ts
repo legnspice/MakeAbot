@@ -8,6 +8,10 @@ export async function getUsers(filters: FindUserSchema) {
   return await usersRepo.findUsers(filters);
 }
 
+export async function getPublicUsers(ids: string[]) {
+  return await usersRepo.findPublicUsers(ids);
+}
+
 export async function createUser(id: string) {
   await usersRepo.insertUser(id);
   await notificationsRepo.insertDefaultPreferences(id);
