@@ -35,3 +35,10 @@ export async function syncAvatarUrl() {
     await usersService.syncAvatarUrl(user.id, next);
   });
 }
+
+export async function getPublicProfile(userId: string) {
+  return await handleAction(async () => {
+    const viewer = await requireAuth();
+    return usersService.getPublicProfile(viewer.id, userId);
+  });
+}
