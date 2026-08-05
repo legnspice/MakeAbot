@@ -20,7 +20,8 @@ import { getReviews } from "@/lib/actions/reviews";
 import { getOffers } from "@/lib/actions/offers";
 import { editUser, getUsers } from "@/lib/actions/users";
 import { logout } from "@/app/auth/login/actions";
-import type { SelectOffer } from "@/lib/db/schema";
+import type { SelectOffer, SelectReview } from "@/lib/db/schema";
+import ReviewsList from "@/components/reviews-list";
 import imageCompression from "browser-image-compression";
 import { createClient } from "@/lib/supabase/client";
 
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const [avgRating, setAvgRating] = useState<number>(0);
   const [reviewCount, setReviewCount] = useState(0);
   const [offers, setOffers] = useState<SelectOffer[]>([]);
+  const [reviews, setReviews] = useState<SelectReview[]>([]);
 
   // Local copy of editable fields so UI updates after save
   const [name, setName] = useState(currentUser.name ?? googleName);
@@ -134,6 +136,7 @@ export default function ProfilePage() {
       const sum = reviewsResult.data.reduce((acc, r) => acc + r.rating, 0);
       setAvgRating(Math.round((sum / reviewsResult.data.length) * 10) / 10);
       setReviewCount(reviewsResult.data.length);
+      setReviews(reviewsResult.data);
     }
 
     if (offersResult.data) {
@@ -312,6 +315,14 @@ export default function ProfilePage() {
               )}
             </div>
           </section>
+
+          {/* Reviews */}
+          <section className="mt-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Reviews</h2>
+            <div className="border-t border-gray-200 pt-2 max-w-2xl">
+              <ReviewsList reviews={reviews} />
+            </div>
+          </section>
         </div>
 
         {/* ── Mobile layout ── */}
@@ -456,6 +467,14 @@ export default function ProfilePage() {
                 ))}
               </div>
             )}
+          </section>
+
+          {/* Reviews */}
+          <section className="mt-4">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Reviews</h2>
+            <div className="border-t border-gray-200 pt-2">
+              <ReviewsList reviews={reviews} />
+            </div>
           </section>
         </div>
       </main>
