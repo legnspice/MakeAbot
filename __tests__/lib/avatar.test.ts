@@ -11,6 +11,11 @@ describe("resolveMetaAvatar", () => {
     expect(resolveMetaAvatar({})).toBeNull();
     expect(resolveMetaAvatar(undefined)).toBeNull();
   });
+  it("returns null for empty-string or non-string values", () => {
+    expect(resolveMetaAvatar({ avatar_url: "" })).toBeNull();
+    expect(resolveMetaAvatar({ avatar_url: 123 } as never)).toBeNull();
+    expect(resolveMetaAvatar({ avatar_url: "", picture: "p" })).toBe("p");
+  });
 });
 
 describe("avatarNeedsSync", () => {
@@ -21,5 +26,9 @@ describe("avatarNeedsSync", () => {
   it("false when equal (including both null)", () => {
     expect(avatarNeedsSync("a", "a")).toBe(false);
     expect(avatarNeedsSync(null, null)).toBe(false);
+  });
+  it("treats undefined stored the same as null", () => {
+    expect(avatarNeedsSync(undefined, null)).toBe(false);
+    expect(avatarNeedsSync(undefined, "a")).toBe(true);
   });
 });
