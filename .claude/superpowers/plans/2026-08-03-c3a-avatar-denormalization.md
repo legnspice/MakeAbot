@@ -251,28 +251,33 @@ git commit -m "feat(users): syncAvatarUrl action — lazily mirror auth avatar t
 - Modify: `contexts/auth-context.tsx`
 
 **Interfaces:**
-- Consumes: `syncAvatarUrl()` (Task 4).
+- Consumes: `syncAvatarUrl()` (Task 4); `resolveMetaAvatar`, `avatarNeedsSync` (Task 3).
 
-`AuthProvider` wraps every protected page and already receives `userData`. Add a one-shot mount effect that fires the sync without awaiting (UI never blocks on it; a failure is silent — the row just stays stale until next load).
+`AuthProvider` wraps every protected page and already receives `userData` — which carries **both** the stored column (`userData.publicUser.avatar_url`, after Task 1) and the master (`userData.supabaseUser.user_metadata`). So the staleness check is a free in-memory string compare on the client; we only call the server action when they actually differ. This avoids a DB read on every load and still refreshes on first-login backfill *and* a changed Google photo. Fire-and-forget (never blocks render; a failure is silent — the row just stays stale until next load).
 
-- [ ] **Step 1: Add the effect**
+- [ ] **Step 1: Add the guarded effect**
 
-Edit `contexts/auth-context.tsx` — add `useEffect` to the import and the effect inside `AuthProvider`:
+Edit `contexts/auth-context.tsx` — extend the import and add the effect inside `AuthProvider`:
 
 ```tsx
 import { createContext, useContext, ReactNode, useMemo, useEffect } from "react";
 import { CurrentUserData } from "@/hooks/use-current-user";
 import { syncAvatarUrl } from "@/lib/actions/users";
+import { resolveMetaAvatar, avatarNeedsSync } from "@/lib/avatar";
 ```
 
 Inside `AuthProvider`, before the `return`:
 
 ```tsx
-  // Lazily mirror the auth-metadata avatar into users.avatar_url once per load.
-  // Fire-and-forget: never blocks render; idempotent (~0 writes when unchanged).
+  // Mirror the auth-metadata avatar into users.avatar_url only when it has drifted.
+  // The compare uses data already in memory (no DB read); the server action fires
+  // fire-and-forget only on a real change (first-login backfill or a new Google photo).
   useEffect(() => {
-    void syncAvatarUrl();
-  }, []);
+    const next = resolveMetaAvatar(userData.supabaseUser.user_metadata);
+    if (avatarNeedsSync(userData.publicUser.avatar_url, next)) {
+      void syncAvatarUrl();
+    }
+  }, [userData]);
 ```
 
 - [ ] **Step 2: Typecheck + lint**
