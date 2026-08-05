@@ -42,6 +42,10 @@ type ListItem = {
   price: string;
   typeBadge?: string;
   detail: ItemDetailData;
+  posterId: string;
+  posterName: string;
+  posterAvatarUrl?: string;
+  isOwnPoster: boolean;
 };
 
 function getPriceRank(price: string): number {
@@ -69,20 +73,22 @@ async function fetchHomeItems(
   for (const req of requestsResult.data ?? [])
     if (req.user_id && req.user_id !== userId) userIds.add(req.user_id);
 
-  const usersMap = new Map<string, string>();
+  const usersMap = new Map<string, { name: string; avatarUrl?: string }>();
   if (userIds.size > 0) {
     const usersResult = await getUsers({ ids: Array.from(userIds) });
     for (const u of usersResult.data ?? [])
-      usersMap.set(u.id, u.name ?? "User");
+      usersMap.set(u.id, {
+        name: u.name ?? "User",
+        avatarUrl: u.avatar_url ?? undefined,
+      });
   }
 
   const mapped: ListItem[] = [];
 
   for (const post of postsResult.data ?? []) {
-    const posterName =
-      post.user_id === userId
-        ? (userName ?? "You")
-        : (usersMap.get(post.user_id ?? "") ?? "User");
+    const isOwn = post.user_id === userId;
+    const entry = usersMap.get(post.user_id ?? "");
+    const posterName = isOwn ? (userName ?? "You") : (entry?.name ?? "User");
     mapped.push({
       id: post.id,
       itemDbId: post.id,
@@ -91,6 +97,10 @@ async function fetchHomeItems(
       requestedBy: `Offered by: ${posterName}`,
       price: formatIncentive(post.incentive),
       typeBadge: "Offer",
+      posterId: post.user_id ?? "",
+      posterName,
+      posterAvatarUrl: isOwn ? undefined : entry?.avatarUrl,
+      isOwnPoster: isOwn,
       detail: {
         title: post.title,
         lentBy: posterName,
@@ -98,15 +108,15 @@ async function fetchHomeItems(
         price: formatIncentive(post.incentive),
         description: post.description ?? undefined,
         imageUrl: post.imgUrl ?? undefined,
+        posterId: post.user_id ?? undefined,
       },
     });
   }
 
   for (const req of requestsResult.data ?? []) {
-    const posterName =
-      req.user_id === userId
-        ? (userName ?? "You")
-        : (usersMap.get(req.user_id ?? "") ?? "User");
+    const isOwn = req.user_id === userId;
+    const entry = usersMap.get(req.user_id ?? "");
+    const posterName = isOwn ? (userName ?? "You") : (entry?.name ?? "User");
     mapped.push({
       id: req.id,
       itemDbId: req.id,
@@ -115,6 +125,10 @@ async function fetchHomeItems(
       requestedBy: `Requested by: ${posterName}`,
       price: formatIncentive(req.incentive),
       typeBadge: "Request",
+      posterId: req.user_id ?? "",
+      posterName,
+      posterAvatarUrl: isOwn ? undefined : entry?.avatarUrl,
+      isOwnPoster: isOwn,
       detail: {
         title: req.title,
         requestedBy: posterName,
@@ -123,6 +137,7 @@ async function fetchHomeItems(
         description: req.description ?? undefined,
         imageUrl: req.imgUrl ?? undefined,
         urgency: req.urgency ?? undefined,
+        posterId: req.user_id ?? undefined,
       },
     });
   }
@@ -304,6 +319,10 @@ export default function Home() {
                   price={item.price}
                   typeBadge={item.typeBadge}
                   urgency={item.detail.urgency}
+                  posterId={item.posterId}
+                  posterName={item.posterName}
+                  posterAvatarUrl={item.posterAvatarUrl}
+                  isOwnPoster={item.isOwnPoster}
                   detail={item.detail}
                   onClick={() => setSelectedItem(item)}
                 />

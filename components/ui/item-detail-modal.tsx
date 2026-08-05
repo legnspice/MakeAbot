@@ -17,6 +17,7 @@ export interface ItemDetailData {
   note?: string;
   urgency?: string;
   incentive?: string;
+  posterId?: string;
 }
 
 interface ItemDetailModalProps {
