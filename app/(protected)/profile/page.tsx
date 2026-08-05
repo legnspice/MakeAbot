@@ -102,6 +102,9 @@ export default function ProfilePage() {
         data: { avatar_url: data.publicUrl },
       });
 
+      // Keep the denormalized users.avatar_url in sync immediately.
+      await editUser(currentUser.id, { avatar_url: data.publicUrl });
+
       window.location.reload();
     } catch (err) {
       console.error("Avatar upload failed:", err);
