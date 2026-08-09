@@ -51,3 +51,14 @@ export async function deleteReview(id: string, userId: string) {
     .delete(reviews)
     .where(and(eq(reviews.id, id), eq(reviews.creator_id, userId)));
 }
+
+export async function findReviewByCreatorAndBid(
+  creatorId: string,
+  kind: "offer" | "request",
+  bidId: string,
+) {
+  const col = kind === "offer" ? reviews.offer_bid_id : reviews.request_bid_id;
+  return await db.query.reviews.findFirst({
+    where: and(eq(reviews.creator_id, creatorId), eq(col, bidId)),
+  });
+}
