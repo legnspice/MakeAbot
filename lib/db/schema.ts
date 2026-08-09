@@ -35,6 +35,7 @@ export const users = pgTable("users", {
   description: text("description"),
   contributions: integer("contributions").notNull().default(0),
   avatar_url: text("avatar_url"),
+  is_admin: boolean("is_admin").notNull().default(false),
 });
 
 export const messages = pgTable("messages", {
@@ -56,24 +57,35 @@ export const messages = pgTable("messages", {
   is_read: boolean("is_read").default(false).notNull(),
 });
 
-export const reviews = pgTable("reviews", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  rated_user_id: uuid("rated_user_id")
-    .notNull()
-    .references(() => users.id),
-  creator_id: uuid("creator_id")
-    .notNull()
-    .references(() => users.id),
-  request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
-    onDelete: "cascade",
-  }),
-  offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
-    onDelete: "cascade",
-  }),
-  comment: text("comment"),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-  rating: integer("rating").notNull(),
-});
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rated_user_id: uuid("rated_user_id")
+      .notNull()
+      .references(() => users.id),
+    creator_id: uuid("creator_id")
+      .notNull()
+      .references(() => users.id),
+    request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
+      onDelete: "cascade",
+    }),
+    offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
+      onDelete: "cascade",
+    }),
+    comment: text("comment"),
+    created_at: timestamp("created_at").notNull().defaultNow(),
+    rating: integer("rating").notNull(),
+  },
+  (t) => [
+    uniqueIndex("reviews_creator_offer_bid_idx")
+      .on(t.creator_id, t.offer_bid_id)
+      .where(sql`${t.offer_bid_id} IS NOT NULL`),
+    uniqueIndex("reviews_creator_request_bid_idx")
+      .on(t.creator_id, t.request_bid_id)
+      .where(sql`${t.request_bid_id} IS NOT NULL`),
+  ],
+);
 
 export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -197,6 +209,8 @@ export const reports = pgTable("reports", {
   reason: reportReasonEnum("reason").notNull(),
   details: text("details"),
   status: text("status").notNull().default("open"),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  report_count: integer("report_count").notNull().default(1),
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
 
