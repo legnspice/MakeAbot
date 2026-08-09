@@ -7,13 +7,15 @@
 
 ## Goal
 
-Give users a way to report bad actors and bad posts (persisted for a future admin review), and a static `/help` page covering how-to + safety/reporting guidance.
+Give users a way to report bad actors and bad posts (persisted for a future admin review), and surface safety/reporting guidance by folding it into the existing tutorial modal (no separate `/help` page).
 
 Source: QA backlog Epic D + ARSA admin's "bad actors / rating weaponization" concern. Scope confirmed 2026-08-06.
 
 ## Scope (decided)
 
-**In:** an incident-`reports` table, a shared report modal wired to a few entry points, and a `/help` page.
+**In:** an incident-`reports` table, a shared report modal wired to a few entry points, and safety/reporting guidance added to the existing tutorial modal.
+
+**`/help` page dropped (redundant):** the app already has a re-openable `TutorialModal` (stepped carousel, `useTutorial().openTutorial()`) reachable any time via the **navbar "Help" button** (`components/ui/navbar.tsx`). A standalone `/help` page would duplicate it. Help/safety/reporting content is added there instead.
 
 **Out (deliberately):**
 - **No email** on report (declined — DB persistence only for now).
@@ -58,12 +60,16 @@ Entry points (all reuse the one modal):
 - **Item-detail modal** `components/ui/item-detail-modal.tsx` — a "Report post" affordance; target `{ type: offer|request, id: posterId's post }`. Not shown when `isOwner`.
 - **Chat header** `app/(protected)/chat/page.tsx` — a "Report user" option targeting `otherId` (bad-actor interactions surface in chat). Optional but low-cost; include if it fits cleanly.
 
-### 4. `/help` page
-`app/(protected)/help/page.tsx` (client or server; static content) — sections: What is MakeAbot / How to post an offer or request / How bidding & chat work / Incentives (the ₱-cap rule) / Staying safe (meet in public campus spots, don't share sensitive info) / Reporting (how + that reports are reviewed) / Contact. Linked from a sensible place (e.g. profile page or nav/settings). Copy drafted in the plan; plain, Ateneo-student tone.
+### 4. Safety & reporting guidance in the tutorial modal (no `/help` page)
+Add step(s) to `components/tutorial-modal.tsx`'s `STEPS` array (already reachable any time via the navbar "Help" button → `openTutorial()`):
+- A **"Staying safe"** step: meet in public campus spots, keep deals on-platform, don't share sensitive personal/financial info.
+- A **"Reporting"** step: if someone acts in bad faith or a post looks off, tap **Report** on their profile or the item — reports go to the team for review. (This is where the report feature is explained; it ties the two together.)
+- Insert before the existing final "Contact Us!" step; add matching progress dots automatically (the dots map over `STEPS`, so no other change). Reuse an appropriate `react-bootstrap-icons` glyph (e.g. `ShieldFill` / `FlagFill`).
+- Keep copy plain, Ateneo-student tone. No new route, no new component — just steps + icons.
 
 ## Testing
 - **Unit (pure, TDD):** the report-target validation predicate — "at least one target id present" passes with any one id, fails with none; self-report guard (`reported_user_id === reporter_id`) rejects. Extract as a pure helper so it's testable without a DB.
-- **Manual QA:** submit a report from each entry point → a row lands in `reports` with the right target + reason + `reporter_id` + `status='open'`; self-report is blocked (own profile has no button, and the server rejects a forged self-report); `/help` renders and is reachable; all at mobile + widescreen.
+- **Manual QA:** submit a report from each entry point → a row lands in `reports` with the right target + reason + `reporter_id` + `status='open'`; self-report is blocked (own profile has no button, and the server rejects a forged self-report); the navbar "Help" button opens the tutorial modal and the new Staying-safe + Reporting steps render with correct progress dots; all at mobile + widescreen.
 
 ## Risks & verification
 - **Schema push:** verify the `reports` table + `report_reason` enum apply; existing tables untouched.
