@@ -32,6 +32,7 @@ export default function ReportModal({
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [coalesced, setCoalesced] = useState(false);
 
   function reset() {
     setReason("");
@@ -39,6 +40,7 @@ export default function ReportModal({
     setSubmitting(false);
     setDone(false);
     setError(null);
+    setCoalesced(false);
   }
 
   function handleClose() {
@@ -63,6 +65,7 @@ export default function ReportModal({
       setError(result.error);
       return;
     }
+    setCoalesced(Boolean(result.data?.coalesced));
     setDone(true);
   }
 
@@ -78,7 +81,9 @@ export default function ReportModal({
               Report submitted
             </DialogTitle>
             <p className="text-sm text-gray-600 mb-5">
-              Thanks for helping keep MakeAbot safe. Our team will review this.
+              {coalesced
+                ? "You've already reported this — we've added your note. Our team is reviewing it."
+                : "Thanks for helping keep MakeAbot safe. Our team will review this."}
             </p>
             <Button onClick={handleClose} className="min-w-[120px]">
               Done
