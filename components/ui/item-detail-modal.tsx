@@ -26,6 +26,7 @@ interface ItemDetailModalProps {
   onClose: () => void;
   onInquire?: (item: ItemDetailData) => void;
   onChatClick?: () => void;
+  onReport?: () => void;
   isOwner?: boolean;
   className?: string;
 }
@@ -35,6 +36,7 @@ export default function ItemDetailModal({
   onClose,
   onInquire,
   onChatClick,
+  onReport,
   isOwner = false,
   className,
 }: ItemDetailModalProps) {
@@ -150,6 +152,15 @@ export default function ItemDetailModal({
                   <span className="font-medium">{item.requestedBy}</span>
                 )}
               </p>
+            )}
+            {onReport && !isOwner && (
+              <button
+                type="button"
+                onClick={onReport}
+                className="mt-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Report this post
+              </button>
             )}
             {item.location && (
               <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>

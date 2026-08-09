@@ -13,6 +13,7 @@ import FilterBar, {
   type DateSort,
   type PriceSort,
 } from "@/components/ui/filter-bar";
+import ReportModal, { type ReportTarget } from "@/components/report-modal";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getOffers,
@@ -162,6 +163,7 @@ export default function Home() {
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,6 +348,22 @@ export default function Home() {
             setSelectedItem(null);
             router.push("/tracker");
           }}
+          onReport={
+            selectedItem
+              ? () =>
+                  setReportTarget({
+                    type: selectedItem.variant === "lent" ? "offer" : "request",
+                    id: selectedItem.itemDbId,
+                    label: selectedItem.detail.title,
+                  })
+              : undefined
+          }
+        />
+
+        <ReportModal
+          open={reportTarget !== null}
+          onClose={() => setReportTarget(null)}
+          target={reportTarget}
         />
 
         <CreateFab />

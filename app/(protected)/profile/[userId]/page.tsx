@@ -7,6 +7,7 @@ import { StarFill } from "react-bootstrap-icons";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import ReviewsList from "@/components/reviews-list";
+import ReportModal, { type ReportTarget } from "@/components/report-modal";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 import { useAuth } from "@/contexts/auth-context";
 import { getPublicProfile } from "@/lib/actions/users";
@@ -26,6 +27,7 @@ export default function PublicProfilePage() {
   const [offers, setOffers] = useState<SelectOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   // Own profile → redirect to the editable page.
   useEffect(() => {
@@ -131,6 +133,16 @@ export default function PublicProfilePage() {
               {profile.contributions} completed transaction
               {profile.contributions !== 1 ? "s" : ""}
             </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setReportTarget({ type: "user", id: profile.id, label: name })
+              }
+              className="mt-3 ml-3 text-xs text-gray-400 hover:text-red-500 transition-colors"
+            >
+              Report user
+            </button>
           </div>
         </div>
 
@@ -169,6 +181,11 @@ export default function PublicProfilePage() {
         </section>
       </main>
       <BottomNav />
+      <ReportModal
+        open={reportTarget !== null}
+        onClose={() => setReportTarget(null)}
+        target={reportTarget}
+      />
     </div>
   );
 }

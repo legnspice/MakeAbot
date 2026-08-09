@@ -12,6 +12,7 @@ import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 import { getDealStatus, completeRequest, completeOfferBid } from "@/lib/actions/deals";
 import { getUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
+import ReportModal, { type ReportTarget } from "@/components/report-modal";
 
 function ChatPageInner() {
   const router = useRouter();
@@ -32,6 +33,7 @@ function ChatPageInner() {
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
   const [justMarkedDone, setJustMarkedDone] = useState(false);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   // Route guard
   useEffect(() => {
@@ -151,6 +153,15 @@ function ChatPageInner() {
             Mark done
           </button>
         )}
+        <button
+          type="button"
+          onClick={() =>
+            setReportTarget({ type: "user", id: otherId, label: otherName || "user" })
+          }
+          className="shrink-0 text-xs text-gray-400 hover:text-red-500 transition-colors"
+        >
+          Report
+        </button>
       </header>
 
       {/* Completion banner */}
@@ -169,6 +180,11 @@ function ChatPageInner() {
           disabled={isDone}
         />
       </div>
+      <ReportModal
+        open={reportTarget !== null}
+        onClose={() => setReportTarget(null)}
+        target={reportTarget}
+      />
     </div>
   );
 }
