@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { reports, type InsertReport } from "../db/schema";
 
@@ -36,5 +36,22 @@ export async function coalesceReport(id: string, mergedDetails: string | null) {
       updated_at: sql`now()`,
       report_count: sql`${reports.report_count} + 1`,
     })
+    .where(eq(reports.id, id));
+}
+
+export async function findReports(filters: { status?: string }) {
+  return await db.query.reports.findMany({
+    where: filters.status ? eq(reports.status, filters.status) : undefined,
+    orderBy: [
+      sql`case when ${reports.status} = 'open' then 0 else 1 end`,
+      desc(reports.updated_at),
+    ],
+  });
+}
+
+export async function updateReportStatus(id: string, status: string) {
+  return await db
+    .update(reports)
+    .set({ status, updated_at: sql`now()` })
     .where(eq(reports.id, id));
 }
