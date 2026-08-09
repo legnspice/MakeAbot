@@ -18,6 +18,8 @@ import {
   BellFill,
   EnvelopeExclamationFill,
   PencilSquare,
+  ShieldFillCheck,
+  FlagFill,
 } from "react-bootstrap-icons";
 import { useTutorial, TUTORIAL_STORAGE_KEY } from "@/contexts/tutorial-context";
 import Link from "next/link";
@@ -71,6 +73,20 @@ const STEPS = [
     iconColor: "text-[#DEA440]",
     title: "Profile",
     body: "Build trust and rapport with others by having your profile information up to date. Go into the Profile tab and click the edit profile button there.",
+  },
+  {
+    icon: ShieldFillCheck,
+    iconBg: "bg-blue-100",
+    iconColor: "text-[#3761B0]",
+    title: "Stay Safe",
+    body: "Meet in public spots around campus, keep deals inside MakeAbot, and never share sensitive personal or financial details.",
+  },
+  {
+    icon: FlagFill,
+    iconBg: "bg-amber-100",
+    iconColor: "text-[#DEA440]",
+    title: "Reporting",
+    body: "If someone acts in bad faith or a post looks off, tap Report on their profile or the item. Reports go to our team for review.",
   },
   {
     icon: EnvelopeExclamationFill,
