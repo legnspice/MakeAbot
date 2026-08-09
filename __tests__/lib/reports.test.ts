@@ -1,4 +1,4 @@
-import { hasReportTarget, isSelfReport } from "@/lib/reports";
+import { hasReportTarget, isSelfReport, mergeReportDetails, isValidReportStatus } from "@/lib/reports";
 import { insertReportSchema } from "@/lib/validation/reports";
 
 describe("hasReportTarget", () => {
@@ -39,5 +39,32 @@ describe("insertReportSchema", () => {
       reported_user_id: "b3f1c2d4-0000-4000-8000-000000000001",
     });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("mergeReportDetails", () => {
+  it("joins existing and incoming with a separator", () => {
+    expect(mergeReportDetails("a", "b")).toBe("a\n---\nb");
+  });
+  it("returns the non-empty side when the other is empty", () => {
+    expect(mergeReportDetails("a", null)).toBe("a");
+    expect(mergeReportDetails(null, "b")).toBe("b");
+    expect(mergeReportDetails("a", "")).toBe("a");
+  });
+  it("returns null when both are empty", () => {
+    expect(mergeReportDetails(null, null)).toBeNull();
+    expect(mergeReportDetails("", undefined)).toBeNull();
+  });
+});
+
+describe("isValidReportStatus", () => {
+  it("accepts the four statuses", () => {
+    for (const s of ["open", "reviewing", "resolved", "dismissed"]) {
+      expect(isValidReportStatus(s)).toBe(true);
+    }
+  });
+  it("rejects anything else", () => {
+    expect(isValidReportStatus("deleted")).toBe(false);
+    expect(isValidReportStatus("")).toBe(false);
   });
 });

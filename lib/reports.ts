@@ -14,3 +14,17 @@ export function isSelfReport(
 ): boolean {
   return !!reportedUserId && reporterId === reportedUserId;
 }
+
+export function mergeReportDetails(
+  existing: string | null,
+  incoming: string | null | undefined,
+): string | null {
+  const a = existing?.trim() || "";
+  const b = incoming?.trim() || "";
+  if (a && b) return `${a}\n---\n${b}`;
+  return a || b || null;
+}
+
+export function isValidReportStatus(s: string): boolean {
+  return ["open", "reviewing", "resolved", "dismissed"].includes(s);
+}
