@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ function getHighResAvatarUrl(url: string): string {
 export default function ProfilePage() {
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
+  const isAdmin = userData.publicUser.is_admin;
   const meta = userData.supabaseUser.user_metadata ?? {};
   const avatarUrl = (meta.avatar_url ?? meta.picture ?? "") as string;
   const googleName = (meta.full_name ?? meta.name ?? "") as string;
@@ -283,6 +285,14 @@ export default function ProfilePage() {
                 Log out
               </Button>
             </form>
+            {isAdmin && (
+              <Link
+                href="/admin/reports"
+                className="text-sm text-[#3761B0] hover:underline"
+              >
+                Admin · Reports
+              </Link>
+            )}
           </div>
 
           {/* Current offers */}
@@ -439,6 +449,14 @@ export default function ProfilePage() {
               Log out
             </Button>
           </form>
+          {isAdmin && (
+            <Link
+              href="/admin/reports"
+              className="text-sm text-[#3761B0] hover:underline"
+            >
+              Admin · Reports
+            </Link>
+          )}
 
           {/* Current offers */}
           <section className="mt-4">
