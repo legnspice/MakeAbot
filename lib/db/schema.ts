@@ -14,6 +14,7 @@ import {
   requestStatusEnum,
   bidStatusEnum,
   typeEnum,
+  reportReasonEnum,
 } from "./enums";
 import { sql } from "drizzle-orm";
 
@@ -178,6 +179,27 @@ export const notification_preferences = pgTable("notification_preferences", {
   new_request: boolean("new_request").notNull().default(true),
 });
 
+export const reports = pgTable("reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  reporter_id: uuid("reporter_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  reported_user_id: uuid("reported_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reported_offer_id: uuid("reported_offer_id").references(() => offers.id, {
+    onDelete: "set null",
+  }),
+  reported_request_id: uuid("reported_request_id").references(
+    () => requests.id,
+    { onDelete: "set null" },
+  ),
+  reason: reportReasonEnum("reason").notNull(),
+  details: text("details"),
+  status: text("status").notNull().default("open"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
@@ -193,3 +215,5 @@ export type SelectNotificationPreferences =
 export type InsertOfferBid = typeof offer_bids.$inferInsert;
 export type SelectOfferBid = typeof offer_bids.$inferSelect;
 export type SelectReview = typeof reviews.$inferSelect;
+export type SelectReport = typeof reports.$inferSelect;
+export type InsertReport = typeof reports.$inferInsert;

@@ -44,3 +44,15 @@ export const BID_STATUS_VALUES = ["Pending", "Completed", "Closed"] as const;
 export const bidStatusEnum = pgEnum("bid_status", BID_STATUS_VALUES);
 export const BidStatusEnum = z.enum(BID_STATUS_VALUES);
 export type BidStatus = z.infer<typeof BidStatusEnum>;
+
+// Report reason
+export const REPORT_REASON_VALUES = [
+  "Spam",
+  "Harassment or bullying",
+  "Scam or fraud",
+  "Inappropriate content",
+  "Other",
+] as const;
+export const reportReasonEnum = pgEnum("report_reason", REPORT_REASON_VALUES);
+export const ReportReasonEnum = z.enum(REPORT_REASON_VALUES);
+export type ReportReason = z.infer<typeof ReportReasonEnum>;
