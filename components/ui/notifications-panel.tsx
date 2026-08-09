@@ -13,6 +13,8 @@ import type { SelectNotification } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import { Spinner } from "@/components/ui/spinner";
+import NotificationFilter from "@/components/ui/notification-filter";
+import { type NotifTab, matchesTab } from "@/lib/notifications-filter";
 
 function formatTime(date: Date): string {
   const now = new Date();
@@ -23,24 +25,6 @@ function formatTime(date: Date): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-type ActiveTab = "All" | "Messages" | "Activity";
-
-const CATEGORY_MAP: Record<string, ActiveTab> = {
-  new_message: "Messages",
-  new_review: "Activity",
-  new_request: "Activity",
-};
-
-function filterByTab(
-  notifications: SelectNotification[],
-  tab: ActiveTab,
-): SelectNotification[] {
-  if (tab === "All") return notifications;
-  return notifications.filter(
-    (n) => (CATEGORY_MAP[n.type] ?? "Activity") === tab,
-  );
 }
 
 const READ_THRESHOLD = 3;
@@ -63,7 +47,7 @@ export default function NotificationsPanel({
   const userId = userData.publicUser.id;
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("All");
+  const [activeTab, setActiveTab] = useState<NotifTab>("All");
   const [showAllRead, setShowAllRead] = useState(false);
 
   const loading = open && !loaded;
@@ -161,9 +145,7 @@ export default function NotificationsPanel({
 
   const hasUnread = notifications.some((n) => !n.is_read);
 
-  const TABS: ActiveTab[] = ["All", "Messages", "Activity"];
-
-  const filtered = filterByTab(notifications, activeTab);
+  const filtered = notifications.filter((n) => matchesTab(n.type, activeTab));
   const unread = filtered.filter((n) => !n.is_read);
   const read = filtered.filter((n) => n.is_read);
   const visibleRead = showAllRead ? read : read.slice(0, READ_THRESHOLD);
@@ -208,7 +190,7 @@ export default function NotificationsPanel({
         onClick={onClose}
       />
       <div
-        className={`fixed top-0 right-0 h-full w-100 bg-white border-l border-gray-200 z-50 flex flex-col shadow-xl transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-100 bg-white border-l border-gray-200 z-50 flex flex-col shadow-xl transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
@@ -245,22 +227,9 @@ export default function NotificationsPanel({
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 shrink-0">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors ${
-                activeTab === tab
-                  ? "text-[#3761B0] border-b-2 border-[#3761B0]"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        {/* Filter chips */}
+        <div className="border-b border-gray-200 shrink-0 px-3">
+          <NotificationFilter active={activeTab} onChange={setActiveTab} />
         </div>
 
         {/* List */}
