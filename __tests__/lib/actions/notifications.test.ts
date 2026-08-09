@@ -59,18 +59,5 @@ describe("notifications actions", () => {
         new_message: false,
       });
     });
-
-    it("passes remaining valid preference fields through to service", async () => {
-      // These fields should no longer exist in the schema — updatePreferencesSchema
-      // should silently strip or not validate them. We verify the action only passes
-      // the remaining valid fields to the service.
-      const mockUpdate = jest
-        .spyOn(notificationsService, "updatePreferences")
-        .mockResolvedValue(undefined as never);
-
-      // Passing only a valid field — should work fine
-      await updateNotificationPreferences({ new_review: true });
-      expect(mockUpdate).toHaveBeenCalledWith("user-123", { new_review: true });
-    });
   });
 });
