@@ -3,7 +3,6 @@ import { z } from "zod";
 export const NOTIFICATION_TYPES = [
   "new_inquiry",
   "new_message",
-  "new_review",
   "new_request",
   "request_completed_winner",
   "request_completed_loser",
@@ -34,7 +33,6 @@ export type PushSubscriptionSchema = z.infer<typeof pushSubscriptionSchema>;
 export const updatePreferencesSchema = z.object({
   new_inquiry: z.boolean().optional(),
   new_message: z.boolean().optional(),
-  new_review: z.boolean().optional(),
   new_request: z.boolean().optional(),
 });
 export type UpdatePreferencesSchema = z.infer<typeof updatePreferencesSchema>;
