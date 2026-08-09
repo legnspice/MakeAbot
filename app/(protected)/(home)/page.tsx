@@ -350,12 +350,14 @@ export default function Home() {
           }}
           onReport={
             selectedItem
-              ? () =>
+              ? () => {
                   setReportTarget({
                     type: selectedItem.variant === "lent" ? "offer" : "request",
                     id: selectedItem.itemDbId,
                     label: selectedItem.detail.title,
-                  })
+                  });
+                  setSelectedItem(null);
+                }
               : undefined
           }
         />
