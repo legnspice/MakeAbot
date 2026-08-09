@@ -12,6 +12,8 @@ import {
   markAllRead,
 } from "@/lib/actions/notifications";
 import type { SelectNotification } from "@/lib/db/schema";
+import NotificationFilter from "@/components/ui/notification-filter";
+import { type NotifTab, matchesTab } from "@/lib/notifications-filter";
 
 function formatTime(date: Date): string {
   const now = new Date();
@@ -23,12 +25,6 @@ function formatTime(date: Date): string {
   if (hours < 24) return `${hours}h ago`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
-
-const GROUPS: { label: string; types: string[] }[] = [
-  { label: "Messages", types: ["new_inquiry", "new_message"] },
-  { label: "Reviews", types: ["new_review"] },
-  { label: "Opportunities", types: ["new_request"] },
-];
 
 function NotificationRow({
   n,
@@ -68,6 +64,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<SelectNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<NotifTab>("All");
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +97,7 @@ export default function NotificationsPage() {
   }
 
   const hasUnread = notifications.some((n) => !n.is_read);
+  const filtered = notifications.filter((n) => matchesTab(n.type, activeTab));
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -134,24 +132,20 @@ export default function NotificationsPage() {
             No notifications yet
           </p>
         ) : (
-          <div className="space-y-6">
-            {GROUPS.map(({ label, types }) => {
-              const group = notifications.filter((n) => types.includes(n.type));
-              if (group.length === 0) return null;
-              return (
-                <section key={label} aria-label={label}>
-                  <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1 px-1">
-                    {label}
-                  </h2>
-                  <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white">
-                    {group.map((n) => (
-                      <NotificationRow key={n.id} n={n} onClick={handleClick} />
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+          <>
+            <NotificationFilter active={activeTab} onChange={setActiveTab} />
+            {filtered.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm pt-10">
+                Nothing here yet
+              </p>
+            ) : (
+              <div className="divide-y divide-gray-200 border-t border-b border-gray-200 bg-white mt-2">
+                {filtered.map((n) => (
+                  <NotificationRow key={n.id} n={n} onClick={handleClick} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
       <BottomNav />
