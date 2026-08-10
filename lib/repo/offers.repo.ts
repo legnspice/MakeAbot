@@ -2,6 +2,7 @@ import { and, eq, lte, ilike, gte, desc, lt, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { offers, offer_bids } from "../db/schema";
 import { getDayRange } from "./helper";
+import { hasEmptyBatch } from "../batch";
 import {
   FindOffersSchema,
   FindOfferBidsSchema,
@@ -18,9 +19,11 @@ export async function findOfferBidById(id: string) {
 }
 
 export async function findOffers(filters: FindOffersSchema) {
-  const { id, user_id, price, title, status, created_at } = filters;
+  const { id, user_id, price, title, status, created_at, ids } = filters;
+  if (hasEmptyBatch(ids)) return [];
   const conditions = [];
   if (id) conditions.push(eq(offers.id, id));
+  if (ids && ids.length > 0) conditions.push(inArray(offers.id, ids));
   if (user_id) conditions.push(eq(offers.user_id, user_id));
   if (price) conditions.push(lte(offers.price, price));
   if (status) conditions.push(eq(offers.status, status));
@@ -37,10 +40,13 @@ export async function findOffers(filters: FindOffersSchema) {
 }
 
 export async function findOfferBids(filters: FindOfferBidsSchema) {
-  const { id, offer_id, bidder_id, created_at } = filters;
+  const { id, offer_id, bidder_id, created_at, offer_ids } = filters;
+  if (hasEmptyBatch(offer_ids)) return [];
   const conditions = [];
   if (id) conditions.push(eq(offer_bids.id, id));
   if (offer_id) conditions.push(eq(offer_bids.offer_id, offer_id));
+  if (offer_ids && offer_ids.length > 0)
+    conditions.push(inArray(offer_bids.offer_id, offer_ids));
   if (bidder_id) conditions.push(eq(offer_bids.bidder_id, bidder_id));
   if (created_at) {
     const { startOfDay, endOfDay } = getDayRange(created_at);
