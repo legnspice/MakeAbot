@@ -20,12 +20,16 @@ export function AuthProvider({ children, userData }: AuthProviderProps) {
   // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo(() => ({ userData }), [userData]);
 
-  // Mirror the auth-metadata avatar into users.avatar_url only when it has drifted.
-  // The compare uses data already in memory (no DB read); the server action fires
-  // fire-and-forget only on a real change (first-login backfill or a new Google photo).
+  // Mirror the auth-metadata avatar into users.avatar_url, and backfill a missing
+  // display name, when either has drifted. The compare uses data already in memory
+  // (no DB read); the server action fires fire-and-forget only when there's real work
+  // (first-login backfill, a new Google photo, or a legacy row whose name is still null).
   useEffect(() => {
     const next = resolveMetaAvatar(userData.supabaseUser.user_metadata);
-    if (avatarNeedsSync(userData.publicUser.avatar_url, next)) {
+    if (
+      avatarNeedsSync(userData.publicUser.avatar_url, next) ||
+      !userData.publicUser.name
+    ) {
       void syncAvatarUrl();
     }
   }, [userData]);
