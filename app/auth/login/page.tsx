@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { googleLogin } from "./actions";
 
 export default function LoginPage() {
@@ -40,6 +41,15 @@ export default function LoginPage() {
         students to connect, but all transactions are made at your own risk.
         Transact safely and responsibly!
       </p>
+
+      <div className="flex gap-4 text-xs text-[#3761B0]">
+        <Link href="/terms" className="hover:underline">
+          Terms of Use
+        </Link>
+        <Link href="/privacy" className="hover:underline">
+          Privacy Policy
+        </Link>
+      </div>
     </div>
   );
 }
