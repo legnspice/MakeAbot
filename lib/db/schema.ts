@@ -228,6 +228,8 @@ export type SelectNotificationPreferences =
   typeof notification_preferences.$inferSelect;
 export type InsertOfferBid = typeof offer_bids.$inferInsert;
 export type SelectOfferBid = typeof offer_bids.$inferSelect;
+export type SelectRequest = typeof requests.$inferSelect;
+export type SelectRequestBid = typeof request_bids.$inferSelect;
 export type SelectReview = typeof reviews.$inferSelect;
 export type SelectReport = typeof reports.$inferSelect;
 export type InsertReport = typeof reports.$inferInsert;
