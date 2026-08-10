@@ -78,10 +78,7 @@ export const ChatRoom = ({
         result.data.forEach((msg) => processedMessageIds.current.add(msg.id));
       }
 
-      if (otherName !== undefined) {
-        setOtherUserName(otherName || "Unknown User");
-        setOtherAvatarUrl(otherAvatarUrlProp);
-      } else {
+      if (otherName === undefined) {
         const result2 = await getUsers({ id: other_user_id });
         if (result2.data && result2.data.length > 0) {
           setOtherUserName(result2.data[0].name || "Unknown User");
@@ -92,14 +89,16 @@ export const ChatRoom = ({
       setChatDataLoading(false);
     }
     loadData();
-  }, [
-    publicUser.id,
-    other_user_id,
-    request_bid_id,
-    offer_bid_id,
-    otherName,
-    otherAvatarUrlProp,
-  ]);
+  }, [publicUser.id, other_user_id, request_bid_id, offer_bid_id]);
+
+  // Mirror name/avatar props into state without touching messages/loading.
+  useEffect(() => {
+    if (otherName !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOtherUserName(otherName || "Unknown User");
+      setOtherAvatarUrl(otherAvatarUrlProp);
+    }
+  }, [otherName, otherAvatarUrlProp]);
 
   const handleMessageLogic = useRef<(messages: ChatMessage[]) => Promise<void>>(
     async () => {},
