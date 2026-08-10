@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FindUserSchema, UpdateUserSchema } from "@/lib/validation/users";
 import { AppError } from "@/lib/error/app-error";
-import { resolveMetaAvatar } from "@/lib/avatar";
+import { resolveMetaAvatar, resolveMetaName } from "@/lib/avatar";
 
 export async function getUsers(filters: FindUserSchema) {
   return await handleAction(async () => {
@@ -39,7 +39,8 @@ export async function syncAvatarUrl() {
   return await handleAction(async () => {
     const user = await requireAuth();
     const next = resolveMetaAvatar(user.user_metadata);
-    await usersService.syncAvatarUrl(user.id, next);
+    const metaName = resolveMetaName(user.user_metadata);
+    await usersService.syncAvatarUrl(user.id, next, metaName);
   });
 }
 

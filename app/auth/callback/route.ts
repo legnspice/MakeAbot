@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import * as usersService from "@/lib/services/users.service";
+import { resolveMetaName } from "@/lib/avatar";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,7 +40,10 @@ export async function GET(request: Request) {
       const isLocalEnv = process.env.NODE_ENV === "development";
 
       const safeNext = next.startsWith("/") ? next : "/";
-      await usersService.createUser(data.user.id);
+      await usersService.createUser(
+        data.user.id,
+        resolveMetaName(data.user.user_metadata),
+      );
 
       if (isLocalEnv) {
         return NextResponse.redirect(`${baseUrl}${safeNext}`);

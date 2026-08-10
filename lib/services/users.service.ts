@@ -12,8 +12,8 @@ export async function getPublicUsers(ids: string[]) {
   return await usersRepo.findPublicUsers(ids);
 }
 
-export async function createUser(id: string) {
-  await usersRepo.insertUser(id);
+export async function createUser(id: string, name?: string | null) {
+  await usersRepo.insertUser(id, name);
   await notificationsRepo.insertDefaultPreferences(id);
 }
 
@@ -21,11 +21,21 @@ export async function editUser(id: string, data: UpdateUserSchema) {
   return await usersRepo.updateUser(id, data);
 }
 
-export async function syncAvatarUrl(id: string, next: string | null) {
+/** Mirror the auth-metadata avatar into users.avatar_url, and backfill the
+ *  display name from auth metadata when the user hasn't got one yet (never
+ *  clobbering a name they've set). Idempotent — writes only when something changed. */
+export async function syncAvatarUrl(
+  id: string,
+  next: string | null,
+  metaName?: string | null,
+) {
   const rows = await usersRepo.findUsers({ id });
-  const stored = rows[0]?.avatar_url ?? null;
-  if (!avatarNeedsSync(stored, next)) return;
-  await usersRepo.updateUser(id, { avatar_url: next });
+  const row = rows[0];
+  const patch: UpdateUserSchema = {};
+  if (avatarNeedsSync(row?.avatar_url ?? null, next)) patch.avatar_url = next;
+  if (!row?.name && metaName) patch.name = metaName;
+  if (Object.keys(patch).length === 0) return;
+  await usersRepo.updateUser(id, patch);
 }
 
 export type PublicProfile = {

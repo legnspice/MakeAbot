@@ -24,10 +24,10 @@ export async function findPublicUsers(ids: string[]) {
   });
 }
 
-export async function insertUser(id: string) {
+export async function insertUser(id: string, name?: string | null) {
   return await db
     .insert(users)
-    .values({ id })
+    .values({ id, name: name ?? null })
     .onConflictDoNothing({ target: users.id });
 }
 
