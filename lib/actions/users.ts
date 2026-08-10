@@ -10,8 +10,17 @@ import { resolveMetaAvatar, resolveMetaName } from "@/lib/avatar";
 
 export async function getUsers(filters: FindUserSchema) {
   return await handleAction(async () => {
-    await requireAuth();
-    return usersService.getUsers(filters);
+    const user = await requireAuth();
+    // Self-only via this action — it returns the full row (phone/ID/etc.).
+    // Other-user or bulk reads must go through getPublicUsers (id/name/avatar
+    // projection) or getPublicProfile (relationship-gated disclosure).
+    if (
+      (filters.id && filters.id !== user.id) ||
+      (filters.ids && filters.ids.some((id) => id !== user.id))
+    ) {
+      throw new AppError("Forbidden", 403);
+    }
+    return usersService.getUsers({ id: user.id });
   });
 }
 

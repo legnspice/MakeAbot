@@ -7,7 +7,7 @@ import { markChatNotificationRead } from "@/lib/actions/notifications";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
-import { getUsers } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import { getDealStatus } from "@/lib/actions/deals";
 import { Spinner } from "@/components/ui/spinner";
@@ -79,7 +79,7 @@ export const ChatRoom = ({
       }
 
       if (otherName === undefined) {
-        const result2 = await getUsers({ id: other_user_id });
+        const result2 = await getPublicUsers([other_user_id]);
         if (result2.data && result2.data.length > 0) {
           setOtherUserName(result2.data[0].name || "Unknown User");
           setOtherAvatarUrl(result2.data[0].avatar_url ?? undefined);

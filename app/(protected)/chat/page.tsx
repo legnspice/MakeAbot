@@ -10,7 +10,7 @@ import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 import { getDealStatus, completeRequest, completeOfferBid } from "@/lib/actions/deals";
-import { getUsers } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import ReportModal, { type ReportTarget } from "@/components/report-modal";
 
@@ -48,7 +48,7 @@ function ChatPageInner() {
     Promise.all([
       getDealStatus(bidId, kind),
       getReviews({ rated_user_id: otherId }),
-      getUsers({ id: otherId }),
+      getPublicUsers([otherId]),
     ]).then(([statusResult, reviewsResult, usersResult]) => {
       if (statusResult.data) {
         setOwnerUserId(statusResult.data.ownerUserId);
