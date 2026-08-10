@@ -178,6 +178,9 @@ function ChatPageInner() {
           offer_bid_id={kind === "offer" ? bidId : null}
           request_bid_id={kind === "request" ? bidId : null}
           disabled={isDone}
+          otherName={otherName}
+          otherAvatarUrl={otherAvatarUrl ?? undefined}
+          dealDone={isDone}
         />
       </div>
       <ReportModal

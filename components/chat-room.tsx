@@ -27,12 +27,18 @@ interface ChatRoomProps {
   request_bid_id?: string | null;
   offer_bid_id?: string | null;
   disabled?: boolean;
+  otherName?: string;
+  otherAvatarUrl?: string;
+  dealDone?: boolean;
 }
 export const ChatRoom = ({
   other_user_id,
   request_bid_id,
   offer_bid_id,
   disabled = false,
+  otherName,
+  otherAvatarUrl: otherAvatarUrlProp,
+  dealDone,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
@@ -72,16 +78,28 @@ export const ChatRoom = ({
         result.data.forEach((msg) => processedMessageIds.current.add(msg.id));
       }
 
-      const result2 = await getUsers({ id: other_user_id });
-      if (result2.data && result2.data.length > 0) {
-        setOtherUserName(result2.data[0].name || "Unknown User");
-        setOtherAvatarUrl(result2.data[0].avatar_url ?? undefined);
+      if (otherName !== undefined) {
+        setOtherUserName(otherName || "Unknown User");
+        setOtherAvatarUrl(otherAvatarUrlProp);
+      } else {
+        const result2 = await getUsers({ id: other_user_id });
+        if (result2.data && result2.data.length > 0) {
+          setOtherUserName(result2.data[0].name || "Unknown User");
+          setOtherAvatarUrl(result2.data[0].avatar_url ?? undefined);
+        }
       }
 
       setChatDataLoading(false);
     }
     loadData();
-  }, [publicUser.id, other_user_id, request_bid_id, offer_bid_id]);
+  }, [
+    publicUser.id,
+    other_user_id,
+    request_bid_id,
+    offer_bid_id,
+    otherName,
+    otherAvatarUrlProp,
+  ]);
 
   const handleMessageLogic = useRef<(messages: ChatMessage[]) => Promise<void>>(
     async () => {},
@@ -159,11 +177,16 @@ export const ChatRoom = ({
   useEffect(() => {
     if (!bid_id) return;
     (async () => {
-      const statusResult = await getDealStatus(bid_id, dealKind);
-      const isCompleted =
-        dealKind === "request"
-          ? statusResult.data?.parentStatus === "Completed"
-          : statusResult.data?.parentStatus === "Closed";
+      let isCompleted: boolean;
+      if (dealDone !== undefined) {
+        isCompleted = dealDone;
+      } else {
+        const statusResult = await getDealStatus(bid_id, dealKind);
+        isCompleted =
+          dealKind === "request"
+            ? statusResult.data?.parentStatus === "Completed"
+            : statusResult.data?.parentStatus === "Closed";
+      }
 
       if (isCompleted) {
         const reviewsResult = await getReviews({
@@ -174,12 +197,10 @@ export const ChatRoom = ({
         });
         const alreadyReviewed = (reviewsResult.data ?? []).length > 0;
         setHasReviewed(alreadyReviewed);
-        if (!alreadyReviewed) {
-          setRatingOpen(true);
-        }
+        if (!alreadyReviewed) setRatingOpen(true);
       }
     })();
-  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id]);
+  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id, dealDone]);
 
   const handleRatingClose = () => {
     setRatingOpen(false);
