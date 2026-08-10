@@ -39,7 +39,8 @@ export const findOffersSchema = offerSchema
     status: true,
     created_at: true,
   })
-  .partial();
+  .partial()
+  .extend({ ids: z.array(z.string().uuid()).optional() });
 
 export const insertOfferSchema = offerSchema.pick({
   user_id: true,
@@ -64,7 +65,8 @@ export const updateOfferSchema = offerSchema
 
 export const findOfferBidsSchema = offerBidSchema
   .pick({ id: true, offer_id: true, bidder_id: true, created_at: true })
-  .partial();
+  .partial()
+  .extend({ offer_ids: z.array(z.string().uuid()).optional() });
 
 export const insertOfferBidSchema = offerBidSchema.pick({
   offer_id: true,

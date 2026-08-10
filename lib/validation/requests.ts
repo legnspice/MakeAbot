@@ -41,7 +41,8 @@ export const findRequestsSchema = requestSchema
     urgency: true,
     created_at: true,
   })
-  .partial();
+  .partial()
+  .extend({ ids: z.array(z.string().uuid()).optional() });
 
 export const insertRequestSchema = requestSchema.pick({
   user_id: true,
@@ -74,7 +75,8 @@ export const findRequestBidsSchema = requestBidSchema
     bidder_id: true,
     created_at: true,
   })
-  .partial();
+  .partial()
+  .extend({ request_ids: z.array(z.string().uuid()).optional() });
 
 export const insertRequestBidSchema = requestBidSchema.pick({
   request_id: true,
