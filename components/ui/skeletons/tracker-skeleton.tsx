@@ -27,7 +27,7 @@ function TrackerCardSkeleton() {
 export function TrackerPageSkeleton() {
   return (
     <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-7xl mx-auto">
         {Array.from({ length: 6 }).map((_, i) => (
           <TrackerCardSkeleton key={i} />
         ))}

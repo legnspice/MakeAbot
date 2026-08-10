@@ -15,9 +15,7 @@ function ItemCardSkeleton() {
           <Skeleton className="w-4.5 h-4.5 rounded-full shrink-0" />
           <Skeleton className="w-1/2 h-3 rounded" />
         </div>
-        {/* Urgency line */}
-        <Skeleton className="w-1/3 h-3 rounded" />
-        {/* Price, bottom-right */}
+        {/* Price, bottom-right (urgency omitted — only request cards have it) */}
         <div className="mt-auto flex justify-end pt-1">
           <Skeleton className="w-12 h-4 rounded" />
         </div>
