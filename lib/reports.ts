@@ -28,3 +28,17 @@ export function mergeReportDetails(
 export function isValidReportStatus(s: string): boolean {
   return ["open", "reviewing", "resolved", "dismissed"].includes(s);
 }
+
+/** Exactly one report target must be set — the coalesce/target logic assumes a
+ *  single target field, so multi-target payloads are rejected. */
+export function exactlyOneReportTarget(t: {
+  reported_user_id?: string;
+  reported_offer_id?: string;
+  reported_request_id?: string;
+}): boolean {
+  return (
+    [t.reported_user_id, t.reported_offer_id, t.reported_request_id].filter(
+      Boolean,
+    ).length === 1
+  );
+}

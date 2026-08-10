@@ -40,6 +40,14 @@ describe("insertReportSchema", () => {
     });
     expect(r.success).toBe(false);
   });
+  it("rejects more than one target", () => {
+    const r = insertReportSchema.safeParse({
+      reason: "Spam",
+      reported_user_id: "b3f1c2d4-0000-4000-8000-000000000001",
+      reported_offer_id: "b3f1c2d4-0000-4000-8000-000000000002",
+    });
+    expect(r.success).toBe(false);
+  });
 });
 
 describe("mergeReportDetails", () => {

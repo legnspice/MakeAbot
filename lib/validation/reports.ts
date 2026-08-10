@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ReportReasonEnum } from "@/lib/db/enums";
-import { hasReportTarget } from "@/lib/reports";
+import { exactlyOneReportTarget } from "@/lib/reports";
 
 export const insertReportSchema = z
   .object({
@@ -10,8 +10,8 @@ export const insertReportSchema = z
     reported_offer_id: z.string().uuid().optional(),
     reported_request_id: z.string().uuid().optional(),
   })
-  .refine(hasReportTarget, {
-    message: "A report must target a user, offer, or request.",
+  .refine(exactlyOneReportTarget, {
+    message: "A report must target exactly one user, offer, or request.",
   });
 
 export type InsertReportSchema = z.infer<typeof insertReportSchema>;
