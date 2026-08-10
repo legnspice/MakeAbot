@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { createAdminClient } from "../supabase/admin";
 import * as notificationsRepo from "../repo/notifications.repo";
-import { escapeHtml, siteBaseUrl } from "@/lib/email-format";
+import { escapeHtml, siteBaseUrl, isEmailSafeBase } from "@/lib/email-format";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -11,7 +11,7 @@ function buildEmailHtml(
   fullUrl: string,
 ): string {
   const base = siteBaseUrl();
-  const logo = base
+  const logo = isEmailSafeBase(base)
     ? `<img src="${base}/icons/icon-192x192.png" alt="MakeAbot" width="40" height="40" style="border-radius:8px;display:block;" />`
     : `<span style="font-size:20px;font-weight:700;color:#3761B0;">MakeAbot</span>`;
   const safeTitle = escapeHtml(title);
@@ -103,7 +103,7 @@ export async function sendDailyDigest(): Promise<void> {
             : `You have ${threadCount} unread conversations on MakeAbot`;
 
         const base = siteBaseUrl();
-        const logo = base
+        const logo = isEmailSafeBase(base)
           ? `<img src="${base}/icons/icon-192x192.png" alt="MakeAbot" width="40" height="40" style="border-radius:8px;display:block;" />`
           : `<span style="font-size:20px;font-weight:700;color:#3761B0;">MakeAbot</span>`;
 

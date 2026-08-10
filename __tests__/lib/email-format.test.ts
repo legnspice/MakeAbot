@@ -1,4 +1,4 @@
-import { escapeHtml, siteBaseUrl } from "@/lib/email-format";
+import { escapeHtml, siteBaseUrl, isEmailSafeBase } from "@/lib/email-format";
 
 describe("escapeHtml", () => {
   it("escapes & < > \" '", () => {
@@ -27,5 +27,23 @@ describe("siteBaseUrl", () => {
   it("returns empty string (never 'undefined') when unset", () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     expect(siteBaseUrl()).toBe("");
+  });
+});
+
+describe("isEmailSafeBase", () => {
+  it("accepts a public http(s) URL", () => {
+    expect(isEmailSafeBase("https://makeabot.app")).toBe(true);
+    expect(isEmailSafeBase("http://makeabot.app")).toBe(true);
+  });
+  it("rejects localhost / loopback hosts", () => {
+    expect(isEmailSafeBase("http://localhost:3000")).toBe(false);
+    expect(isEmailSafeBase("http://127.0.0.1:3000")).toBe(false);
+    expect(isEmailSafeBase("http://0.0.0.0")).toBe(false);
+  });
+  it("rejects empty, non-absolute, or non-http values", () => {
+    expect(isEmailSafeBase("")).toBe(false);
+    expect(isEmailSafeBase("/relative/path")).toBe(false);
+    expect(isEmailSafeBase("makeabot.app")).toBe(false);
+    expect(isEmailSafeBase("ftp://makeabot.app")).toBe(false);
   });
 });
