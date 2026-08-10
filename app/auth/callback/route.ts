@@ -21,6 +21,10 @@ export async function GET(request: Request) {
       const email = data.user.email?.toLowerCase() || "";
       const acceptedDomain = "@student.ateneo.edu";
 
+      // LAUNCH BLOCKER: the @student.ateneo.edu domain restriction below is
+      // intentionally disabled for beta (so non-Ateneo test accounts can log in).
+      // Re-enable it before public launch — the trust model (reports/reviews/
+      // relationship gating) assumes a closed Ateneo-student community.
       // if (!email.endsWith(acceptedDomain)) {
       //   try {
       //     const supabaseAdmin = await createAdminClient();
