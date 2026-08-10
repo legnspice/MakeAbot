@@ -10,20 +10,9 @@ import FilterBar, {
 } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
-import {
-  getOffers,
-  getOfferBids,
-  removeOfferBid,
-  withdrawOfferBid,
-} from "@/lib/actions/offers";
-import {
-  getRequests,
-  getRequestBids,
-  removeRequest,
-  removeRequestBid,
-  withdrawRequestBid,
-} from "@/lib/actions/requests";
-import { getUsers } from "@/lib/actions/users";
+import { withdrawOfferBid } from "@/lib/actions/offers";
+import { removeRequest, withdrawRequestBid } from "@/lib/actions/requests";
+import { getTrackerData } from "@/lib/actions/tracker";
 import {
   ChatDotsFill,
   XLg,
@@ -85,77 +74,17 @@ type TrackerCard =
   | { type: "offer"; data: TrackerOffer }
   | { type: "request"; data: TrackerRequest };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature kept for call-site compatibility; aggregate derives the user server-side
 async function fetchTrackerData(userId: string) {
-  const [offersResult, requestsResult, myOfferBidsResult, myReqBidsResult] =
-    await Promise.all([
-      getOffers({ user_id: userId }),
-      getRequests({ user_id: userId }),
-      getOfferBids({ bidder_id: userId }),
-      getRequestBids({ bidder_id: userId }),
-    ]);
+  const result = await getTrackerData();
+  const data = result.data;
+  if (!data)
+    return { offerList: [] as TrackerOffer[], requestList: [] as TrackerRequest[] };
+  const { offerBidGroups, reqBidGroups, bidOfferGroups, bidReqGroups, userNames } =
+    data;
 
-  // Bids on my offers
-  const offerBidFetches = (offersResult.data ?? []).map((offer) =>
-    getOfferBids({ offer_id: offer.id }).then((r) => ({
-      offer,
-      bids: r.data ?? [],
-    })),
-  );
-  // Bids on my requests
-  const reqBidFetches = (requestsResult.data ?? []).map((req) =>
-    getRequestBids({ request_id: req.id }).then((r) => ({
-      req,
-      bids: r.data ?? [],
-    })),
-  );
-
-  // Offers I bid on (fetch each offer)
-  const myOfferBids = myOfferBidsResult.data ?? [];
-  const bidOfferFetches = myOfferBids.map((bid) =>
-    getOffers({ id: bid.offer_id }).then((r) => ({
-      bid,
-      offer: r.data?.[0] ?? null,
-    })),
-  );
-
-  // Requests I bid on (fetch each request)
-  const myReqBids = myReqBidsResult.data ?? [];
-  const bidReqFetches = myReqBids.map((bid) =>
-    getRequests({ id: bid.request_id }).then((r) => ({
-      bid,
-      req: r.data?.[0] ?? null,
-    })),
-  );
-
-  const [offerBidGroups, reqBidGroups, bidOfferGroups, bidReqGroups] =
-    await Promise.all([
-      Promise.all(offerBidFetches),
-      Promise.all(reqBidFetches),
-      Promise.all(bidOfferFetches),
-      Promise.all(bidReqFetches),
-    ]);
-
-  // Collect all user IDs we need names for
-  const userIds = new Set<string>();
-  for (const { bids } of offerBidGroups)
-    for (const bid of bids) userIds.add(bid.bidder_id);
-  for (const { bids } of reqBidGroups)
-    for (const bid of bids) userIds.add(bid.bidder_id);
-  for (const { offer } of bidOfferGroups)
-    if (offer?.user_id) userIds.add(offer.user_id);
-  for (const { req } of bidReqGroups)
-    if (req?.user_id) userIds.add(req.user_id);
-
-  const usersMap = new Map<string, string>();
-  if (userIds.size > 0) {
-    const usersResult = await getUsers({ ids: Array.from(userIds) });
-    for (const u of usersResult.data ?? [])
-      usersMap.set(u.id, u.name ?? "User");
-  }
-
-  // My own offer IDs (to avoid duplicates)
-  const myOfferIds = new Set((offersResult.data ?? []).map((p) => p.id));
-  const myRequestIds = new Set((requestsResult.data ?? []).map((r) => r.id));
+  const myOfferIds = new Set(offerBidGroups.map((g) => g.offer.id));
+  const myRequestIds = new Set(reqBidGroups.map((g) => g.req.id));
 
   // Cards for my offers (offers I own)
   const offerList: TrackerOffer[] = offerBidGroups.map(({ offer, bids }) => ({
@@ -170,7 +99,7 @@ async function fetchTrackerData(userId: string) {
     requesterCount: bids.length,
     requesters: bids.map((bid) => ({
       id: bid.bidder_id,
-      name: usersMap.get(bid.bidder_id) ?? "User",
+      name: userNames[bid.bidder_id] ?? "User",
       bidId: bid.id,
       bidStatus: bid.status,
     })),
@@ -193,7 +122,7 @@ async function fetchTrackerData(userId: string) {
       requesters: [
         {
           id: offer.user_id,
-          name: usersMap.get(offer.user_id) ?? "User",
+          name: userNames[offer.user_id] ?? "User",
           bidId: bid.id,
           bidStatus: bid.status,
         },
@@ -214,7 +143,7 @@ async function fetchTrackerData(userId: string) {
     isOwned: true,
     bidders: bids.map((bid) => ({
       id: bid.bidder_id,
-      name: usersMap.get(bid.bidder_id) ?? "User",
+      name: userNames[bid.bidder_id] ?? "User",
       bidId: bid.id,
       bidStatus: bid.status,
     })),
@@ -238,7 +167,7 @@ async function fetchTrackerData(userId: string) {
       bidders: [
         {
           id: req.user_id,
-          name: usersMap.get(req.user_id) ?? "User",
+          name: userNames[req.user_id] ?? "User",
           bidId: bid.id,
           bidStatus: bid.status,
         },
