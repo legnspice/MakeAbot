@@ -184,7 +184,7 @@ export const ChatRoom = ({
         isCompleted =
           dealKind === "request"
             ? statusResult.data?.parentStatus === "Completed"
-            : statusResult.data?.parentStatus === "Closed";
+            : statusResult.data?.bidStatus === "Completed";
       }
 
       if (isCompleted) {

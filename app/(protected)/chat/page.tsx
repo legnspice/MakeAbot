@@ -53,8 +53,14 @@ function ChatPageInner() {
       if (statusResult.data) {
         setOwnerUserId(statusResult.data.ownerUserId);
         setParentId(statusResult.data.parentId);
-        const s = statusResult.data.parentStatus;
-        if (s === "Completed" || s === "Closed") setIsDone(true);
+        // A deal is "done" for THIS chat when its bid is Completed (offers) or the
+        // parent request is Completed (requests) — offers never flip to "Closed"
+        // on a single completed bid, so key offers off the bid status.
+        const done =
+          kind === "offer"
+            ? statusResult.data.bidStatus === "Completed"
+            : statusResult.data.parentStatus === "Completed";
+        if (done) setIsDone(true);
       }
       const reviews = reviewsResult.data ?? [];
       if (reviews.length > 0) {

@@ -12,6 +12,7 @@ type DealKind = "offer" | "request";
 export async function getDealStatus(bidId: string, kind: DealKind) {
   return await handleAction<{
     parentStatus: string;
+    bidStatus: string;
     ownerUserId: string | null;
     parentId: string;
   }>(async () => {
@@ -24,7 +25,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
       const reqs = await requestsService.getRequests({ id: bid.request_id });
       const req = reqs[0];
       if (!req) throw new Error("Request not found");
-      return { parentStatus: req.status, ownerUserId: req.user_id, parentId: req.id };
+      return { parentStatus: req.status, bidStatus: bid.status, ownerUserId: req.user_id, parentId: req.id };
     }
 
     const bids = await offersService.getOfferBids({ id: bidId });
@@ -33,7 +34,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
     const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
     if (!offer) throw new Error("Offer not found");
-    return { parentStatus: offer.status, ownerUserId: offer.user_id, parentId: offer.id };
+    return { parentStatus: offer.status, bidStatus: bid.status, ownerUserId: offer.user_id, parentId: offer.id };
   });
 }
 
@@ -55,7 +56,7 @@ export async function completeRequest(requestId: string, winningBidId: string) {
       await sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
         title: "Your offer was accepted!",
         body: `${requesterName} marked your bid on ${request.title} as done.`,
-        url: `/reviews/new?targetId=${request.user_id}&context=${requestId}`,
+        url: `/chat?bidId=${winningBidId}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
         contextId: null,
       }).catch(() => {});
     }
@@ -99,7 +100,7 @@ export async function completeOfferBid(bidId: string) {
     await sendPushToUser(bid.bidder_id, "offer_bid_completed", {
       title: "Deal confirmed!",
       body: `${offererName} marked your deal on ${offer.title} as done.`,
-      url: `/reviews/new?targetId=${offer.user_id}&context=${offer.id}`,
+      url: `/chat?bidId=${bidId}&kind=offer&otherId=${offer.user_id}&title=${encodeURIComponent(offer.title)}`,
       contextId: null,
     }).catch(() => {});
 
