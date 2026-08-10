@@ -246,7 +246,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={openEdit}
-                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#DEA440] rounded flex items-center justify-center text-black hover:bg-[#C48A2A] transition-colors shrink-0"
+                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#DEA440] rounded flex items-center justify-center text-white hover:bg-[#C48A2A] transition-colors shrink-0"
                   aria-label="Edit profile"
                 >
                   Edit Profile
