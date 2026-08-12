@@ -10,20 +10,9 @@ import FilterBar, {
 } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
-import {
-  getOffers,
-  getOfferBids,
-  removeOfferBid,
-  withdrawOfferBid,
-} from "@/lib/actions/offers";
-import {
-  getRequests,
-  getRequestBids,
-  removeRequest,
-  removeRequestBid,
-  withdrawRequestBid,
-} from "@/lib/actions/requests";
-import { getUsers } from "@/lib/actions/users";
+import { withdrawOfferBid } from "@/lib/actions/offers";
+import { removeRequest, withdrawRequestBid } from "@/lib/actions/requests";
+import { getTrackerData } from "@/lib/actions/tracker";
 import {
   ChatDotsFill,
   XLg,
@@ -31,6 +20,10 @@ import {
   ChevronRight,
 } from "react-bootstrap-icons";
 import ItemRequestCard from "@/components/ui/item";
+import CreateFab from "@/components/create-fab";
+import { formatIncentive } from "@/lib/incentive";
+import { useUnreadCounts } from "@/hooks/use-unread-counts";
+import { sumUnreadForBids } from "@/lib/unread";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
 import {
   closeOffer,
@@ -46,11 +39,6 @@ function getPriceRank(price: string): number {
   if (p === "$$") return 2;
   if (p === "$$$") return 3;
   return 4;
-}
-
-function formatPrice(value: number | null | undefined): string {
-  if (value == null || value === 0) return "FREE";
-  return `₱${value}`;
 }
 
 type TrackerOffer = {
@@ -86,77 +74,17 @@ type TrackerCard =
   | { type: "offer"; data: TrackerOffer }
   | { type: "request"; data: TrackerRequest };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature kept for call-site compatibility; aggregate derives the user server-side
 async function fetchTrackerData(userId: string) {
-  const [offersResult, requestsResult, myOfferBidsResult, myReqBidsResult] =
-    await Promise.all([
-      getOffers({ user_id: userId }),
-      getRequests({ user_id: userId }),
-      getOfferBids({ bidder_id: userId }),
-      getRequestBids({ bidder_id: userId }),
-    ]);
+  const result = await getTrackerData();
+  const data = result.data;
+  if (!data)
+    return { offerList: [] as TrackerOffer[], requestList: [] as TrackerRequest[] };
+  const { offerBidGroups, reqBidGroups, bidOfferGroups, bidReqGroups, userNames } =
+    data;
 
-  // Bids on my offers
-  const offerBidFetches = (offersResult.data ?? []).map((offer) =>
-    getOfferBids({ offer_id: offer.id }).then((r) => ({
-      offer,
-      bids: r.data ?? [],
-    })),
-  );
-  // Bids on my requests
-  const reqBidFetches = (requestsResult.data ?? []).map((req) =>
-    getRequestBids({ request_id: req.id }).then((r) => ({
-      req,
-      bids: r.data ?? [],
-    })),
-  );
-
-  // Offers I bid on (fetch each offer)
-  const myOfferBids = myOfferBidsResult.data ?? [];
-  const bidOfferFetches = myOfferBids.map((bid) =>
-    getOffers({ id: bid.offer_id }).then((r) => ({
-      bid,
-      offer: r.data?.[0] ?? null,
-    })),
-  );
-
-  // Requests I bid on (fetch each request)
-  const myReqBids = myReqBidsResult.data ?? [];
-  const bidReqFetches = myReqBids.map((bid) =>
-    getRequests({ id: bid.request_id }).then((r) => ({
-      bid,
-      req: r.data?.[0] ?? null,
-    })),
-  );
-
-  const [offerBidGroups, reqBidGroups, bidOfferGroups, bidReqGroups] =
-    await Promise.all([
-      Promise.all(offerBidFetches),
-      Promise.all(reqBidFetches),
-      Promise.all(bidOfferFetches),
-      Promise.all(bidReqFetches),
-    ]);
-
-  // Collect all user IDs we need names for
-  const userIds = new Set<string>();
-  for (const { bids } of offerBidGroups)
-    for (const bid of bids) userIds.add(bid.bidder_id);
-  for (const { bids } of reqBidGroups)
-    for (const bid of bids) userIds.add(bid.bidder_id);
-  for (const { offer } of bidOfferGroups)
-    if (offer?.user_id) userIds.add(offer.user_id);
-  for (const { req } of bidReqGroups)
-    if (req?.user_id) userIds.add(req.user_id);
-
-  const usersMap = new Map<string, string>();
-  if (userIds.size > 0) {
-    const usersResult = await getUsers({ ids: Array.from(userIds) });
-    for (const u of usersResult.data ?? [])
-      usersMap.set(u.id, u.name ?? "User");
-  }
-
-  // My own offer IDs (to avoid duplicates)
-  const myOfferIds = new Set((offersResult.data ?? []).map((p) => p.id));
-  const myRequestIds = new Set((requestsResult.data ?? []).map((r) => r.id));
+  const myOfferIds = new Set(offerBidGroups.map((g) => g.offer.id));
+  const myRequestIds = new Set(reqBidGroups.map((g) => g.req.id));
 
   // Cards for my offers (offers I own)
   const offerList: TrackerOffer[] = offerBidGroups.map(({ offer, bids }) => ({
@@ -164,14 +92,14 @@ async function fetchTrackerData(userId: string) {
     itemName: offer.title,
     description: offer.description ?? null,
     imageUrl: offer.imgUrl ?? null,
-    price: formatPrice(offer.price),
+    price: formatIncentive(offer.incentive),
     type: offer.type ?? null,
     status: offer.status,
     isOwned: true,
     requesterCount: bids.length,
     requesters: bids.map((bid) => ({
       id: bid.bidder_id,
-      name: usersMap.get(bid.bidder_id) ?? "User",
+      name: userNames[bid.bidder_id] ?? "User",
       bidId: bid.id,
       bidStatus: bid.status,
     })),
@@ -185,7 +113,7 @@ async function fetchTrackerData(userId: string) {
       itemName: offer.title,
       description: offer.description ?? null,
       imageUrl: offer.imgUrl ?? null,
-      price: formatPrice(offer.price),
+      price: formatIncentive(offer.incentive),
       type: offer.type ?? null,
       status: offer.status,
       isOwned: false,
@@ -194,7 +122,7 @@ async function fetchTrackerData(userId: string) {
       requesters: [
         {
           id: offer.user_id,
-          name: usersMap.get(offer.user_id) ?? "User",
+          name: userNames[offer.user_id] ?? "User",
           bidId: bid.id,
           bidStatus: bid.status,
         },
@@ -209,13 +137,13 @@ async function fetchTrackerData(userId: string) {
     description: req.description ?? null,
     imageUrl: req.imgUrl ?? null,
     status: req.status,
-    price: formatPrice(req.fee),
+    price: formatIncentive(req.incentive),
     type: req.type ?? null,
     urgency: req.urgency ?? null,
     isOwned: true,
     bidders: bids.map((bid) => ({
       id: bid.bidder_id,
-      name: usersMap.get(bid.bidder_id) ?? "User",
+      name: userNames[bid.bidder_id] ?? "User",
       bidId: bid.id,
       bidStatus: bid.status,
     })),
@@ -231,7 +159,7 @@ async function fetchTrackerData(userId: string) {
       description: req.description ?? null,
       imageUrl: req.imgUrl ?? null,
       status: req.status,
-      price: formatPrice(req.fee),
+      price: formatIncentive(req.incentive),
       type: req.type ?? null,
       urgency: req.urgency ?? null,
       isOwned: false,
@@ -239,7 +167,7 @@ async function fetchTrackerData(userId: string) {
       bidders: [
         {
           id: req.user_id,
-          name: usersMap.get(req.user_id) ?? "User",
+          name: userNames[req.user_id] ?? "User",
           bidId: bid.id,
           bidStatus: bid.status,
         },
@@ -254,6 +182,7 @@ export default function TrackerPage() {
   const router = useRouter();
   const { userData } = useAuth();
   const currentUser = userData.publicUser;
+  const { unreadByContext } = useUnreadCounts();
 
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [customFilters, setCustomFilters] = useState<string[]>([]);
@@ -525,16 +454,14 @@ export default function TrackerPage() {
       (r) => isHistory || r.bidStatus !== "Closed",
     );
     const onClickHandler = card.isOwned
-      ? activePeople.length > 0
-        ? () =>
-            setModalData({
-              id: card.id,
-              title: card.itemName,
-              people: activePeople,
-              type: "offer",
-              isHistory,
-            })
-        : undefined
+      ? () =>
+          setModalData({
+            id: card.id,
+            title: card.itemName,
+            people: activePeople,
+            type: "offer",
+            isHistory,
+          })
       : counterparty
         ? () =>
             goToChat(
@@ -556,6 +483,10 @@ export default function TrackerPage() {
         }
         price={card.price}
         typeBadge="Offer"
+        badgeCount={sumUnreadForBids(
+          unreadByContext,
+          activePeople.map((p) => p.bidId),
+        )}
         detail={{
           title: card.itemName,
           lentBy: card.isOwned ? "You" : (counterparty?.name ?? "User"),
@@ -589,16 +520,14 @@ export default function TrackerPage() {
       (b) => isHistory || b.bidStatus !== "Closed",
     );
     const onClickHandler = card.isOwned
-      ? activePeople.length > 0
-        ? () =>
-            setModalData({
-              id: card.id,
-              title: card.itemName,
-              people: activePeople,
-              type: "request",
-              isHistory,
-            })
-        : undefined
+      ? () =>
+          setModalData({
+            id: card.id,
+            title: card.itemName,
+            people: activePeople,
+            type: "request",
+            isHistory,
+          })
       : counterparty
         ? () =>
             goToChat(
@@ -620,6 +549,10 @@ export default function TrackerPage() {
         }
         price={card.price}
         typeBadge="Request"
+        badgeCount={sumUnreadForBids(
+          unreadByContext,
+          activePeople.map((p) => p.bidId),
+        )}
         detail={{
           title: card.itemName,
           requestedBy: card.isOwned ? "You" : (counterparty?.name ?? "User"),
@@ -687,7 +620,7 @@ export default function TrackerPage() {
         <main className="flex-1 px-4 pt-4 pb-28 md:pb-6">
           <section aria-label="Tracker">
             {/* Active cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-7xl mx-auto">
               {sortedActiveCards.map((card) =>
                 card.type === "offer"
                   ? renderOfferCard(card.data, false)
@@ -724,7 +657,7 @@ export default function TrackerPage() {
                   History ({sortedHistoryCards.length})
                 </button>
                 {historyOpen && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 grayscale opacity-60">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3 grayscale opacity-60">
                     {sortedHistoryCards.map((card) =>
                       card.type === "offer"
                         ? renderOfferCard(card.data, true)
@@ -761,6 +694,10 @@ export default function TrackerPage() {
               iconClass={
                 modalData.type === "offer" ? "text-gray-400" : "text-blue-400"
               }
+              emptyLabel={
+                modalData.type === "request" ? "No offers yet" : "No requests yet"
+              }
+              unreadByBid={unreadByContext}
               onSelect={(bidId, otherId) =>
                 goToChat(bidId, modalData.type, modalData.title, otherId)
               }
@@ -822,6 +759,8 @@ export default function TrackerPage() {
         </main>
       )}
 
+      <CreateFab />
+
       <BottomNav />
     </div>
   );
@@ -833,6 +772,8 @@ function ChatListModal({
   accentClass,
   avatarClass,
   iconClass,
+  emptyLabel,
+  unreadByBid,
   onSelect,
   onClose,
   onMarkDone,
@@ -842,6 +783,8 @@ function ChatListModal({
   accentClass: string;
   avatarClass: string;
   iconClass: string;
+  emptyLabel: string;
+  unreadByBid: Record<string, number>;
   onSelect: (bidId: string, id: string) => void;
   onClose: () => void;
   onMarkDone?: (bidId: string) => void;
@@ -868,6 +811,9 @@ function ChatListModal({
             <XLg className="text-gray-500" size={16} />
           </button>
         </div>
+        {people.length === 0 && (
+          <p className="text-center text-gray-400 text-sm py-6">{emptyLabel}</p>
+        )}
         <ul className="overflow-y-auto space-y-2">
           {people.map((p) => (
             <li key={p.bidId} className="flex items-center gap-1">
@@ -889,7 +835,14 @@ function ChatListModal({
                     {p.name}
                   </span>
                 </div>
-                <ChatDotsFill className={`shrink-0 ${iconClass}`} size={16} />
+                <div className="flex items-center gap-2 shrink-0">
+                  {unreadByBid[p.bidId] > 0 && (
+                    <span className="min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+                      {unreadByBid[p.bidId] > 99 ? "99+" : unreadByBid[p.bidId]}
+                    </span>
+                  )}
+                  <ChatDotsFill className={iconClass} size={16} />
+                </div>
               </button>
               {onMarkDone && (
                 <button

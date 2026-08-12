@@ -1,11 +1,20 @@
 import { z } from "zod";
 import { UrgencyEnum, RequestStatusEnum, TypeEnum } from "../db/enums";
+import { PRICE_CAP } from "../constants";
+import { incentiveOverCap } from "../incentive";
 
 export const requestSchema = z.object({
   id: z.string().uuid({}),
   user_id: z.string().uuid({}),
   imgUrl: z.string().nullable(),
   fee: z.number().int().nonnegative().nullable(),
+  incentive: z
+    .string()
+    .max(60)
+    .nullable()
+    .refine((s) => !incentiveOverCap(s), {
+      message: `Please keep incentives at ₱${PRICE_CAP} or under.`,
+    }),
   title: z.string().min(1),
   description: z.string().nullable(),
   created_at: z.date(),
@@ -32,12 +41,13 @@ export const findRequestsSchema = requestSchema
     urgency: true,
     created_at: true,
   })
-  .partial();
+  .partial()
+  .extend({ ids: z.array(z.string().uuid()).optional() });
 
 export const insertRequestSchema = requestSchema.pick({
   user_id: true,
   title: true,
-  fee: true,
+  incentive: true,
   status: true,
   description: true,
   urgency: true,
@@ -47,7 +57,7 @@ export const insertRequestSchema = requestSchema.pick({
 
 export const updateRequestSchema = requestSchema
   .pick({
-    fee: true,
+    incentive: true,
     title: true,
     description: true,
     status: true,
@@ -65,7 +75,8 @@ export const findRequestBidsSchema = requestBidSchema
     bidder_id: true,
     created_at: true,
   })
-  .partial();
+  .partial()
+  .extend({ request_ids: z.array(z.string().uuid()).optional() });
 
 export const insertRequestBidSchema = requestBidSchema.pick({
   request_id: true,

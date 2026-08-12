@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ExclamationTriangleFill } from "react-bootstrap-icons";
 
-const STORAGE_KEY = "disclaimer_accepted_v1";
+const STORAGE_KEY = "disclaimer_accepted_v2";
 
 interface DisclaimerModalProps {
   onAccept?: () => void;
@@ -66,10 +67,31 @@ export function DisclaimerModal({ onAccept }: DisclaimerModalProps) {
             transactions initiated through this platform. Please exercise
             caution and common sense accordingly.
           </p>
+          <p>
+            By continuing, you agree to our{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#3761B0] hover:underline"
+            >
+              Terms of Use
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#3761B0] hover:underline"
+            >
+              Data Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
         <DialogFooter>
           <Button onClick={handleAccept} className="w-full">
-            I understand, continue
+            I agree and continue
           </Button>
         </DialogFooter>
       </DialogContent>

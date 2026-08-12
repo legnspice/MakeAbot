@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, StarFill } from "react-bootstrap-icons";
 import Navbar from "@/components/ui/navbar";
@@ -9,8 +10,9 @@ import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
 import { getDealStatus, completeRequest, completeOfferBid } from "@/lib/actions/deals";
-import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
+import ReportModal, { type ReportTarget } from "@/components/report-modal";
 
 function ChatPageInner() {
   const router = useRouter();
@@ -31,6 +33,7 @@ function ChatPageInner() {
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
   const [justMarkedDone, setJustMarkedDone] = useState(false);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   // Route guard
   useEffect(() => {
@@ -44,24 +47,31 @@ function ChatPageInner() {
 
     Promise.all([
       getDealStatus(bidId, kind),
-      getUserAvatarUrl(otherId),
       getReviews({ rated_user_id: otherId }),
-      getUsers({ id: otherId }),
-    ]).then(([statusResult, avatarUrl, reviewsResult, usersResult]) => {
+      getPublicUsers([otherId]),
+    ]).then(([statusResult, reviewsResult, usersResult]) => {
       if (statusResult.data) {
         setOwnerUserId(statusResult.data.ownerUserId);
         setParentId(statusResult.data.parentId);
-        const s = statusResult.data.parentStatus;
-        if (s === "Completed" || s === "Closed") setIsDone(true);
+        // A deal is "done" for THIS chat when its bid is Completed (offers) or the
+        // parent request is Completed (requests) — offers never flip to "Closed"
+        // on a single completed bid, so key offers off the bid status.
+        const done =
+          kind === "offer"
+            ? statusResult.data.bidStatus === "Completed"
+            : statusResult.data.parentStatus === "Completed";
+        if (done) setIsDone(true);
       }
-      setOtherAvatarUrl(avatarUrl ?? null);
       const reviews = reviewsResult.data ?? [];
       if (reviews.length > 0) {
         const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
         setOtherRating(Math.round(avg * 10) / 10);
       }
       const user = usersResult.data?.[0];
-      if (user) setOtherName(user.name ?? "");
+      if (user) {
+        setOtherName(user.name ?? "");
+        setOtherAvatarUrl(user.avatar_url ?? null);
+      }
     });
   }, [bidId, otherId, kind]);
 
@@ -93,7 +103,7 @@ function ChatPageInner() {
   if (!bidId || !otherId) return null;
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden">
+    <div className="h-dvh bg-white flex flex-col overflow-hidden">
       <Navbar />
 
       {/* Header */}
@@ -107,33 +117,38 @@ function ChatPageInner() {
           <ChevronLeft size={20} />
         </button>
 
-        <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
-          {otherAvatarUrl ? (
-            <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
-          ) : (
-            <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
-              {(otherName || "U").charAt(0)}
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
-              {title}{otherName ? ` | ${otherName}` : ""}
-            </p>
-            {otherRating != null ? (
-              <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
-                {otherRating}<StarFill className="text-[#DEA440]" size={12} />
-              </span>
+        <Link
+          href={`/profile/${otherId}`}
+          className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-90"
+        >
+          <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
+            {otherAvatarUrl ? (
+              <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
             ) : (
-              <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+              <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
+                {(otherName || "U").charAt(0)}
+              </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 leading-tight">
-            {kind === "offer" ? "Offer" : "Request"}
-          </p>
-        </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
+                {title}{otherName ? ` | ${otherName}` : ""}
+              </p>
+              {otherRating != null ? (
+                <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                  {otherRating}<StarFill className="text-[#DEA440]" size={12} />
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 leading-tight">
+              {kind === "offer" ? "Offer" : "Request"}
+            </p>
+          </div>
+        </Link>
 
         {isOwner && !isDone && (
           <button
@@ -144,6 +159,15 @@ function ChatPageInner() {
             Mark done
           </button>
         )}
+        <button
+          type="button"
+          onClick={() =>
+            setReportTarget({ type: "user", id: otherId, label: otherName || "user" })
+          }
+          className="shrink-0 text-xs text-gray-400 hover:text-red-500 transition-colors"
+        >
+          Report
+        </button>
       </header>
 
       {/* Completion banner */}
@@ -160,8 +184,16 @@ function ChatPageInner() {
           offer_bid_id={kind === "offer" ? bidId : null}
           request_bid_id={kind === "request" ? bidId : null}
           disabled={isDone}
+          otherName={otherName}
+          otherAvatarUrl={otherAvatarUrl ?? undefined}
+          dealDone={isDone}
         />
       </div>
+      <ReportModal
+        open={reportTarget !== null}
+        onClose={() => setReportTarget(null)}
+        target={reportTarget}
+      />
     </div>
   );
 }

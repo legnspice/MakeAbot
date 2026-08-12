@@ -7,9 +7,10 @@ import { markChatNotificationRead } from "@/lib/actions/notifications";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
-import { getUsers, getUserAvatarUrl } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import { getDealStatus } from "@/lib/actions/deals";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ChatMessage {
   id: string;
@@ -26,12 +27,18 @@ interface ChatRoomProps {
   request_bid_id?: string | null;
   offer_bid_id?: string | null;
   disabled?: boolean;
+  otherName?: string;
+  otherAvatarUrl?: string;
+  dealDone?: boolean;
 }
 export const ChatRoom = ({
   other_user_id,
   request_bid_id,
   offer_bid_id,
   disabled = false,
+  otherName,
+  otherAvatarUrl: otherAvatarUrlProp,
+  dealDone,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
@@ -71,18 +78,27 @@ export const ChatRoom = ({
         result.data.forEach((msg) => processedMessageIds.current.add(msg.id));
       }
 
-      const result2 = await getUsers({ id: other_user_id });
-      if (result2.data && result2.data.length > 0) {
-        setOtherUserName(result2.data[0].name || "Unknown User");
+      if (otherName === undefined) {
+        const result2 = await getPublicUsers([other_user_id]);
+        if (result2.data && result2.data.length > 0) {
+          setOtherUserName(result2.data[0].name || "Unknown User");
+          setOtherAvatarUrl(result2.data[0].avatar_url ?? undefined);
+        }
       }
-
-      const avatar = await getUserAvatarUrl(other_user_id);
-      if (avatar) setOtherAvatarUrl(avatar);
 
       setChatDataLoading(false);
     }
     loadData();
   }, [publicUser.id, other_user_id, request_bid_id, offer_bid_id]);
+
+  // Mirror name/avatar props into state without touching messages/loading.
+  useEffect(() => {
+    if (otherName !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOtherUserName(otherName || "Unknown User");
+      setOtherAvatarUrl(otherAvatarUrlProp);
+    }
+  }, [otherName, otherAvatarUrlProp]);
 
   const handleMessageLogic = useRef<(messages: ChatMessage[]) => Promise<void>>(
     async () => {},
@@ -160,11 +176,16 @@ export const ChatRoom = ({
   useEffect(() => {
     if (!bid_id) return;
     (async () => {
-      const statusResult = await getDealStatus(bid_id, dealKind);
-      const isCompleted =
-        dealKind === "request"
-          ? statusResult.data?.parentStatus === "Completed"
-          : statusResult.data?.parentStatus === "Closed";
+      let isCompleted: boolean;
+      if (dealDone !== undefined) {
+        isCompleted = dealDone;
+      } else {
+        const statusResult = await getDealStatus(bid_id, dealKind);
+        isCompleted =
+          dealKind === "request"
+            ? statusResult.data?.parentStatus === "Completed"
+            : statusResult.data?.bidStatus === "Completed";
+      }
 
       if (isCompleted) {
         const reviewsResult = await getReviews({
@@ -175,12 +196,10 @@ export const ChatRoom = ({
         });
         const alreadyReviewed = (reviewsResult.data ?? []).length > 0;
         setHasReviewed(alreadyReviewed);
-        if (!alreadyReviewed) {
-          setRatingOpen(true);
-        }
+        if (!alreadyReviewed) setRatingOpen(true);
       }
     })();
-  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id]);
+  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id, dealDone]);
 
   const handleRatingClose = () => {
     setRatingOpen(false);
@@ -194,7 +213,11 @@ export const ChatRoom = ({
 
   // NOW you can do the early return - AFTER all hooks
   if (chatDataLoading) {
-    return <div>Loading messages...</div>;
+    return (
+      <div className="h-full flex items-center justify-center text-gray-400">
+        <Spinner size={28} />
+      </div>
+    );
   }
 
   return (

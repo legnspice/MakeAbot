@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusLg, ChevronDown, Search, Funnel } from "react-bootstrap-icons";
+import { ChevronDown, Search, Funnel, X } from "react-bootstrap-icons";
 
 export type DateSort = "date-newest" | "date-oldest";
 export type PriceSort = "price-highest" | "price-lowest";
@@ -49,7 +49,7 @@ export default function FilterBar({
   onSearchQueryChange,
 }: FilterBarProps) {
   return (
-    <div className="border-b border-gray-200 pt-3 md:pt-2">
+    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 pt-3 md:pt-2">
       {/* ── Desktop layout ── */}
       <div className="hidden md:flex items-center gap-2 px-4 pb-2">
         {/* Search input */}
@@ -223,12 +223,22 @@ export default function FilterBar({
             aria-modal="true"
             aria-labelledby="sort-modal-title"
           >
-            <h2
-              id="sort-modal-title"
-              className="text-lg font-bold text-gray-900 mb-5"
-            >
-              Sort by
-            </h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2
+                id="sort-modal-title"
+                className="text-lg font-bold text-gray-900"
+              >
+                Sort by
+              </h2>
+              <button
+                type="button"
+                onClick={() => onSortModalOpenChange(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="Close sort options"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             {/* Date section */}
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Facebook, EnvelopeFill } from "react-bootstrap-icons";
 
 export function AppFooter() {
@@ -18,6 +19,14 @@ export function AppFooter() {
             liable for any damages, scams, losses, or disputes that arise from
             using this app. Transact safely and responsibly!
           </p>
+          <div className="flex gap-4 text-xs text-white/70">
+            <Link href="/terms" className="hover:text-[#3761B0] transition-colors">
+              Terms of Use
+            </Link>
+            <Link href="/privacy" className="hover:text-[#3761B0] transition-colors">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
 
         {/* Right: contacts */}

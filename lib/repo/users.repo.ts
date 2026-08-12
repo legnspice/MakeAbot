@@ -16,10 +16,18 @@ export async function findUsers(filters: FindUserSchema) {
   });
 }
 
-export async function insertUser(id: string) {
+export async function findPublicUsers(ids: string[]) {
+  if (ids.length === 0) return [];
+  return await db.query.users.findMany({
+    where: inArray(users.id, ids),
+    columns: { id: true, name: true, avatar_url: true },
+  });
+}
+
+export async function insertUser(id: string, name?: string | null) {
   return await db
     .insert(users)
-    .values({ id })
+    .values({ id, name: name ?? null })
     .onConflictDoNothing({ target: users.id });
 }
 

@@ -14,6 +14,7 @@ import {
   requestStatusEnum,
   bidStatusEnum,
   typeEnum,
+  reportReasonEnum,
 } from "./enums";
 import { sql } from "drizzle-orm";
 
@@ -33,6 +34,8 @@ export const users = pgTable("users", {
   phone_number: text("phone_number"),
   description: text("description"),
   contributions: integer("contributions").notNull().default(0),
+  avatar_url: text("avatar_url"),
+  is_admin: boolean("is_admin").notNull().default(false),
 });
 
 export const messages = pgTable("messages", {
@@ -54,31 +57,43 @@ export const messages = pgTable("messages", {
   is_read: boolean("is_read").default(false).notNull(),
 });
 
-export const reviews = pgTable("reviews", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  rated_user_id: uuid("rated_user_id")
-    .notNull()
-    .references(() => users.id),
-  creator_id: uuid("creator_id")
-    .notNull()
-    .references(() => users.id),
-  request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
-    onDelete: "cascade",
-  }),
-  offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
-    onDelete: "cascade",
-  }),
-  comment: text("comment"),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-  rating: integer("rating").notNull(),
-});
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rated_user_id: uuid("rated_user_id")
+      .notNull()
+      .references(() => users.id),
+    creator_id: uuid("creator_id")
+      .notNull()
+      .references(() => users.id),
+    request_bid_id: uuid("request_bid_id").references(() => request_bids.id, {
+      onDelete: "cascade",
+    }),
+    offer_bid_id: uuid("offer_bid_id").references(() => offer_bids.id, {
+      onDelete: "cascade",
+    }),
+    comment: text("comment"),
+    created_at: timestamp("created_at").notNull().defaultNow(),
+    rating: integer("rating").notNull(),
+  },
+  (t) => [
+    uniqueIndex("reviews_creator_offer_bid_idx")
+      .on(t.creator_id, t.offer_bid_id)
+      .where(sql`${t.offer_bid_id} IS NOT NULL`),
+    uniqueIndex("reviews_creator_request_bid_idx")
+      .on(t.creator_id, t.request_bid_id)
+      .where(sql`${t.request_bid_id} IS NOT NULL`),
+  ],
+);
 
 export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   imgUrl: text("imgUrl"),
-  // For currency we use the smallest unit: Php in cents
+  // Optional ₱ amount (whole pesos)
   fee: integer("fee"),
+  incentive: text("incentive"),
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
@@ -93,8 +108,9 @@ export const offers = pgTable("offers", {
   id: uuid("id").primaryKey().defaultRandom(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   imgUrl: text("imgUrl"),
-  // For currency we use the smallest unit: Php in cents
+  // Optional ₱ amount (whole pesos)
   price: integer("price"),
+  incentive: text("incentive"),
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
@@ -172,8 +188,30 @@ export const notification_preferences = pgTable("notification_preferences", {
     .references(() => users.id, { onDelete: "cascade" }),
   new_inquiry: boolean("new_inquiry").notNull().default(true),
   new_message: boolean("new_message").notNull().default(true),
-  new_review: boolean("new_review").notNull().default(true),
   new_request: boolean("new_request").notNull().default(true),
+});
+
+export const reports = pgTable("reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  reporter_id: uuid("reporter_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  reported_user_id: uuid("reported_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reported_offer_id: uuid("reported_offer_id").references(() => offers.id, {
+    onDelete: "set null",
+  }),
+  reported_request_id: uuid("reported_request_id").references(
+    () => requests.id,
+    { onDelete: "set null" },
+  ),
+  reason: reportReasonEnum("reason").notNull(),
+  details: text("details"),
+  status: text("status").notNull().default("open"),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  report_count: integer("report_count").notNull().default(1),
+  created_at: timestamp("created_at").notNull().defaultNow(),
 });
 
 export type InsertUser = typeof users.$inferInsert;
@@ -190,3 +228,8 @@ export type SelectNotificationPreferences =
   typeof notification_preferences.$inferSelect;
 export type InsertOfferBid = typeof offer_bids.$inferInsert;
 export type SelectOfferBid = typeof offer_bids.$inferSelect;
+export type SelectRequest = typeof requests.$inferSelect;
+export type SelectRequestBid = typeof request_bids.$inferSelect;
+export type SelectReview = typeof reviews.$inferSelect;
+export type SelectReport = typeof reports.$inferSelect;
+export type InsertReport = typeof reports.$inferInsert;

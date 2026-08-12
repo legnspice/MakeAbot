@@ -24,6 +24,8 @@ import {
   PushPermissionModal,
   PUSH_PROMPT_KEY,
 } from "@/components/push-permission-modal";
+import { PRICE_CAP } from "@/lib/constants";
+import { incentiveOverCap } from "@/lib/incentive";
 
 export default function CreateRequest() {
   const router = useRouter();
@@ -33,7 +35,6 @@ export default function CreateRequest() {
 
   const { requestPermissionAndSubscribe } = usePushSubscription();
 
-  const [itemKind, setItemKind] = useState<"Item" | "Service">("Item");
   const [urgency, setUrgency] = useState<Urgency>("Now");
   const [isPosting, setIsPosting] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
@@ -59,10 +60,8 @@ export default function CreateRequest() {
         setForm({
           title: req.title ?? "",
           description: req.description ?? "",
-          incentive: req.fee != null ? String(req.fee) : "",
+          incentive: req.incentive ?? "",
         });
-        if (req.type === "Item" || req.type === "Service")
-          setItemKind(req.type);
         if (req.urgency) setUrgency(req.urgency);
         if (req.imgUrl) setUploadedImageUrl(req.imgUrl);
       } else {
@@ -129,31 +128,31 @@ export default function CreateRequest() {
   const handlePost = async () => {
     const title = form.title.trim();
     if (!title) return;
-    const feeValue = form.incentive.trim()
-      ? parseInt(form.incentive.trim(), 10) || null
-      : null;
+    const incentive = form.incentive.trim() || null;
+    if (incentiveOverCap(incentive)) {
+      alert(`Please keep incentives at ₱${PRICE_CAP} or under.`);
+      return;
+    }
 
     setIsPosting(true);
     try {
       if (editId) {
         await editRequest(editId, {
           title,
-          fee: feeValue,
+          incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
           urgency,
-          type: itemKind,
         });
       } else {
         await createRequest({
           user_id: currentUser.id,
           title,
-          fee: feeValue,
+          incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
           urgency,
           status: "Active",
-          type: itemKind,
         });
         const seen = localStorage.getItem(PUSH_PROMPT_KEY);
         const denied =
@@ -193,35 +192,6 @@ export default function CreateRequest() {
 
           {/* Form */}
           <div className="space-y-4">
-            {/* Type: Item / Service */}
-            <div className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-sm text-gray-600">Type</div>
-              <div className="inline-flex rounded-full bg-gray-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => setItemKind("Item")}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    itemKind === "Item"
-                      ? "bg-white text-black font-semibold shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  Item
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setItemKind("Service")}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    itemKind === "Service"
-                      ? "bg-white text-black font-semibold shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  Service
-                </button>
-              </div>
-            </div>
-
             {/* Title */}
             <div className="flex items-center gap-3">
               <div className="w-28 shrink-0 text-sm text-gray-600">Title</div>
@@ -267,19 +237,18 @@ export default function CreateRequest() {
               </select>
             </div>
 
-            {/* Possible Incentive */}
+            {/* Incentive */}
             <div className="flex items-center gap-3">
               <div className="w-28 shrink-0 text-sm text-gray-600">
-                Incentive (₱)
+                Incentive
               </div>
               <Input
-                type="number"
-                min={0}
                 value={form.incentive}
+                maxLength={60}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, incentive: e.target.value }))
                 }
-                placeholder="20.00"
+                placeholder="e.g. ₱20, a coffee, just goodwill"
                 className="flex-1 rounded-xl bg-gray-100 border-0"
               />
             </div>

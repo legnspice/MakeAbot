@@ -4,14 +4,30 @@ import * as usersService from "@/lib/services/users.service";
 import { handleAction } from "@/lib/error/actions-handler";
 import { requireAuth } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { FindUserSchema, UpdateUserSchema } from "@/lib/validation/users";
 import { AppError } from "@/lib/error/app-error";
+import { resolveMetaAvatar, resolveMetaName } from "@/lib/avatar";
 
 export async function getUsers(filters: FindUserSchema) {
   return await handleAction(async () => {
+    const user = await requireAuth();
+    // Self-only via this action — it returns the full row (phone/ID/etc.).
+    // Other-user or bulk reads must go through getPublicUsers (id/name/avatar
+    // projection) or getPublicProfile (relationship-gated disclosure).
+    if (
+      (filters.id && filters.id !== user.id) ||
+      (filters.ids && filters.ids.some((id) => id !== user.id))
+    ) {
+      throw new AppError("Forbidden", 403);
+    }
+    return usersService.getUsers({ id: user.id });
+  });
+}
+
+export async function getPublicUsers(ids: string[]) {
+  return await handleAction(async () => {
     await requireAuth();
-    return usersService.getUsers(filters);
+    return usersService.getPublicUsers(ids);
   });
 }
 
@@ -28,12 +44,18 @@ export async function getSupabaseUser() {
   return await supabase.auth.getUser();
 }
 
-export async function getUserAvatarUrl(userId: string): Promise<string | null> {
+export async function syncAvatarUrl() {
   return await handleAction(async () => {
-    await requireAuth();
-    const admin = await createAdminClient();
-    const { data } = await admin.auth.admin.getUserById(userId);
-    const meta = data?.user?.user_metadata;
-    return (meta?.avatar_url ?? meta?.picture ?? null) as string | null;
-  }).then((r) => r.data ?? null);
+    const user = await requireAuth();
+    const next = resolveMetaAvatar(user.user_metadata);
+    const metaName = resolveMetaName(user.user_metadata);
+    await usersService.syncAvatarUrl(user.id, next, metaName);
+  });
+}
+
+export async function getPublicProfile(userId: string) {
+  return await handleAction(async () => {
+    const viewer = await requireAuth();
+    return usersService.getPublicProfile(viewer.id, userId);
+  });
 }

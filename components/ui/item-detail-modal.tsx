@@ -1,10 +1,8 @@
 "use client";
 
-import {
-  ChevronLeft,
-  BoxArrowUpRight,
-  ChatDotsFill,
-} from "react-bootstrap-icons";
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, ChatDotsFill, X, Clock } from "react-bootstrap-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +16,9 @@ export interface ItemDetailData {
   price: string;
   description?: string;
   note?: string;
-  linkUrl?: string;
+  urgency?: string;
+  incentive?: string;
+  posterId?: string;
 }
 
 interface ItemDetailModalProps {
@@ -26,6 +26,7 @@ interface ItemDetailModalProps {
   onClose: () => void;
   onInquire?: (item: ItemDetailData) => void;
   onChatClick?: () => void;
+  onReport?: () => void;
   isOwner?: boolean;
   className?: string;
 }
@@ -35,14 +36,15 @@ export default function ItemDetailModal({
   onClose,
   onInquire,
   onChatClick,
+  onReport,
   isOwner = false,
   className,
 }: ItemDetailModalProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   if (!item) return null;
 
-  const handleLinkClick = () => {
-    if (item.linkUrl) window.open(item.linkUrl, "_blank");
-  };
+  const isOffer = !!item.lentBy;
+  const priceAccent = isOffer ? "text-[#DEA440]" : "text-[#3761B0]";
 
   return (
     <>
@@ -79,11 +81,18 @@ export default function ItemDetailModal({
           {/* Image */}
           <div className="shrink-0 w-full h-40 bg-gray-100 overflow-hidden flex items-center justify-center">
             {item.imageUrl ? (
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="w-full h-full cursor-zoom-in"
+                aria-label="View image full screen"
+              >
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              </button>
             ) : (
               <span className="text-gray-300 text-xs uppercase tracking-widest font-medium">
                 No image
@@ -101,16 +110,11 @@ export default function ItemDetailModal({
                 {item.title}
               </h1>
               <div className="flex items-center gap-2 shrink-0">
-                {item.quantity != null && (
-                  <span className="text-[#3761B0] text-sm font-medium">
-                    {item.quantity}x
-                  </span>
-                )}
                 <span
                   className={`font-semibold text-sm px-2 py-0.5 rounded ${
                     item.price === "FREE"
                       ? "bg-emerald-100 text-emerald-700"
-                      : "text-[#3761B0]"
+                      : priceAccent
                   }`}
                 >
                   {item.price}
@@ -118,15 +122,54 @@ export default function ItemDetailModal({
               </div>
             </div>
             {item.lentBy && (
-              <p className="text-sm text-gray-600">Lent by {item.lentBy}</p>
+              <p className="text-sm text-gray-600">
+                Lent by{" "}
+                {item.posterId && !isOwner ? (
+                  <Link
+                    href={`/profile/${item.posterId}`}
+                    className="font-medium text-[#3761B0] hover:underline"
+                    onClick={onClose}
+                  >
+                    {item.lentBy}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{item.lentBy}</span>
+                )}
+              </p>
             )}
             {item.requestedBy && (
               <p className="text-sm text-gray-600">
-                Requested by {item.requestedBy}
+                Requested by{" "}
+                {item.posterId && !isOwner ? (
+                  <Link
+                    href={`/profile/${item.posterId}`}
+                    className="font-medium text-[#3761B0] hover:underline"
+                    onClick={onClose}
+                  >
+                    {item.requestedBy}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{item.requestedBy}</span>
+                )}
               </p>
+            )}
+            {onReport && !isOwner && (
+              <button
+                type="button"
+                onClick={onReport}
+                className="mt-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Report this post
+              </button>
             )}
             {item.location && (
               <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>
+            )}
+            {item.urgency && (
+              <p className="flex items-center gap-1.5 text-sm text-gray-600 mb-1">
+                <Clock size={14} className="shrink-0" />
+                Urgency: {item.urgency}
+              </p>
             )}
             {item.note && (
               <p className="text-sm text-gray-600">
@@ -160,20 +203,37 @@ export default function ItemDetailModal({
                 Inquire
               </Button>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="rounded-full w-11 h-11 border-0 bg-[#3761B0] text-white hover:bg-[#2d5199] disabled:opacity-50 disabled:pointer-events-none"
-              onClick={handleLinkClick}
-              disabled={!item.linkUrl}
-              aria-label={item.linkUrl ? "Open link" : "No link available"}
-            >
-              <BoxArrowUpRight size={20} />
-            </Button>
           </div>
         </div>
       </div>
+
+      {lightboxOpen && item.imageUrl && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200"
+          onClick={() => setLightboxOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image full screen"
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxOpen(false);
+            }}
+            aria-label="Close image"
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={item.imageUrl}
+            alt={item.title}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   );
 }

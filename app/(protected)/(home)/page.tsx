@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import BottomNav from "@/components/ui/bottomnavbar";
-import { Button } from "@/components/ui/button";
 import ItemRequestCard from "@/components/ui/item";
+import CreateFab from "@/components/create-fab";
 import ItemDetailModal, {
   type ItemDetailData,
 } from "@/components/ui/item-detail-modal";
@@ -13,7 +13,7 @@ import FilterBar, {
   type DateSort,
   type PriceSort,
 } from "@/components/ui/filter-bar";
-import { TagFill, QuestionCircleFill, XLg } from "react-bootstrap-icons";
+import ReportModal, { type ReportTarget } from "@/components/report-modal";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getOffers,
@@ -27,7 +27,9 @@ import {
   createRequestBid,
   reopenRequestBid,
 } from "@/lib/actions/requests";
-import { getUsers } from "@/lib/actions/users";
+import { getPublicUsers } from "@/lib/actions/users";
+import { excludeOwnItems } from "@/lib/feed";
+import { formatIncentive } from "@/lib/incentive";
 import { HomePageSkeleton } from "@/components/ui/skeletons/home-skeleton";
 
 type ListItem = {
@@ -41,12 +43,11 @@ type ListItem = {
   price: string;
   typeBadge?: string;
   detail: ItemDetailData;
+  posterId: string;
+  posterName: string;
+  posterAvatarUrl?: string;
+  isOwnPoster: boolean;
 };
-
-function formatPrice(value: number | null | undefined): string {
-  if (value == null || value === 0) return "FREE";
-  return `₱${value}`;
-}
 
 function getPriceRank(price: string): number {
   const p = price.toUpperCase();
@@ -63,8 +64,8 @@ async function fetchHomeItems(
   userName: string | null | undefined,
 ) {
   const [postsResult, requestsResult] = await Promise.all([
-    getOffers({}),
-    getRequests({}),
+    getOffers({ status: "Active" }),
+    getRequests({ status: "Active" }),
   ]);
 
   const userIds = new Set<string>();
@@ -73,64 +74,76 @@ async function fetchHomeItems(
   for (const req of requestsResult.data ?? [])
     if (req.user_id && req.user_id !== userId) userIds.add(req.user_id);
 
-  const usersMap = new Map<string, string>();
+  const usersMap = new Map<string, { name: string; avatarUrl?: string }>();
   if (userIds.size > 0) {
-    const usersResult = await getUsers({ ids: Array.from(userIds) });
+    const usersResult = await getPublicUsers(Array.from(userIds));
     for (const u of usersResult.data ?? [])
-      usersMap.set(u.id, u.name ?? "User");
+      usersMap.set(u.id, {
+        name: u.name ?? "User",
+        avatarUrl: u.avatar_url ?? undefined,
+      });
   }
 
   const mapped: ListItem[] = [];
 
   for (const post of postsResult.data ?? []) {
-    const posterName =
-      post.user_id === userId
-        ? (userName ?? "You")
-        : (usersMap.get(post.user_id ?? "") ?? "User");
+    const isOwn = post.user_id === userId;
+    const entry = usersMap.get(post.user_id ?? "");
+    const posterName = isOwn ? (userName ?? "You") : (entry?.name ?? "User");
     mapped.push({
       id: post.id,
       itemDbId: post.id,
       userId: post.user_id ?? "",
       variant: "lent",
       requestedBy: `Offered by: ${posterName}`,
-      price: formatPrice(post.price),
+      price: formatIncentive(post.incentive),
       typeBadge: "Offer",
+      posterId: post.user_id ?? "",
+      posterName,
+      posterAvatarUrl: isOwn ? undefined : entry?.avatarUrl,
+      isOwnPoster: isOwn,
       detail: {
         title: post.title,
         lentBy: posterName,
         quantity: 1,
-        price: formatPrice(post.price),
+        price: formatIncentive(post.incentive),
         description: post.description ?? undefined,
         imageUrl: post.imgUrl ?? undefined,
+        posterId: post.user_id ?? undefined,
       },
     });
   }
 
   for (const req of requestsResult.data ?? []) {
-    const posterName =
-      req.user_id === userId
-        ? (userName ?? "You")
-        : (usersMap.get(req.user_id ?? "") ?? "User");
+    const isOwn = req.user_id === userId;
+    const entry = usersMap.get(req.user_id ?? "");
+    const posterName = isOwn ? (userName ?? "You") : (entry?.name ?? "User");
     mapped.push({
       id: req.id,
       itemDbId: req.id,
       userId: req.user_id ?? "",
       variant: "requested",
       requestedBy: `Requested by: ${posterName}`,
-      price: formatPrice(req.fee),
+      price: formatIncentive(req.incentive),
       typeBadge: "Request",
+      posterId: req.user_id ?? "",
+      posterName,
+      posterAvatarUrl: isOwn ? undefined : entry?.avatarUrl,
+      isOwnPoster: isOwn,
       detail: {
         title: req.title,
         requestedBy: posterName,
         quantity: 1,
-        price: formatPrice(req.fee),
+        price: formatIncentive(req.incentive),
         description: req.description ?? undefined,
         imageUrl: req.imgUrl ?? undefined,
+        urgency: req.urgency ?? undefined,
+        posterId: req.user_id ?? undefined,
       },
     });
   }
 
-  return mapped;
+  return excludeOwnItems(mapped, userId);
 }
 
 export default function Home() {
@@ -150,7 +163,7 @@ export default function Home() {
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
-  const [isTypePickerOpen, setIsTypePickerOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -297,23 +310,25 @@ export default function Home() {
           <HomePageSkeleton />
         ) : (
           <main className="px-4 py-6 pb-28 md:pb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-w-7xl mx-auto">
-              {filteredItems.map((item) => {
-                const isOwn = item.userId === currentUser.id;
-                return (
-                  <ItemRequestCard
-                    key={item.id}
-                    variant={item.variant}
-                    requestedBy={item.requestedBy}
-                    section={item.section}
-                    time={item.time}
-                    price={item.price}
-                    typeBadge={item.typeBadge}
-                    detail={item.detail}
-                    onClick={isOwn ? undefined : () => setSelectedItem(item)}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 max-w-7xl mx-auto">
+              {filteredItems.map((item) => (
+                <ItemRequestCard
+                  key={item.id}
+                  variant={item.variant}
+                  requestedBy={item.requestedBy}
+                  section={item.section}
+                  time={item.time}
+                  price={item.price}
+                  typeBadge={item.typeBadge}
+                  urgency={item.detail.urgency}
+                  posterId={item.posterId}
+                  posterName={item.posterName}
+                  posterAvatarUrl={item.posterAvatarUrl}
+                  isOwnPoster={item.isOwnPoster}
+                  detail={item.detail}
+                  onClick={() => setSelectedItem(item)}
+                />
+              ))}
             </div>
           </main>
         )}
@@ -333,101 +348,27 @@ export default function Home() {
             setSelectedItem(null);
             router.push("/tracker");
           }}
+          onReport={
+            selectedItem
+              ? () => {
+                  setReportTarget({
+                    type: selectedItem.variant === "lent" ? "offer" : "request",
+                    id: selectedItem.itemDbId,
+                    label: selectedItem.detail.title,
+                  });
+                  setSelectedItem(null);
+                }
+              : undefined
+          }
         />
 
-        {/* Type picker modal */}
-        {isTypePickerOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-20 bg-black/40"
-              onClick={() => setIsTypePickerOpen(false)}
-              aria-hidden
-            />
-            <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
-              <div className="pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 px-6 pt-5 pb-8">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-gray-800">
-                    What are you creating?
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setIsTypePickerOpen(false)}
-                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                    aria-label="Close"
-                  >
-                    <XLg size={20} className="text-gray-500" />
-                  </button>
-                </div>
+        <ReportModal
+          open={reportTarget !== null}
+          onClose={() => setReportTarget(null)}
+          target={reportTarget}
+        />
 
-                {/* Options */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Offer */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTypePickerOpen(false);
-                      router.push("/create-offer");
-                    }}
-                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#DEA440] hover:bg-amber-50 active:bg-amber-100 transition-colors group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center transition-colors">
-                      <TagFill size={24} className="text-[#DEA440]" />
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-gray-800 text-sm">
-                        Offer
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        I have something to share
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Request */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTypePickerOpen(false);
-                      router.push("/create-request");
-                    }}
-                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200 hover:border-[#3761B0] hover:bg-blue-50 active:bg-blue-100 transition-colors group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
-                      <QuestionCircleFill
-                        size={24}
-                        className="text-[#3761B0]"
-                      />
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-gray-800 text-sm">
-                        Request
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        I need something
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Floating action button */}
-        <Button
-          size="icon"
-          className="font-regular text-lg fixed bottom-30 md:bottom-6 right-6 w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black shadow-lg z-10 p-0 flex items-center justify-center"
-          aria-label="Create item"
-          onClick={() => setIsTypePickerOpen(true)}
-        >
-          <span className="hidden md:inline text-black font-regular">
-            Create
-          </span>
-          <span className="text-black text-3xl md:text-3xl leading-none -mt-1">
-            +
-          </span>
-        </Button>
+        <CreateFab />
       </div>
 
       <BottomNav />
