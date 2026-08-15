@@ -3,9 +3,20 @@
 import { BellFill } from "react-bootstrap-icons";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
+
+/**
+ * The bid id of the chat currently on screen, or null. Read from the URL rather
+ * than context so it is always in sync with what the user is actually looking
+ * at. Deliberately not useSearchParams — that forces a Suspense boundary on
+ * every statically rendered page that renders the navbar.
+ */
+function activeChatContextId(): string | null {
+  if (typeof window === "undefined") return null;
+  if (!window.location.pathname.startsWith("/chat")) return null;
+  return new URLSearchParams(window.location.search).get("bidId");
+}
 
 type Props = {
   /** If true, renders as a nav link to /notifications (mobile bottom nav style).
@@ -21,7 +32,6 @@ export default function NotificationsBell({
   onClick,
   className = "",
 }: Props) {
-  const pathname = usePathname();
   const { userData } = useAuth();
   const userId = userData.publicUser.id;
   const [unreadCount, setUnreadCount] = useState(0);
@@ -37,11 +47,24 @@ export default function NotificationsBell({
     const loadUnreadCount = async () => {
       fetchSeq.current += 1;
       const mySeq = fetchSeq.current;
-      const { count } = await supabase
+      let query = supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("is_read", false);
+
+      // Exclude the thread the user is currently reading. chat-room marks it
+      // read, but the notification upsert runs after the message is broadcast,
+      // so it can land afterwards and flip the row back to unread — a badge for
+      // a chat that's open on screen. Filtering by context is race-free.
+      const activeContextId = activeChatContextId();
+      if (activeContextId) {
+        query = query.or(
+          `context_id.is.null,context_id.neq.${activeContextId}`,
+        );
+      }
+
+      const { count } = await query;
       // Discard result if a newer fetch has already been dispatched or component unmounted.
       if (isMounted && mySeq === fetchSeq.current) {
         setUnreadCount(count ?? 0);
@@ -90,8 +113,11 @@ export default function NotificationsBell({
     };
   }, [userId]);
 
+  // No route-level suppression: chat-room marks the open thread read on mount
+  // and on each incoming message, so the count already excludes it. Hiding the
+  // whole badge on /chat also hid unrelated unread.
   const badge =
-    unreadCount > 0 && pathname !== "/chat" ? (
+    unreadCount > 0 ? (
       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
         {unreadCount > 99 ? "99+" : unreadCount}
       </span>

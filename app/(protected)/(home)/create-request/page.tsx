@@ -35,7 +35,9 @@ export default function CreateRequest() {
 
   const { requestPermissionAndSubscribe } = usePushSubscription();
 
-  const [urgency, setUrgency] = useState<Urgency>("Now");
+  // Default is deliberately not the loudest tier — "Now" broadcasts a push to
+  // the whole campus (lib/broadcast-policy.ts), so it must be a choice.
+  const [urgency, setUrgency] = useState<Urgency>("Within the day");
   const [isPosting, setIsPosting] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

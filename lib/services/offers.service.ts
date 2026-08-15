@@ -1,6 +1,9 @@
 import * as offersRepo from "../repo/offers.repo";
 import { offers } from "../db/schema";
 import { sendPushToAllUsers } from "./push.service";
+import { tierAfterPosterCooldown } from "./broadcast.service";
+import { offerBroadcastTier } from "../broadcast-policy";
+import { runAfterResponse } from "../after-response";
 import {
   FindOffersSchema,
   FindOfferBidsSchema,
@@ -20,11 +23,18 @@ export async function getOfferBids(filters: FindOfferBidsSchema) {
 export async function createOffer(data: InsertOfferSchema) {
   const offer = await offersRepo.insertOffer(data);
   if (offer && data.user_id) {
-    sendPushToAllUsers(data.user_id, {
-      title: "New offer available",
-      body: data.title,
-      url: `/`,
-    }).catch(() => {});
+    const userId = data.user_id;
+    // Deferred to after the response — must not block or fail offer creation.
+    runAfterResponse(async () => {
+      const tier = await tierAfterPosterCooldown(offerBroadcastTier(), userId, {
+        offerId: offer.id,
+      });
+      await sendPushToAllUsers(userId, "new_offer", tier, {
+        title: "New offer available",
+        body: data.title,
+        url: `/`,
+      });
+    });
   }
   return offer;
 }

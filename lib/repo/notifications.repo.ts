@@ -6,6 +6,8 @@ import {
   sql,
   ne,
   or,
+  gt,
+  lt,
   isNull,
   inArray,
 } from "drizzle-orm";
@@ -16,7 +18,11 @@ import {
   notification_preferences,
   users,
 } from "../db/schema";
-import { InsertNotificationSchema } from "../validation/notifications";
+import {
+  BROADCAST_TYPES,
+  InsertNotificationSchema,
+  type BroadcastType,
+} from "../validation/notifications";
 
 // --- Notifications ---
 
@@ -99,6 +105,26 @@ export async function findInquiryNotification(
   });
 }
 
+/**
+ * Drop the inquiry row for a thread that has graduated to a two-way
+ * conversation. Its `new_message` row supersedes it, and keeping both leaves
+ * two bell entries pointing at the same chat.
+ */
+export async function deleteInquiryNotification(
+  userId: string,
+  contextId: string,
+) {
+  return await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.user_id, userId),
+        eq(notifications.type, "new_inquiry"),
+        eq(notifications.context_id, contextId),
+      ),
+    );
+}
+
 export async function markMessageNotificationReadByContext(
   userId: string,
   contextId: string,
@@ -153,28 +179,31 @@ export async function deleteSubscriptionByEndpoint(
     );
 }
 
-export async function findSubscriptionsForBroadcast(excludeUserId: string) {
-  return await db
-    .select({
-      id: push_subscriptions.id,
-      endpoint: push_subscriptions.endpoint,
-      p256dh: push_subscriptions.p256dh,
-      auth: push_subscriptions.auth,
-    })
-    .from(push_subscriptions)
-    .leftJoin(
-      notification_preferences,
-      eq(push_subscriptions.user_id, notification_preferences.user_id),
-    )
-    .where(
-      and(
-        ne(push_subscriptions.user_id, excludeUserId),
-        or(
-          isNull(notification_preferences.user_id),
-          eq(notification_preferences.new_request, true),
-        ),
-      ),
-    );
+export async function findSubscriptionsForUsers(userIds: string[]) {
+  if (userIds.length === 0) return [];
+  const out: {
+    id: string;
+    user_id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+  }[] = [];
+  // Chunked: an `IN (...)` of every user id would eventually exceed Postgres'
+  // bind-parameter limit as the userbase grows.
+  for (const chunk of chunkIds(userIds)) {
+    const rows = await db
+      .select({
+        id: push_subscriptions.id,
+        user_id: push_subscriptions.user_id,
+        endpoint: push_subscriptions.endpoint,
+        p256dh: push_subscriptions.p256dh,
+        auth: push_subscriptions.auth,
+      })
+      .from(push_subscriptions)
+      .where(inArray(push_subscriptions.user_id, chunk));
+    out.push(...rows);
+  }
+  return out;
 }
 
 // --- Notification Preferences ---
@@ -204,24 +233,117 @@ export async function updatePreferences(
 
 // --- Broadcast ---
 
-export async function insertBroadcastNotifications(
+/** Chunk size — keeps a single statement from ballooning as the userbase grows. */
+const BROADCAST_CHUNK = 500;
+
+function* chunkIds(ids: string[]): Generator<string[]> {
+  for (let i = 0; i < ids.length; i += BROADCAST_CHUNK) {
+    yield ids.slice(i, i + BROADCAST_CHUNK);
+  }
+}
+
+/**
+ * Users who should receive a broadcast of this type, honouring their preference.
+ * A missing preferences row falls back to the column default: `new_request` is
+ * on, `new_offer` is opt-in.
+ */
+export async function findBroadcastRecipients(
   excludeUserId: string,
-  data: { title: string; body: string; url: string },
-) {
-  const allUsers = await db
+  type: BroadcastType,
+): Promise<string[]> {
+  const prefColumn =
+    type === "new_offer"
+      ? notification_preferences.new_offer
+      : notification_preferences.new_request;
+  const defaultsOn = type !== "new_offer";
+
+  const rows = await db
     .select({ id: users.id })
     .from(users)
-    .where(ne(users.id, excludeUserId));
-  if (allUsers.length === 0) return;
-  await db.insert(notifications).values(
-    allUsers.map((u) => ({
-      user_id: u.id,
-      type: "new_request" as const,
-      title: data.title,
-      body: data.body,
-      url: data.url,
-    })),
-  );
+    .leftJoin(
+      notification_preferences,
+      eq(users.id, notification_preferences.user_id),
+    )
+    .where(
+      and(
+        ne(users.id, excludeUserId),
+        defaultsOn
+          ? or(isNull(notification_preferences.user_id), eq(prefColumn, true))
+          : eq(prefColumn, true),
+      ),
+    );
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Broadcast pushes each user has received in the last 24h, keyed by user id.
+ * Counts `pushed` rows rather than all rows — a capped broadcast still writes a
+ * bell row, and those must not count against the next day's budget.
+ */
+export async function countRecentBroadcastPushes(
+  userIds: string[],
+): Promise<Map<string, number>> {
+  if (userIds.length === 0) return new Map();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const counts = new Map<string, number>();
+  for (const chunk of chunkIds(userIds)) {
+    const rows = await db
+      .select({ user_id: notifications.user_id, value: count() })
+      .from(notifications)
+      .where(
+        and(
+          inArray(notifications.user_id, chunk),
+          inArray(notifications.type, [...BROADCAST_TYPES]),
+          eq(notifications.pushed, true),
+          gt(notifications.created_at, since),
+        ),
+      )
+      .groupBy(notifications.user_id);
+    for (const r of rows) counts.set(r.user_id, r.value);
+  }
+  return counts;
+}
+
+/**
+ * Housekeeping for the bell: broadcast rows are written for every user on every
+ * qualifying post, so without retention the tracker fills with stale
+ * platform-wide chatter and the unread badge stops meaning anything.
+ */
+export async function deleteStaleBroadcastNotifications(
+  olderThanDays = 14,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+  const deleted = await db
+    .delete(notifications)
+    .where(
+      and(
+        inArray(notifications.type, [...BROADCAST_TYPES]),
+        lt(notifications.created_at, cutoff),
+      ),
+    )
+    .returning({ id: notifications.id });
+  return deleted.length;
+}
+
+export async function insertBroadcastNotifications(
+  recipientIds: string[],
+  type: BroadcastType,
+  data: { title: string; body: string; url: string },
+  pushedUserIds: Set<string>,
+) {
+  if (recipientIds.length === 0) return;
+  for (const chunk of chunkIds(recipientIds)) {
+    await db.insert(notifications).values(
+      chunk.map((id) => ({
+        user_id: id,
+        type,
+        title: data.title,
+        body: data.body,
+        url: data.url,
+        pushed: pushedUserIds.has(id),
+      })),
+    );
+  }
 }
 
 // --- Daily digest ---
@@ -237,6 +359,10 @@ export async function findUsersWithUnreadMessageNotifications(): Promise<
     }[];
   }[]
 > {
+  // Only conversations that went unread in the last 24h. Without this bound a
+  // notification the user never opens generates a digest email every night,
+  // forever.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const unread = await db
     .select({
       user_id: notifications.user_id,
@@ -246,10 +372,19 @@ export async function findUsersWithUnreadMessageNotifications(): Promise<
       url: notifications.url,
     })
     .from(notifications)
+    .leftJoin(
+      notification_preferences,
+      eq(notifications.user_id, notification_preferences.user_id),
+    )
     .where(
       and(
         inArray(notifications.type, ["new_inquiry", "new_message"]),
         eq(notifications.is_read, false),
+        gt(notifications.updated_at, since),
+        or(
+          isNull(notification_preferences.user_id),
+          eq(notification_preferences.email_digest, true),
+        ),
       ),
     );
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { expireStaleOfferBids } from "@/lib/services/offers.service";
 import { expireStaleRequestBids } from "@/lib/services/requests.service";
 import { sendPushToUser } from "@/lib/services/push.service";
+import * as notificationsRepo from "@/lib/repo/notifications.repo";
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -20,9 +21,7 @@ export async function GET(req: NextRequest) {
     const offerResults =
       expiredOfferBids.status === "fulfilled" ? expiredOfferBids.value : [];
     const requestResults =
-      expiredRequestBids.status === "fulfilled"
-        ? expiredRequestBids.value
-        : [];
+      expiredRequestBids.status === "fulfilled" ? expiredRequestBids.value : [];
 
     // Fire bid_expired notifications (fire-and-forget)
     await Promise.allSettled([
@@ -44,15 +43,27 @@ export async function GET(req: NextRequest) {
       ),
     ]);
 
+    // Retention sweep: broadcast rows are written per-user per-post, so they
+    // dominate the table over time. Directed notifications are kept.
+    let prunedBroadcasts = 0;
+    try {
+      prunedBroadcasts =
+        await notificationsRepo.deleteStaleBroadcastNotifications();
+    } catch (err) {
+      console.error("[cron/expire-bids] broadcast prune failed", err);
+    }
+
     console.log("[cron/expire-bids] completed", {
       expiredOfferBids: offerResults.length,
       expiredRequestBids: requestResults.length,
+      prunedBroadcasts,
     });
 
     return NextResponse.json({
       ok: true,
       expiredOfferBids: offerResults.length,
       expiredRequestBids: requestResults.length,
+      prunedBroadcasts,
     });
   } catch (err) {
     console.error("[cron/expire-bids] failed", err);

@@ -1,5 +1,8 @@
 import * as requestsRepo from "../repo/requests.repo";
 import { sendPushToAllUsers } from "./push.service";
+import { tierAfterPosterCooldown } from "./broadcast.service";
+import { requestBroadcastTier } from "../broadcast-policy";
+import { runAfterResponse } from "../after-response";
 import { AppError } from "@/lib/error/app-error";
 import {
   FindRequestsSchema,
@@ -20,12 +23,20 @@ export async function getRequestBids(filters: FindRequestBidsSchema) {
 export async function createRequest(data: InsertRequestSchema) {
   const request = await requestsRepo.insertRequest(data);
   if (request && data.user_id) {
-    // fire-and-forget — failure must not throw
-    sendPushToAllUsers(data.user_id, {
-      title: "New request posted",
-      body: data.title,
-      url: `/`,
-    }).catch(() => {});
+    const userId = data.user_id;
+    // Deferred to after the response — must not block or fail request creation.
+    runAfterResponse(async () => {
+      const tier = await tierAfterPosterCooldown(
+        requestBroadcastTier(request.urgency),
+        userId,
+        { requestId: request.id },
+      );
+      await sendPushToAllUsers(userId, "new_request", tier, {
+        title: "New request posted",
+        body: data.title,
+        url: `/`,
+      });
+    });
   }
   return request;
 }

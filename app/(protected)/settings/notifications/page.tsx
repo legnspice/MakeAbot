@@ -10,14 +10,28 @@ import {
 import type { SelectNotificationPreferences } from "@/lib/db/schema";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 
-const EVENT_LABELS: Record<
-  keyof Omit<SelectNotificationPreferences, "user_id">,
-  string
-> = {
+type PrefKey = keyof Omit<SelectNotificationPreferences, "user_id">;
+
+const EVENT_LABELS: Record<PrefKey, string> = {
   new_inquiry: "New inquiries on my posts",
   new_message: "New messages in active conversations",
   new_request: "New requests from others",
+  new_offer: "New offers from others",
+  email_digest: "Daily email summary of unread conversations",
 };
+
+const EVENT_HINTS: Partial<Record<PrefKey, string>> = {
+  new_request: "Only urgent requests notify you.",
+  new_offer: "Off by default — offers are browsable in the feed.",
+};
+
+const IN_APP_KEYS: PrefKey[] = [
+  "new_inquiry",
+  "new_message",
+  "new_request",
+  "new_offer",
+];
+const EMAIL_KEYS: PrefKey[] = ["email_digest"];
 
 export default function NotificationSettingsPage() {
   const [prefs, setPrefs] = useState<SelectNotificationPreferences | null>(
@@ -39,15 +53,60 @@ export default function NotificationSettingsPage() {
     });
   }, []);
 
-  async function handleToggle(
-    key: keyof Omit<SelectNotificationPreferences, "user_id">,
-  ) {
+  async function handleToggle(key: PrefKey) {
     if (!prefs) return;
     const newValue = !prefs[key];
     setPrefs({ ...prefs, [key]: newValue });
     setSaving(key);
     await updateNotificationPreferences({ [key]: newValue });
     setSaving(null);
+  }
+
+  function renderSection(heading: string, keys: PrefKey[]) {
+    if (!prefs) return null;
+    return (
+      <section className="mb-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+          {heading}
+        </h2>
+        <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
+          {keys.map((key) => (
+            <div
+              key={key}
+              className="flex items-center justify-between gap-4 px-1 py-4"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm text-gray-800">
+                  {EVENT_LABELS[key]}
+                </span>
+                {EVENT_HINTS[key] && (
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    {EVENT_HINTS[key]}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={prefs[key]}
+                aria-label={EVENT_LABELS[key]}
+                onClick={() => handleToggle(key)}
+                disabled={saving === key}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] ${
+                  prefs[key] ? "bg-[#3761B0]" : "bg-gray-300"
+                } ${saving === key ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    prefs[key] ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -101,38 +160,10 @@ export default function NotificationSettingsPage() {
         ) : !prefs ? (
           <p className="text-sm text-gray-400">Could not load preferences.</p>
         ) : (
-          <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
-            {(
-              Object.keys(EVENT_LABELS) as Array<
-                keyof Omit<SelectNotificationPreferences, "user_id">
-              >
-            ).map((key) => (
-              <div
-                key={key}
-                className="flex items-center justify-between px-1 py-4"
-              >
-                <span className="text-sm text-gray-800">
-                  {EVENT_LABELS[key]}
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={prefs[key]}
-                  onClick={() => handleToggle(key)}
-                  disabled={saving === key}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3761B0] ${
-                    prefs[key] ? "bg-[#3761B0]" : "bg-gray-300"
-                  } ${saving === key ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      prefs[key] ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
+          <>
+            {renderSection("In-app & push", IN_APP_KEYS)}
+            {renderSection("Email", EMAIL_KEYS)}
+          </>
         )}
       </main>
       <BottomNav />

@@ -14,7 +14,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import { Spinner } from "@/components/ui/spinner";
 import NotificationFilter from "@/components/ui/notification-filter";
-import { type NotifTab, matchesTab } from "@/lib/notifications-filter";
+import {
+  type NotifTab,
+  matchesTab,
+  isCoalescedType,
+} from "@/lib/notifications-filter";
 
 function formatTime(date: Date): string {
   const now = new Date();
@@ -152,7 +156,8 @@ export default function NotificationsPanel({
   const hiddenReadCount = Math.max(0, read.length - READ_THRESHOLD);
 
   function renderNotification(n: SelectNotification) {
-    const isMessage = n.type === "new_message";
+    // new_inquiry coalesces too — it must show its count and updated_at.
+    const isMessage = isCoalescedType(n.type);
     return (
       <button
         key={n.id}

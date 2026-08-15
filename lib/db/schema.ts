@@ -99,7 +99,7 @@ export const requests = pgTable("requests", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
-  urgency: urgencyEnum("urgency").notNull().default("Now"),
+  urgency: urgencyEnum("urgency").notNull().default("Within the day"),
   type: typeEnum("type").notNull().default("Unknown"),
   status: requestStatusEnum("status").notNull().default("Active"),
 });
@@ -161,6 +161,9 @@ export const notifications = pgTable(
     body: text("body"),
     url: text("url"),
     is_read: boolean("is_read").notNull().default(false),
+    // True when this row was also delivered as a web push. Broadcast rows are
+    // written even when push is capped, so the daily cap counts this, not rows.
+    pushed: boolean("pushed").notNull().default(false),
     created_at: timestamp("created_at").notNull().defaultNow(),
     updated_at: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -189,6 +192,9 @@ export const notification_preferences = pgTable("notification_preferences", {
   new_inquiry: boolean("new_inquiry").notNull().default(true),
   new_message: boolean("new_message").notNull().default(true),
   new_request: boolean("new_request").notNull().default(true),
+  // Offers are browsable supply, not time-sensitive demand — opt-in only.
+  new_offer: boolean("new_offer").notNull().default(false),
+  email_digest: boolean("email_digest").notNull().default(true),
 });
 
 export const reports = pgTable("reports", {

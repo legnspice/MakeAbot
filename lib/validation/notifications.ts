@@ -4,11 +4,17 @@ export const NOTIFICATION_TYPES = [
   "new_inquiry",
   "new_message",
   "new_request",
+  "new_offer",
+  "new_review",
   "request_completed_winner",
   "request_completed_loser",
   "offer_bid_completed",
   "bid_expired",
 ] as const;
+
+/** Broadcast types — sent to every user, subject to lib/broadcast-policy.ts. */
+export const BROADCAST_TYPES = ["new_request", "new_offer"] as const;
+export type BroadcastType = (typeof BROADCAST_TYPES)[number];
 
 export const NotificationTypeEnum = z.enum(NOTIFICATION_TYPES);
 export type NotificationType = z.infer<typeof NotificationTypeEnum>;
@@ -34,5 +40,7 @@ export const updatePreferencesSchema = z.object({
   new_inquiry: z.boolean().optional(),
   new_message: z.boolean().optional(),
   new_request: z.boolean().optional(),
+  new_offer: z.boolean().optional(),
+  email_digest: z.boolean().optional(),
 });
 export type UpdatePreferencesSchema = z.infer<typeof updatePreferencesSchema>;

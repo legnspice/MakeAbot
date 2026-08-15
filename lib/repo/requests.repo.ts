@@ -17,6 +17,21 @@ export async function findRequestById(id: string) {
   });
 }
 
+/** Most recent request by this user, ignoring `excludeId` (the one just created). */
+export async function findLatestRequestTimestamp(
+  userId: string,
+  excludeId?: string,
+): Promise<Date | null> {
+  const row = await db.query.requests.findFirst({
+    where: excludeId
+      ? and(eq(requests.user_id, userId), ne(requests.id, excludeId))
+      : eq(requests.user_id, userId),
+    orderBy: [desc(requests.created_at)],
+    columns: { created_at: true },
+  });
+  return row?.created_at ?? null;
+}
+
 export async function findRequestBidById(id: string) {
   return await db.query.request_bids.findFirst({
     where: eq(request_bids.id, id),
