@@ -50,38 +50,35 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
   });
 }
 
-export async function completeRequest(requestId: string, winningBidId: string) {
+export async function closeRequest(requestId: string) {
   return await handleAction(async () => {
     const user = await requireAuth();
 
-    const { winnerBid, loserBids, request } =
-      await requestsService.completeRequest(requestId, winningBidId, user.id);
+    const { completed, request } = await requestsService.closeRequest(
+      requestId,
+      user.id,
+    );
 
-    // Deferred — must not hold up the action response. The requester's display
-    // name is read here rather than above because it feeds the push bodies
-    // only, and the loser fan-out scales with bid count.
+    // Deferred — the name lookup feeds the notification bodies only, and the
+    // fan-out scales with the number of conversations.
     runAfterResponse(async () => {
+      if (completed.length === 0) return;
+
       const requesterUsers = await usersService.getUsers({
         id: request.user_id ?? undefined,
       });
       const requesterName = requesterUsers[0]?.name ?? "Someone";
 
-      await Promise.allSettled([
-        sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
-          title: "Your offer was accepted!",
-          body: `${requesterName} marked your bid on ${request.title} as done.`,
-          url: `/chat?bidId=${winningBidId}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
-          contextId: null,
-        }),
-        ...loserBids.map((loser) =>
-          sendPushToUser(loser.bidder_id, "request_completed_loser", {
-            title: "Request fulfilled",
-            body: `${request.title} has been fulfilled by someone else.`,
-            url: `/`,
+      await Promise.allSettled(
+        completed.map((bid) =>
+          sendPushToUser(bid.bidder_id, "request_closed", {
+            title: "Request closed",
+            body: `${requesterName} closed ${request.title}. Leave a review.`,
+            url: `/chat?bidId=${bid.id}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
             contextId: null,
           }),
         ),
-      ]);
+      );
     });
 
     return { success: true };

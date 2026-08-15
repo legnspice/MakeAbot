@@ -1,4 +1,4 @@
-import { completeRequest, completeOfferBid, closeOffer, getDealStatus } from "@/lib/actions/deals";
+import { closeRequest, completeOfferBid, closeOffer, getDealStatus } from "@/lib/actions/deals";
 import * as requestsService from "@/lib/services/requests.service";
 import * as offersService from "@/lib/services/offers.service";
 import * as pushService from "@/lib/services/push.service";
@@ -63,41 +63,52 @@ describe("deals actions", () => {
     });
   });
 
-  describe("completeRequest", () => {
-    it("completes winning bid and notifies winner and losers", async () => {
-      const mockCompleteRequest = requestsService.completeRequest as jest.Mock;
-      mockCompleteRequest.mockResolvedValue({
-        winnerBid: { id: "bid-1", bidder_id: "bidder-win" },
-        loserBids: [{ id: "bid-2", bidder_id: "bidder-lose" }],
-        request: { id: "req-1", title: "Need a pen", user_id: "user-owner", status: "Completed" },
+  describe("closeRequest", () => {
+    it("closes the request and notifies every conversing bidder", async () => {
+      (requestsService.closeRequest as jest.Mock).mockResolvedValue({
+        completed: [
+          { id: "bid-a", bidder_id: "bidder-a" },
+          { id: "bid-b", bidder_id: "bidder-b" },
+        ],
+        request: { id: "req-1", title: "Need a pen", user_id: "user-owner" },
+        finalStatus: "Completed",
       });
 
-      const result = await completeRequest("req-1", "bid-1");
+      const result = await closeRequest("req-1");
 
       expect(result.data).toEqual({ success: true });
-      expect(mockCompleteRequest).toHaveBeenCalledWith("req-1", "bid-1", "user-owner");
+      expect(requestsService.closeRequest).toHaveBeenCalledWith("req-1", "user-owner");
+      expect(pushService.sendPushToUser).toHaveBeenCalledTimes(2);
       expect(pushService.sendPushToUser).toHaveBeenCalledWith(
-        "bidder-win",
-        "request_completed_winner",
-        expect.objectContaining({ title: "Your offer was accepted!" }),
+        "bidder-a",
+        "request_closed",
+        expect.objectContaining({ title: "Request closed" }),
       );
-      expect(pushService.sendPushToUser).toHaveBeenCalledWith(
-        "bidder-lose",
-        "request_completed_loser",
-        expect.objectContaining({ title: "Request fulfilled" }),
-      );
+    });
+
+    it("sends nothing when nobody conversed", async () => {
+      (requestsService.closeRequest as jest.Mock).mockResolvedValue({
+        completed: [],
+        request: { id: "req-1", title: "Need a pen", user_id: "user-owner" },
+        finalStatus: "Cancelled",
+      });
+
+      const result = await closeRequest("req-1");
+
+      expect(result.data).toEqual({ success: true });
+      expect(pushService.sendPushToUser).not.toHaveBeenCalled();
     });
 
     it("surfaces the service's authorization error", async () => {
       const { AppError } = jest.requireActual("@/lib/error/app-error");
-      (requestsService.completeRequest as jest.Mock).mockRejectedValue(
-        new AppError("Only the requester can mark this done", 403),
+      (requestsService.closeRequest as jest.Mock).mockRejectedValue(
+        new AppError("Only the requester can close this", 403),
       );
 
-      const result = await completeRequest("req-1", "bid-1");
+      const result = await closeRequest("req-1");
 
       expect(result.data).toBeNull();
-      expect(result.error).toBe("Only the requester can mark this done");
+      expect(result.error).toBe("Only the requester can close this");
       expect(pushService.sendPushToUser).not.toHaveBeenCalled();
     });
   });
