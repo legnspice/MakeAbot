@@ -58,7 +58,7 @@ export default function CreateRequest() {
     setIsLoadingEdit(true);
     getRequests({ id: editId }).then((result) => {
       const req = result.data?.[0];
-      if (req) {
+      if (req && req.status === "Active") {
         setForm({
           title: req.title ?? "",
           description: req.description ?? "",
@@ -139,13 +139,17 @@ export default function CreateRequest() {
     setIsPosting(true);
     try {
       if (editId) {
-        await editRequest(editId, {
+        const { error } = await editRequest(editId, {
           title,
           incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
           urgency,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
       } else {
         await createRequest({
           user_id: currentUser.id,

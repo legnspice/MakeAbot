@@ -55,15 +55,15 @@ export async function removeRequestBid(id: string) {
 
 export async function withdrawRequestBid(bidId: string) {
   return await handleAction(async () => {
-    await requireAuth();
-    return requestsService.withdrawRequestBid(bidId);
+    const user = await requireAuth();
+    return requestsService.withdrawRequestBid(bidId, user.id);
   });
 }
 
 export async function reopenRequestBid(bidId: string) {
   return await handleAction(async () => {
-    await requireAuth();
-    return requestsService.reopenRequestBid(bidId);
+    const user = await requireAuth();
+    return requestsService.reopenRequestBid(bidId, user.id);
   });
 }
 

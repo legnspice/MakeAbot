@@ -50,7 +50,7 @@ export default function CreateOffer() {
     setIsLoadingEdit(true);
     getOffers({ id: editId }).then((result) => {
       const post = result.data?.[0];
-      if (post) {
+      if (post && post.status === "Active") {
         setForm({
           title: post.title ?? "",
           description: post.description ?? "",
@@ -130,12 +130,16 @@ export default function CreateOffer() {
     setIsPosting(true);
     try {
       if (editId) {
-        await editOffer(editId, {
+        const { error } = await editOffer(editId, {
           title,
           incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
       } else {
         await createOffer({
           user_id: currentUser.id,

@@ -5,6 +5,8 @@ import {
   removeRequestBid,
   editRequest,
   getRequests,
+  withdrawRequestBid,
+  reopenRequestBid,
 } from "@/lib/actions/requests";
 import * as requestsService from "@/lib/services/requests.service";
 import * as authModule from "@/lib/actions/auth";
@@ -105,6 +107,28 @@ describe("requests actions", () => {
         expect.any(Object),
         "user-123",
       );
+    });
+  });
+
+  describe("bid ownership scoping", () => {
+    it("withdrawRequestBid scopes to the authenticated bidder", async () => {
+      const mockWithdraw = jest
+        .spyOn(requestsService, "withdrawRequestBid")
+        .mockResolvedValue(undefined as never);
+
+      await withdrawRequestBid("bid-1");
+
+      expect(mockWithdraw).toHaveBeenCalledWith("bid-1", "user-123");
+    });
+
+    it("reopenRequestBid scopes to the authenticated bidder", async () => {
+      const mockReopen = jest
+        .spyOn(requestsService, "reopenRequestBid")
+        .mockResolvedValue(undefined as never);
+
+      await reopenRequestBid("bid-1");
+
+      expect(mockReopen).toHaveBeenCalledWith("bid-1", "user-123");
     });
   });
 });

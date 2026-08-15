@@ -42,27 +42,66 @@ export async function createRequest(data: InsertRequestSchema) {
 }
 
 export async function createRequestBid(data: InsertRequestBidSchema) {
-  return await requestsRepo.insertRequestBid(data);
+  // Look up the parent once, up front, before the insert. This is the
+  // terminal-state guard: a genuine "not found" fails open (matches prior
+  // behavior — nothing to block against), but a thrown read fails CLOSED —
+  // we cannot positively confirm the request is still Active, so we must not
+  // let the bid through. This is a distinct fetch from the best-effort
+  // staleness touch below, which stays swallowed no matter what.
+  let req: Awaited<ReturnType<typeof requestsRepo.findRequestById>> | undefined;
+  try {
+    req = await requestsRepo.findRequestById(data.request_id);
+  } catch {
+    throw new AppError("Could not verify this request is still open", 503);
+  }
+
+  if (req && req.status !== "Active") {
+    throw new AppError("This request is no longer accepting bids", 409);
+  }
+
+  const bid = await requestsRepo.insertRequestBid(data);
+
+  // A new bid is activity: reset the parent's staleness clock so
+  // expireStaleRequestBids does not close live bids on a busy old request.
+  // Best-effort — a failed touch must never fail the bid.
+  try {
+    if (req?.user_id)
+      await requestsRepo.updateRequest(
+        data.request_id,
+        { updated_at: new Date() },
+        req.user_id,
+      );
+  } catch {
+    // Staleness bookkeeping only.
+  }
+
+  return bid;
 }
 
-export async function completeRequest(requestId: string, winningBidId: string) {
+export async function completeRequest(
+  requestId: string,
+  winningBidId: string,
+  callerId: string,
+) {
   const req = await requestsRepo.findRequestById(requestId);
   if (!req) throw new AppError("Request not found", 404);
+  if (req.user_id !== callerId)
+    throw new AppError("Only the requester can mark this done", 403);
+  if (req.status !== "Active")
+    throw new AppError("This request is already completed", 409);
 
-  await requestsRepo.updateRequestBidStatus(winningBidId, "Completed");
-  await requestsRepo.bulkCloseRequestBids(requestId, winningBidId);
-  await requestsRepo.updateRequest(
+  const winnerBid = await requestsRepo.findRequestBidById(winningBidId);
+  if (!winnerBid || winnerBid.request_id !== requestId)
+    throw new AppError("That bid is not on this request", 400);
+
+  const { closedLosers } = await requestsRepo.completeRequestAtomic(
     requestId,
-    { status: "Completed", completed_at: new Date() },
-    req.user_id!,
+    winningBidId,
+    callerId,
   );
+
   // Return winner/loser bids for notification dispatch by caller
-  const allBids = await requestsRepo.findRequestBids({ request_id: requestId });
-  const loserBids = allBids.filter(
-    (b) => b.id !== winningBidId && b.status === "Closed",
-  );
-  const winnerBid = allBids.find((b) => b.id === winningBidId);
-  return { winnerBid, loserBids, request: req };
+  return { winnerBid, loserBids: closedLosers, request: req };
 }
 
 export async function expireStaleRequestBids() {
@@ -77,12 +116,29 @@ export async function removeRequestBid(id: string, userId: string) {
   return await requestsRepo.deleteRequestBid(id, userId);
 }
 
-export async function withdrawRequestBid(bidId: string) {
-  return await requestsRepo.updateRequestBidStatus(bidId, "Closed");
+export async function withdrawRequestBid(bidId: string, bidderId: string) {
+  const withdrawn = await requestsRepo.withdrawRequestBidForBidder(
+    bidId,
+    bidderId,
+  );
+  if (!withdrawn)
+    throw new AppError("This inquiry can no longer be withdrawn", 409);
 }
 
-export async function reopenRequestBid(bidId: string) {
-  return await requestsRepo.updateRequestBidStatus(bidId, "Pending");
+export async function reopenRequestBid(bidId: string, bidderId: string) {
+  const bid = await requestsRepo.findRequestBidById(bidId);
+  if (bid) {
+    const req = await requestsRepo.findRequestById(bid.request_id);
+    if (!req) throw new AppError("Request not found", 404);
+    if (req.status !== "Active") {
+      throw new AppError("This listing is no longer open", 409);
+    }
+  }
+  return await requestsRepo.updateRequestBidStatusForBidder(
+    bidId,
+    bidderId,
+    "Pending",
+  );
 }
 
 export async function editRequest(
@@ -90,5 +146,13 @@ export async function editRequest(
   data: UpdateRequestSchema,
   userId: string,
 ) {
+  const req = await requestsRepo.findRequestById(id);
+  if (!req) throw new AppError("Request not found", 404);
+  if (req.status !== "Active") {
+    throw new AppError(
+      "This request is closed and can no longer be edited",
+      409,
+    );
+  }
   return await requestsRepo.updateRequest(id, data, userId);
 }

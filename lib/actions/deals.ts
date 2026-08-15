@@ -1,6 +1,7 @@
 "use server";
 
 import { handleAction } from "@/lib/error/actions-handler";
+import { AppError } from "@/lib/error/app-error";
 import { requireAuth } from "@/lib/actions/auth";
 import * as offersService from "@/lib/services/offers.service";
 import * as requestsService from "@/lib/services/requests.service";
@@ -51,31 +52,27 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
 
 export async function completeRequest(requestId: string, winningBidId: string) {
   return await handleAction(async () => {
-    await requireAuth();
+    const user = await requireAuth();
 
     const { winnerBid, loserBids, request } =
-      await requestsService.completeRequest(requestId, winningBidId);
+      await requestsService.completeRequest(requestId, winningBidId, user.id);
 
-    // Fetch requester display name
-    const requesterUsers = await usersService.getUsers({
-      id: request.user_id ?? undefined,
-    });
-    const requesterName = requesterUsers[0]?.name ?? "Someone";
-
-    // Deferred — must not hold up the action response, especially the loser
-    // fan-out which scales with bid count.
+    // Deferred — must not hold up the action response. The requester's display
+    // name is read here rather than above because it feeds the push bodies
+    // only, and the loser fan-out scales with bid count.
     runAfterResponse(async () => {
+      const requesterUsers = await usersService.getUsers({
+        id: request.user_id ?? undefined,
+      });
+      const requesterName = requesterUsers[0]?.name ?? "Someone";
+
       await Promise.allSettled([
-        ...(winnerBid
-          ? [
-              sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
-                title: "Your offer was accepted!",
-                body: `${requesterName} marked your bid on ${request.title} as done.`,
-                url: `/chat?bidId=${winningBidId}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
-                contextId: null,
-              }),
-            ]
-          : []),
+        sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
+          title: "Your offer was accepted!",
+          body: `${requesterName} marked your bid on ${request.title} as done.`,
+          url: `/chat?bidId=${winningBidId}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
+          contextId: null,
+        }),
         ...loserBids.map((loser) =>
           sendPushToUser(loser.bidder_id, "request_completed_loser", {
             title: "Request fulfilled",
@@ -93,33 +90,38 @@ export async function completeRequest(requestId: string, winningBidId: string) {
 
 export async function completeOfferBid(bidId: string) {
   return await handleAction(async () => {
-    await requireAuth();
+    const user = await requireAuth();
 
     const bids = await offersService.getOfferBids({ id: bidId });
     const bid = bids[0];
-    if (!bid) throw new Error("Offer bid not found");
+    if (!bid) throw new AppError("Offer bid not found", 404);
 
     const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
-    if (!offer) throw new Error("Offer not found");
+    if (!offer) throw new AppError("Offer not found", 404);
 
-    // Fetch offerer display name
-    const offererUsers = await usersService.getUsers({
-      id: offer.user_id ?? undefined,
-    });
-    const offererName = offererUsers[0]?.name ?? "Someone";
+    const completed = await offersService.completeOfferBid(bidId, user.id);
+    if (!completed) {
+      if (offer.user_id !== user.id)
+        throw new AppError("Only the offer owner can mark this done", 403);
+      throw new AppError("This deal is already marked done", 409);
+    }
 
-    await offersService.completeOfferBid(bidId);
+    // Deferred — the name lookup feeds the push body only, so it must not sit
+    // on the critical path.
+    runAfterResponse(async () => {
+      const offererUsers = await usersService.getUsers({
+        id: offer.user_id ?? undefined,
+      });
+      const offererName = offererUsers[0]?.name ?? "Someone";
 
-    // Deferred — the caller shouldn't wait on push delivery
-    runAfterResponse(() =>
-      sendPushToUser(bid.bidder_id, "offer_bid_completed", {
+      await sendPushToUser(bid.bidder_id, "offer_bid_completed", {
         title: "Deal confirmed!",
         body: `${offererName} marked your deal on ${offer.title} as done.`,
         url: `/chat?bidId=${bidId}&kind=offer&otherId=${offer.user_id}&title=${encodeURIComponent(offer.title)}`,
         contextId: null,
-      }),
-    );
+      });
+    });
 
     return { success: true };
   });

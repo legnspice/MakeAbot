@@ -374,7 +374,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await closeOffer(offerId);
         if (error) {
-          alert("Failed to close offer. Please try again.");
+          alert(error);
           return;
         }
         setOffers((prev) =>
@@ -390,7 +390,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await withdrawOfferBid(bidId);
         if (error) {
-          alert("Failed to withdraw. Please try again.");
+          alert(error);
           return;
         }
         setOffers((prev) =>
@@ -415,7 +415,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await withdrawRequestBid(bidId);
         if (error) {
-          alert("Failed to withdraw. Please try again.");
+          alert(error);
           return;
         }
         setRequests((prev) =>
@@ -440,7 +440,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await removeRequest(requestId);
         if (error) {
-          alert("Failed to delete item. Please try again.");
+          alert(error);
           return;
         }
         setRequests((prev) => prev.filter((r) => r.id !== requestId));
@@ -497,7 +497,7 @@ export default function TrackerPage() {
         }}
         onClick={onClickHandler}
         onEdit={
-          !isHistory && card.isOwned
+          card.status === "Active" && card.isOwned
             ? () => router.push(`/create-offer?edit=${card.id}`)
             : undefined
         }
@@ -563,7 +563,7 @@ export default function TrackerPage() {
         }}
         onClick={onClickHandler}
         onEdit={
-          !isHistory && card.isOwned
+          card.status === "Active" && card.isOwned
             ? () => router.push(`/create-request?edit=${card.id}`)
             : undefined
         }
@@ -717,7 +717,7 @@ export default function TrackerPage() {
                             bidId,
                           );
                           if (error) {
-                            alert("Failed. Please try again.");
+                            alert(error);
                             return;
                           }
                           setModalData(null);
@@ -737,7 +737,7 @@ export default function TrackerPage() {
                         onConfirm: async () => {
                           const { error } = await completeOfferBid(bidId);
                           if (error) {
-                            alert("Failed. Please try again.");
+                            alert(error);
                             return;
                           }
                           setModalData((prev) =>

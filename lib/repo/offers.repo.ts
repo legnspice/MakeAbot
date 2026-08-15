@@ -1,4 +1,16 @@
-import { and, eq, lte, ilike, gte, desc, lt, ne, inArray } from "drizzle-orm";
+import {
+  and,
+  eq,
+  lte,
+  ilike,
+  gte,
+  desc,
+  lt,
+  ne,
+  inArray,
+  exists,
+  sql,
+} from "drizzle-orm";
 import { db } from "../db";
 import { offers, offer_bids } from "../db/schema";
 import { getDayRange } from "./helper";
@@ -107,7 +119,13 @@ export async function updateOffer(
     .where(and(eq(offers.id, id), eq(offers.user_id, userId)));
 }
 
-/** Set a single offer_bid status */
+/**
+ * Set a single offer_bid status, unscoped to any owner or bidder.
+ *
+ * No production caller — this exists only so the service-layer tests can
+ * assert `expect(offersRepo.updateOfferBidStatus).not.toHaveBeenCalled()`,
+ * guarding against a regression back to an unscoped call. Do not delete it.
+ */
 export async function updateOfferBidStatus(
   bidId: string,
   status: "Pending" | "Completed" | "Closed",
@@ -118,22 +136,107 @@ export async function updateOfferBidStatus(
     .where(eq(offer_bids.id, bidId));
 }
 
-/** Set a single offer_bid to Completed */
-export async function completeOfferBid(bidId: string) {
+/**
+ * Set an offer_bid's status, scoped to its own bidder.
+ *
+ * The bidder_id predicate is the authorization check: a caller who does not own
+ * the bid matches zero rows and transitions nothing.
+ */
+export async function updateOfferBidStatusForBidder(
+  bidId: string,
+  bidderId: string,
+  status: "Pending" | "Completed" | "Closed",
+) {
   return await db
     .update(offer_bids)
-    .set({ status: "Completed" })
-    .where(eq(offer_bids.id, bidId));
+    .set({ status })
+    .where(and(eq(offer_bids.id, bidId), eq(offer_bids.bidder_id, bidderId)));
 }
 
-/** Set all Pending bids on an offer to Closed */
-export async function closeOfferBids(offerId: string) {
-  return await db
+/**
+ * Withdraw an offer bid: transitions Pending -> Closed, scoped to its own
+ * bidder. Returns false when the caller does not own the bid OR the bid is
+ * not Pending — check and write in one statement, so a Completed/Closed bid
+ * can never be withdrawn after the fact.
+ */
+export async function withdrawOfferBidForBidder(
+  bidId: string,
+  bidderId: string,
+): Promise<boolean> {
+  const rows = await db
     .update(offer_bids)
     .set({ status: "Closed" })
     .where(
-      and(eq(offer_bids.offer_id, offerId), eq(offer_bids.status, "Pending")),
-    );
+      and(
+        eq(offer_bids.id, bidId),
+        eq(offer_bids.bidder_id, bidderId),
+        eq(offer_bids.status, "Pending"),
+      ),
+    )
+    .returning({ id: offer_bids.id });
+
+  return rows.length > 0;
+}
+
+/**
+ * Mark an offer bid Completed, scoped to the parent offer's owner and to the
+ * bid still being Pending. Returns false when the caller does not own the
+ * offer OR the bid has already been completed — check and write in one
+ * statement, so concurrent callers cannot both succeed.
+ */
+export async function completeOfferBidForOwner(
+  bidId: string,
+  ownerId: string,
+): Promise<boolean> {
+  const rows = await db
+    .update(offer_bids)
+    .set({ status: "Completed" })
+    .where(
+      and(
+        eq(offer_bids.id, bidId),
+        eq(offer_bids.status, "Pending"),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(offers)
+            .where(
+              and(eq(offers.id, offer_bids.offer_id), eq(offers.user_id, ownerId)),
+            ),
+        ),
+      ),
+    )
+    .returning({ id: offer_bids.id });
+
+  return rows.length > 0;
+}
+
+/**
+ * Close an offer and all its Pending bids, in one transaction, scoped to the
+ * owner. Returns false when the caller does not own the offer, in which case
+ * nothing is written — the bid close must never run on an unowned offer.
+ */
+export async function closeOfferAtomic(
+  offerId: string,
+  ownerId: string,
+): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    const owned = await tx
+      .update(offers)
+      .set({ status: "Closed" })
+      .where(and(eq(offers.id, offerId), eq(offers.user_id, ownerId)))
+      .returning({ id: offers.id });
+
+    if (owned.length === 0) return false;
+
+    await tx
+      .update(offer_bids)
+      .set({ status: "Closed" })
+      .where(
+        and(eq(offer_bids.offer_id, offerId), eq(offer_bids.status, "Pending")),
+      );
+
+    return true;
+  });
 }
 
 /** Expire Pending offer_bids where parent offer updated_at < 14 days ago */

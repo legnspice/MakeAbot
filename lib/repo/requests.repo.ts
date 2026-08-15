@@ -8,7 +8,6 @@ import {
   FindRequestBidsSchema,
   InsertRequestBidSchema,
   InsertRequestSchema,
-  UpdateRequestSchema,
 } from "@/lib/validation/requests";
 
 export async function findRequestById(id: string) {
@@ -109,7 +108,7 @@ export async function deleteRequestBid(id: string, userId: string) {
 
 export async function updateRequest(
   id: string,
-  data: UpdateRequestSchema,
+  data: Partial<typeof requests.$inferInsert>,
   userId: string,
 ) {
   return await db
@@ -118,6 +117,13 @@ export async function updateRequest(
     .where(and(eq(requests.id, id), eq(requests.user_id, userId)));
 }
 
+/**
+ * Set a single request_bid status, unscoped to any owner or bidder.
+ *
+ * No production caller — this exists only so the service-layer tests can
+ * assert `expect(requestsRepo.updateRequestBidStatus).not.toHaveBeenCalled()`,
+ * guarding against a regression back to an unscoped call. Do not delete it.
+ */
 export async function updateRequestBidStatus(
   bidId: string,
   status: "Pending" | "Completed" | "Closed",
@@ -128,21 +134,91 @@ export async function updateRequestBidStatus(
     .where(eq(request_bids.id, bidId));
 }
 
-/** Set all Pending bids on a request to Closed, except the winner */
-export async function bulkCloseRequestBids(
-  requestId: string,
-  exceptBidId: string,
+/**
+ * Set a request_bid's status, scoped to its own bidder.
+ *
+ * The bidder_id predicate is the authorization check: a caller who does not own
+ * the bid matches zero rows and transitions nothing.
+ */
+export async function updateRequestBidStatusForBidder(
+  bidId: string,
+  bidderId: string,
+  status: "Pending" | "Completed" | "Closed",
 ) {
   return await db
+    .update(request_bids)
+    .set({ status })
+    .where(and(eq(request_bids.id, bidId), eq(request_bids.bidder_id, bidderId)));
+}
+
+/**
+ * Withdraw a request bid: transitions Pending -> Closed, scoped to its own
+ * bidder. Returns false when the caller does not own the bid OR the bid is
+ * not Pending — check and write in one statement, so a Completed/Closed bid
+ * can never be withdrawn after the fact.
+ */
+export async function withdrawRequestBidForBidder(
+  bidId: string,
+  bidderId: string,
+): Promise<boolean> {
+  const rows = await db
     .update(request_bids)
     .set({ status: "Closed" })
     .where(
       and(
-        eq(request_bids.request_id, requestId),
+        eq(request_bids.id, bidId),
+        eq(request_bids.bidder_id, bidderId),
         eq(request_bids.status, "Pending"),
-        ne(request_bids.id, exceptBidId),
       ),
-    );
+    )
+    .returning({ id: request_bids.id });
+
+  return rows.length > 0;
+}
+
+/**
+ * Complete a request in one transaction: close every other still-Pending bid,
+ * mark the winner, then flip the request itself.
+ *
+ * The request UPDATE is scoped to `ownerId`, so a caller who does not own the
+ * row transitions nothing. Returns only the bids this call moved out of
+ * Pending — bids the bidder withdrew earlier were already Closed and are
+ * correctly absent, which is what makes the loser notification set accurate and
+ * a repeat call a no-op.
+ */
+export async function completeRequestAtomic(
+  requestId: string,
+  winningBidId: string,
+  ownerId: string,
+): Promise<{ closedLosers: { id: string; bidder_id: string }[] }> {
+  return await db.transaction(async (tx) => {
+    const owned = await tx
+      .update(requests)
+      .set({ status: "Completed", completed_at: new Date() })
+      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)))
+      .returning({ id: requests.id });
+
+    if (owned.length === 0) return { closedLosers: [] };
+
+    const closedLosers = await tx
+      .update(request_bids)
+      .set({ status: "Closed" })
+      .where(
+        and(
+          eq(request_bids.request_id, requestId),
+          eq(request_bids.status, "Pending"),
+          ne(request_bids.id, winningBidId),
+        ),
+      )
+      .returning({ id: request_bids.id, bidder_id: request_bids.bidder_id });
+
+    await tx
+      .update(request_bids)
+      .set({ status: "Completed" })
+      .where(eq(request_bids.id, winningBidId));
+
+    return { closedLosers };
+  });
 }
 
 /** Find all Pending request_bids whose parent request updated_at < 14 days ago */

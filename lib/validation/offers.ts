@@ -57,7 +57,6 @@ export const updateOfferSchema = offerSchema
     incentive: true,
     title: true,
     description: true,
-    status: true,
     imgUrl: true,
     type: true,
   })

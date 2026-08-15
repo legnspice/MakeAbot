@@ -237,13 +237,21 @@ export default function Home() {
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
         if (existing.data[0].status === "Closed") {
-          await reopenOfferBid(bidId);
+          const { error } = await reopenOfferBid(bidId);
+          if (error) {
+            alert(error);
+            return;
+          }
         }
       } else {
-        await createOfferBid({
+        const { error } = await createOfferBid({
           offer_id: item.itemDbId,
           bidder_id: currentUser.id,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
         const created = await getOfferBids({
           offer_id: item.itemDbId,
           bidder_id: currentUser.id,
@@ -258,13 +266,21 @@ export default function Home() {
       if (existing.data && existing.data.length > 0) {
         bidId = existing.data[0].id;
         if (existing.data[0].status === "Closed") {
-          await reopenRequestBid(bidId);
+          const { error } = await reopenRequestBid(bidId);
+          if (error) {
+            alert(error);
+            return;
+          }
         }
       } else {
-        await createRequestBid({
+        const { error } = await createRequestBid({
           request_id: item.itemDbId,
           bidder_id: currentUser.id,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
         const created = await getRequestBids({
           request_id: item.itemDbId,
           bidder_id: currentUser.id,
