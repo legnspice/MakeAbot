@@ -297,7 +297,7 @@ export default function CreateOffer() {
                   isLoadingEdit ||
                   !form.title.trim()
                 }
-                className="w-full rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black font-bold uppercase disabled:opacity-60"
+                className="w-full rounded-full bg-[#3761B0] hover:bg-[#2d52a0] text-white font-bold uppercase disabled:opacity-60"
               >
                 {isPosting
                   ? editId

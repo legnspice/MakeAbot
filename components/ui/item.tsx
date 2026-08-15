@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { TagFill, QuestionCircleFill, Clock } from "react-bootstrap-icons";
+import { TagFill, Clock } from "react-bootstrap-icons";
+import { Hand } from "lucide-react";
 import type { ItemDetailData } from "@/components/ui/item-detail-modal";
 
 export interface ItemRequestCardProps {
@@ -57,7 +58,7 @@ export default function ItemRequestCard({
   const placeholderClasses = isOffer
     ? "bg-amber-50 text-[#DEA440]"
     : "bg-blue-50 text-[#3761B0]";
-  const PlaceholderIcon = isOffer ? TagFill : QuestionCircleFill;
+  const PlaceholderIcon = isOffer ? TagFill : Hand;
 
   return (
     <div

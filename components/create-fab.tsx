@@ -90,7 +90,7 @@ export default function CreateFab() {
       <div className="fixed bottom-30 md:bottom-6 right-6 z-10">
         <Button
           size="icon"
-          className="w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black shadow-lg p-0 flex items-center justify-center gap-1.5"
+          className="w-14 h-14 md:w-32 md:h-14 rounded-full bg-[#D89A30] hover:bg-[#C4881C] text-white shadow-lg p-0 flex items-center justify-center gap-1.5"
           aria-label="Create item"
           onClick={() => setIsTypePickerOpen((v) => !v)}
         >
