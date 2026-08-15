@@ -61,7 +61,7 @@ function ChatPageInner() {
         const done =
           kind === "offer"
             ? statusResult.data.bidStatus === "Completed"
-            : statusResult.data.parentStatus === "Completed";
+            : statusResult.data.parentStatus !== "Active";
         if (done) setIsDone(true);
         if (statusResult.data.bidStatus === "Completed") setIsWinner(true);
       }
@@ -111,6 +111,10 @@ function ChatPageInner() {
       }
       setIsDone(true);
       setJustMarkedDone(true);
+      const refreshed = await getDealStatus(bidId, kind);
+      if (refreshed.data) {
+        setIsWinner(refreshed.data.bidStatus === "Completed");
+      }
     } finally {
       setIsMarkingDone(false);
     }
@@ -204,7 +208,7 @@ function ChatPageInner() {
           otherName={otherName}
           otherAvatarUrl={otherAvatarUrl ?? undefined}
           dealDone={isDone}
-          reviewEligible={isWinner || justMarkedDone}
+          reviewEligible={isWinner}
         />
       </div>
       <ReportModal
