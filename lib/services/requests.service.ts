@@ -78,30 +78,22 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
   return bid;
 }
 
-export async function completeRequest(
-  requestId: string,
-  winningBidId: string,
-  callerId: string,
-) {
+export async function closeRequest(requestId: string, callerId: string) {
   const req = await requestsRepo.findRequestById(requestId);
   if (!req) throw new AppError("Request not found", 404);
   if (req.user_id !== callerId)
-    throw new AppError("Only the requester can mark this done", 403);
+    throw new AppError("Only the requester can close this", 403);
   if (req.status !== "Active")
-    throw new AppError("This request is already completed", 409);
+    throw new AppError("This request is already closed", 409);
 
-  const winnerBid = await requestsRepo.findRequestBidById(winningBidId);
-  if (!winnerBid || winnerBid.request_id !== requestId)
-    throw new AppError("That bid is not on this request", 400);
-
-  const { closedLosers } = await requestsRepo.completeRequestAtomic(
+  const { completed, finalStatus } = await requestsRepo.closeRequestAtomic(
     requestId,
-    winningBidId,
     callerId,
   );
 
-  // Return winner/loser bids for notification dispatch by caller
-  return { winnerBid, loserBids: closedLosers, request: req };
+  // finalStatus is only null when the ownership predicate matched nothing,
+  // which the check above already ruled out.
+  return { completed, request: req, finalStatus: finalStatus ?? "Cancelled" };
 }
 
 export async function expireStaleRequestBids() {
