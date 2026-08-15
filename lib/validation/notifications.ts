@@ -6,9 +6,10 @@ export const NOTIFICATION_TYPES = [
   "new_request",
   "new_offer",
   "new_review",
-  "request_completed_winner",
-  "request_completed_loser",
+  "request_closed",
   "offer_bid_completed",
+  "offer_bid_dismissed",
+  "offer_closed",
   "bid_expired",
 ] as const;
 

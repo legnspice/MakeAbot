@@ -47,12 +47,14 @@ const COALESCED_TYPES = new Set<NotificationType>([
 /**
  * Informational events: they belong in the bell, but none of them is actionable
  * enough to justify an OS-level interrupt.
- *  - request_completed_loser: nothing to do but move on
+ *  - offer_bid_dismissed: the owner closed a thread that went nowhere
+ *  - offer_closed: the listing shut; nothing to do but move on
  *  - bid_expired: batched housekeeping about a thread that went cold 14 days ago
  *  - new_review: worth knowing, not worth buzzing
  */
 const IN_APP_ONLY_TYPES = new Set<NotificationType>([
-  "request_completed_loser",
+  "offer_bid_dismissed",
+  "offer_closed",
   "bid_expired",
   "new_review",
 ]);
