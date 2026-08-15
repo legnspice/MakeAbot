@@ -82,7 +82,18 @@ describe("deals actions", () => {
       expect(pushService.sendPushToUser).toHaveBeenCalledWith(
         "bidder-a",
         "request_closed",
-        expect.objectContaining({ title: "Request closed" }),
+        expect.objectContaining({
+          title: "Request closed",
+          url: expect.stringContaining("bidId=bid-a"),
+        }),
+      );
+      expect(pushService.sendPushToUser).toHaveBeenCalledWith(
+        "bidder-b",
+        "request_closed",
+        expect.objectContaining({
+          title: "Request closed",
+          url: expect.stringContaining("bidId=bid-b"),
+        }),
       );
     });
 
