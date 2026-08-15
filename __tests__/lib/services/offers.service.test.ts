@@ -228,3 +228,24 @@ describe("offersService terminal-state guards", () => {
     expect(offersRepo.updateOfferBidStatusForBidder).not.toHaveBeenCalled();
   });
 });
+
+describe("offersService.dismissOfferBid", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("dismisses through the owner-scoped repo fn", async () => {
+    (offersRepo.dismissOfferBidForOwner as jest.Mock).mockResolvedValue(true);
+
+    const ok = await offersService.dismissOfferBid("bid-1", "owner-1");
+
+    expect(ok).toBe(true);
+    expect(offersRepo.dismissOfferBidForOwner).toHaveBeenCalledWith("bid-1", "owner-1");
+  });
+
+  it("reports false when the caller does not own the offer", async () => {
+    (offersRepo.dismissOfferBidForOwner as jest.Mock).mockResolvedValue(false);
+
+    const ok = await offersService.dismissOfferBid("bid-1", "someone-else");
+
+    expect(ok).toBe(false);
+  });
+});

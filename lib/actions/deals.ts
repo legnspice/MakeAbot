@@ -124,6 +124,38 @@ export async function completeOfferBid(bidId: string) {
   });
 }
 
+export async function dismissOfferBid(bidId: string) {
+  return await handleAction(async () => {
+    const user = await requireAuth();
+
+    const bids = await offersService.getOfferBids({ id: bidId });
+    const bid = bids[0];
+    if (!bid) throw new AppError("Offer bid not found", 404);
+
+    const offersList = await offersService.getOffers({ id: bid.offer_id });
+    const offer = offersList[0];
+    if (!offer) throw new AppError("Offer not found", 404);
+
+    const dismissed = await offersService.dismissOfferBid(bidId, user.id);
+    if (!dismissed) {
+      if (offer.user_id !== user.id)
+        throw new AppError("Only the offer owner can dismiss this", 403);
+      throw new AppError("This inquiry is no longer open", 409);
+    }
+
+    runAfterResponse(() =>
+      sendPushToUser(bid.bidder_id, "offer_bid_dismissed", {
+        title: "Inquiry closed",
+        body: `Your inquiry on ${offer.title} was closed.`,
+        url: `/`,
+        contextId: null,
+      }),
+    );
+
+    return { success: true };
+  });
+}
+
 export async function closeOffer(offerId: string) {
   return await handleAction(async () => {
     const user = await requireAuth();

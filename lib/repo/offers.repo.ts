@@ -211,6 +211,37 @@ export async function completeOfferBidForOwner(
 }
 
 /**
+ * Close a pending offer bid without completing it, scoped to the parent
+ * offer's owner. Check and write in one statement. Returns false when the
+ * caller does not own the offer or the bid is no longer Pending.
+ */
+export async function dismissOfferBidForOwner(
+  bidId: string,
+  ownerId: string,
+): Promise<boolean> {
+  const rows = await db
+    .update(offer_bids)
+    .set({ status: "Closed" })
+    .where(
+      and(
+        eq(offer_bids.id, bidId),
+        eq(offer_bids.status, "Pending"),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(offers)
+            .where(
+              and(eq(offers.id, offer_bids.offer_id), eq(offers.user_id, ownerId)),
+            ),
+        ),
+      ),
+    )
+    .returning({ id: offer_bids.id });
+
+  return rows.length > 0;
+}
+
+/**
  * Close an offer and all its Pending bids, in one transaction, scoped to the
  * owner. Returns false when the caller does not own the offer, in which case
  * nothing is written — the bid close must never run on an unowned offer.

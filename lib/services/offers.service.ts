@@ -131,6 +131,10 @@ export async function completeOfferBid(bidId: string, ownerId: string) {
   return await offersRepo.completeOfferBidForOwner(bidId, ownerId);
 }
 
+export async function dismissOfferBid(bidId: string, ownerId: string) {
+  return await offersRepo.dismissOfferBidForOwner(bidId, ownerId);
+}
+
 export async function expireStaleOfferBids() {
   return await offersRepo.expireStaleOfferBids();
 }
