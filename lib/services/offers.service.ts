@@ -51,12 +51,12 @@ export async function removeOfferBid(id: string, userId: string) {
   return await offersRepo.deleteOfferBid(id, userId);
 }
 
-export async function withdrawOfferBid(bidId: string) {
-  return await offersRepo.updateOfferBidStatus(bidId, "Closed");
+export async function withdrawOfferBid(bidId: string, bidderId: string) {
+  return await offersRepo.updateOfferBidStatusForBidder(bidId, bidderId, "Closed");
 }
 
-export async function reopenOfferBid(bidId: string) {
-  return await offersRepo.updateOfferBidStatus(bidId, "Pending");
+export async function reopenOfferBid(bidId: string, bidderId: string) {
+  return await offersRepo.updateOfferBidStatusForBidder(bidId, bidderId, "Pending");
 }
 
 export async function editOffer(

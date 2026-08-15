@@ -77,12 +77,12 @@ export async function removeRequestBid(id: string, userId: string) {
   return await requestsRepo.deleteRequestBid(id, userId);
 }
 
-export async function withdrawRequestBid(bidId: string) {
-  return await requestsRepo.updateRequestBidStatus(bidId, "Closed");
+export async function withdrawRequestBid(bidId: string, bidderId: string) {
+  return await requestsRepo.updateRequestBidStatusForBidder(bidId, bidderId, "Closed");
 }
 
-export async function reopenRequestBid(bidId: string) {
-  return await requestsRepo.updateRequestBidStatus(bidId, "Pending");
+export async function reopenRequestBid(bidId: string, bidderId: string) {
+  return await requestsRepo.updateRequestBidStatusForBidder(bidId, bidderId, "Pending");
 }
 
 export async function editRequest(

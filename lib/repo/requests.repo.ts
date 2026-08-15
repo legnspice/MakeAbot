@@ -128,6 +128,23 @@ export async function updateRequestBidStatus(
     .where(eq(request_bids.id, bidId));
 }
 
+/**
+ * Set a request_bid's status, scoped to its own bidder.
+ *
+ * The bidder_id predicate is the authorization check: a caller who does not own
+ * the bid matches zero rows and transitions nothing.
+ */
+export async function updateRequestBidStatusForBidder(
+  bidId: string,
+  bidderId: string,
+  status: "Pending" | "Completed" | "Closed",
+) {
+  return await db
+    .update(request_bids)
+    .set({ status })
+    .where(and(eq(request_bids.id, bidId), eq(request_bids.bidder_id, bidderId)));
+}
+
 /** Set all Pending bids on a request to Closed, except the winner */
 export async function bulkCloseRequestBids(
   requestId: string,
