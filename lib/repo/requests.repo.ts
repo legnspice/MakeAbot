@@ -162,6 +162,48 @@ export async function bulkCloseRequestBids(
     );
 }
 
+/**
+ * Complete a request in one transaction: close every other still-Pending bid,
+ * mark the winner, then flip the request itself.
+ *
+ * The request UPDATE is scoped to `ownerId`, so a caller who does not own the
+ * row transitions nothing. Returns only the bids this call moved out of
+ * Pending — bids the bidder withdrew earlier were already Closed and are
+ * correctly absent, which is what makes the loser notification set accurate and
+ * a repeat call a no-op.
+ */
+export async function completeRequestAtomic(
+  requestId: string,
+  winningBidId: string,
+  ownerId: string,
+): Promise<{ closedLosers: { id: string; bidder_id: string }[] }> {
+  return await db.transaction(async (tx) => {
+    const closedLosers = await tx
+      .update(request_bids)
+      .set({ status: "Closed" })
+      .where(
+        and(
+          eq(request_bids.request_id, requestId),
+          eq(request_bids.status, "Pending"),
+          ne(request_bids.id, winningBidId),
+        ),
+      )
+      .returning({ id: request_bids.id, bidder_id: request_bids.bidder_id });
+
+    await tx
+      .update(request_bids)
+      .set({ status: "Completed" })
+      .where(eq(request_bids.id, winningBidId));
+
+    await tx
+      .update(requests)
+      .set({ status: "Completed", completed_at: new Date() })
+      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)));
+
+    return { closedLosers };
+  });
+}
+
 /** Find all Pending request_bids whose parent request updated_at < 14 days ago */
 export async function expireStaleRequestBids(): Promise<
   { bidId: string; bidderId: string; requestTitle: string }[]

@@ -45,24 +45,30 @@ export async function createRequestBid(data: InsertRequestBidSchema) {
   return await requestsRepo.insertRequestBid(data);
 }
 
-export async function completeRequest(requestId: string, winningBidId: string) {
+export async function completeRequest(
+  requestId: string,
+  winningBidId: string,
+  callerId: string,
+) {
   const req = await requestsRepo.findRequestById(requestId);
   if (!req) throw new AppError("Request not found", 404);
+  if (req.user_id !== callerId)
+    throw new AppError("Only the requester can mark this done", 403);
+  if (req.status === "Completed")
+    throw new AppError("This request is already completed", 409);
 
-  await requestsRepo.updateRequestBidStatus(winningBidId, "Completed");
-  await requestsRepo.bulkCloseRequestBids(requestId, winningBidId);
-  await requestsRepo.updateRequest(
+  const winnerBid = await requestsRepo.findRequestBidById(winningBidId);
+  if (!winnerBid || winnerBid.request_id !== requestId)
+    throw new AppError("That bid is not on this request", 400);
+
+  const { closedLosers } = await requestsRepo.completeRequestAtomic(
     requestId,
-    { status: "Completed", completed_at: new Date() },
-    req.user_id!,
+    winningBidId,
+    callerId,
   );
+
   // Return winner/loser bids for notification dispatch by caller
-  const allBids = await requestsRepo.findRequestBids({ request_id: requestId });
-  const loserBids = allBids.filter(
-    (b) => b.id !== winningBidId && b.status === "Closed",
-  );
-  const winnerBid = allBids.find((b) => b.id === winningBidId);
-  return { winnerBid, loserBids, request: req };
+  return { winnerBid, loserBids: closedLosers, request: req };
 }
 
 export async function expireStaleRequestBids() {

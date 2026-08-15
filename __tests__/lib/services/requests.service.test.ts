@@ -30,3 +30,88 @@ describe("requests.service bid scoping", () => {
     expect(requestsRepo.updateRequestBidStatus).not.toHaveBeenCalled();
   });
 });
+
+const OWNER = "user-owner";
+const activeRequest = {
+  id: "req-1",
+  user_id: OWNER,
+  title: "Need a pen",
+  status: "Active",
+};
+
+describe("requestsService.completeRequest", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue(activeRequest);
+    (requestsRepo.findRequestBidById as jest.Mock).mockResolvedValue({
+      id: "bid-win",
+      request_id: "req-1",
+      bidder_id: "bidder-win",
+      status: "Pending",
+    });
+    (requestsRepo.completeRequestAtomic as jest.Mock).mockResolvedValue({
+      closedLosers: [{ id: "bid-lose", bidder_id: "bidder-lose" }],
+    });
+  });
+
+  it("completes the request for its owner and returns the closed losers", async () => {
+    const result = await requestsService.completeRequest("req-1", "bid-win", OWNER);
+
+    expect(requestsRepo.completeRequestAtomic).toHaveBeenCalledWith(
+      "req-1",
+      "bid-win",
+      OWNER,
+    );
+    expect(result.winnerBid.bidder_id).toBe("bidder-win");
+    expect(result.loserBids).toEqual([{ id: "bid-lose", bidder_id: "bidder-lose" }]);
+    expect(result.request).toEqual(activeRequest);
+  });
+
+  it("rejects a caller who does not own the request", async () => {
+    await expect(
+      requestsService.completeRequest("req-1", "bid-win", "someone-else"),
+    ).rejects.toThrow("Only the requester can mark this done");
+
+    expect(requestsRepo.completeRequestAtomic).not.toHaveBeenCalled();
+  });
+
+  it("rejects a request that is already completed", async () => {
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue({
+      ...activeRequest,
+      status: "Completed",
+    });
+
+    await expect(
+      requestsService.completeRequest("req-1", "bid-win", OWNER),
+    ).rejects.toThrow("This request is already completed");
+
+    expect(requestsRepo.completeRequestAtomic).not.toHaveBeenCalled();
+  });
+
+  it("rejects a winning bid belonging to a different request", async () => {
+    (requestsRepo.findRequestBidById as jest.Mock).mockResolvedValue({
+      id: "bid-win",
+      request_id: "req-OTHER",
+      bidder_id: "bidder-win",
+      status: "Pending",
+    });
+
+    await expect(
+      requestsService.completeRequest("req-1", "bid-win", OWNER),
+    ).rejects.toThrow("That bid is not on this request");
+
+    expect(requestsRepo.completeRequestAtomic).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a previously withdrawn bidder as a loser", async () => {
+    // The atomic close only returns rows it actually transitioned from Pending,
+    // so a bid the bidder withdrew earlier is absent from closedLosers.
+    (requestsRepo.completeRequestAtomic as jest.Mock).mockResolvedValue({
+      closedLosers: [],
+    });
+
+    const result = await requestsService.completeRequest("req-1", "bid-win", OWNER);
+
+    expect(result.loserBids).toEqual([]);
+  });
+});
