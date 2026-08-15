@@ -33,6 +33,7 @@ function ChatPageInner() {
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
   const [justMarkedDone, setJustMarkedDone] = useState(false);
+  const [isMarkingDone, setIsMarkingDone] = useState(false);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   // Route guard
@@ -86,18 +87,25 @@ function ChatPageInner() {
     : null;
 
   const handleMarkDone = async () => {
+    if (isMarkingDone) return;
     if (!window.confirm("Mark this deal as done?")) return;
-    let error: string | null = null;
-    if (kind === "offer") {
-      const result = await completeOfferBid(bidId);
-      error = result.error ?? null;
-    } else {
-      const result = await completeRequest(parentId, bidId);
-      error = result.error ?? null;
+
+    setIsMarkingDone(true);
+    try {
+      const result =
+        kind === "offer"
+          ? await completeOfferBid(bidId)
+          : await completeRequest(parentId, bidId);
+
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
+      setIsDone(true);
+      setJustMarkedDone(true);
+    } finally {
+      setIsMarkingDone(false);
     }
-    if (error) { alert("Failed. Please try again."); return; }
-    setIsDone(true);
-    setJustMarkedDone(true);
   };
 
   if (!bidId || !otherId) return null;
@@ -154,9 +162,10 @@ function ChatPageInner() {
           <button
             type="button"
             onClick={handleMarkDone}
-            className="shrink-0 text-xs font-medium border border-gray-400 rounded px-3 py-1.5 text-gray-600 hover:border-gray-600 transition-colors"
+            disabled={isMarkingDone}
+            className="shrink-0 text-xs font-medium border border-gray-400 rounded px-3 py-1.5 text-gray-600 hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Mark done
+            {isMarkingDone ? "Marking…" : "Mark done"}
           </button>
         )}
         <button
