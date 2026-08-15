@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Worktrees hold full copies of the repo at other commits. Without these,
+    // lint reports stale code from other branches as errors in this one, and
+    // the run takes minutes instead of seconds.
+    ".worktrees/**",
+    ".claude/**",
   ]),
 ]);
 
