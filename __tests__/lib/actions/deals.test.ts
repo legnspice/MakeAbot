@@ -75,7 +75,7 @@ describe("deals actions", () => {
       const result = await completeRequest("req-1", "bid-1");
 
       expect(result.data).toEqual({ success: true });
-      expect(mockCompleteRequest).toHaveBeenCalledWith("req-1", "bid-1");
+      expect(mockCompleteRequest).toHaveBeenCalledWith("req-1", "bid-1", "user-owner");
       expect(pushService.sendPushToUser).toHaveBeenCalledWith(
         "bidder-win",
         "request_completed_winner",
@@ -86,6 +86,19 @@ describe("deals actions", () => {
         "request_completed_loser",
         expect.objectContaining({ title: "Request fulfilled" }),
       );
+    });
+
+    it("surfaces the service's authorization error", async () => {
+      const { AppError } = jest.requireActual("@/lib/error/app-error");
+      (requestsService.completeRequest as jest.Mock).mockRejectedValue(
+        new AppError("Only the requester can mark this done", 403),
+      );
+
+      const result = await completeRequest("req-1", "bid-1");
+
+      expect(result.data).toBeNull();
+      expect(result.error).toBe("Only the requester can mark this done");
+      expect(pushService.sendPushToUser).not.toHaveBeenCalled();
     });
   });
 

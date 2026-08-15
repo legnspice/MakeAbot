@@ -52,20 +52,20 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
 
 export async function completeRequest(requestId: string, winningBidId: string) {
   return await handleAction(async () => {
-    await requireAuth();
+    const user = await requireAuth();
 
     const { winnerBid, loserBids, request } =
-      await requestsService.completeRequest(requestId, winningBidId);
+      await requestsService.completeRequest(requestId, winningBidId, user.id);
 
-    // Fetch requester display name
-    const requesterUsers = await usersService.getUsers({
-      id: request.user_id ?? undefined,
-    });
-    const requesterName = requesterUsers[0]?.name ?? "Someone";
-
-    // Deferred — must not hold up the action response, especially the loser
-    // fan-out which scales with bid count.
+    // Deferred — must not hold up the action response. The requester's display
+    // name is read here rather than above because it feeds the push bodies
+    // only, and the loser fan-out scales with bid count.
     runAfterResponse(async () => {
+      const requesterUsers = await usersService.getUsers({
+        id: request.user_id ?? undefined,
+      });
+      const requesterName = requesterUsers[0]?.name ?? "Someone";
+
       await Promise.allSettled([
         ...(winnerBid
           ? [
