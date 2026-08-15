@@ -7,7 +7,8 @@ export const typeEnum = pgEnum("type", TYPE_VALUES);
 export const TypeEnum = z.enum(TYPE_VALUES);
 export type Type = z.infer<typeof TypeEnum>;
 
-// Urgency
+// Urgency — note the default is deliberately NOT the loudest tier; see
+// lib/broadcast-policy.ts. "Now" must be a choice, not an accident.
 export const URGENCY_VALUES = [
   "Now",
   "Within the hour",

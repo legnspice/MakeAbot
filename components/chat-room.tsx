@@ -11,6 +11,12 @@ import { getPublicUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import { getDealStatus } from "@/lib/actions/deals";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  PushPermissionModal,
+  PUSH_PROMPT_KEY,
+} from "@/components/push-permission-modal";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
+import { needsIosInstall } from "@/lib/pwa";
 
 interface ChatMessage {
   id: string;
@@ -44,6 +50,8 @@ export const ChatRoom = ({
   const [otherUserName, setOtherUserName] = useState("Unknown User");
   const [otherAvatarUrl, setOtherAvatarUrl] = useState<string | undefined>();
   const [chatDataLoading, setChatDataLoading] = useState(true);
+  const [showPushModal, setShowPushModal] = useState(false);
+  const { requestPermissionAndSubscribe } = usePushSubscription();
 
   const processedMessageIds = useRef<Set<string>>(new Set());
   const processedIncomingIds = useRef<Set<string>>(new Set());
@@ -136,6 +144,22 @@ export const ChatRoom = ({
           request_bid_id: request_bid_id || null,
           offer_bid_id: offer_bid_id || null,
         });
+      }
+
+      // Contextual push prompt: messaging is the main funnel, so this is where
+      // most users first have a reason to want notifications. Once only.
+      // On iOS Safari `Notification` is undefined until the app is installed —
+      // those users get the Add-to-Home-Screen variant of the modal instead.
+      const canPrompt =
+        typeof Notification !== "undefined"
+          ? Notification.permission === "default"
+          : needsIosInstall();
+      if (
+        newMessagesFromCurrentUser.length > 0 &&
+        canPrompt &&
+        !localStorage.getItem(PUSH_PROMPT_KEY)
+      ) {
+        setShowPushModal(true);
       }
     };
   }, [
@@ -238,6 +262,19 @@ export const ChatRoom = ({
         offerBidId={offer_bid_id}
         requestBidId={request_bid_id}
       />
+      {showPushModal && (
+        <PushPermissionModal
+          onEnable={async () => {
+            localStorage.setItem(PUSH_PROMPT_KEY, "true");
+            await requestPermissionAndSubscribe().catch(() => {});
+            setShowPushModal(false);
+          }}
+          onSkip={() => {
+            localStorage.setItem(PUSH_PROMPT_KEY, "true");
+            setShowPushModal(false);
+          }}
+        />
+      )}
     </>
   );
 };

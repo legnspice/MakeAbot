@@ -5,6 +5,20 @@ import { escapeHtml, siteBaseUrl, isEmailSafeBase } from "@/lib/email-format";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+/**
+ * Footer with a link to notification settings. Not a one-click unsubscribe —
+ * that needs a signed token route so it works without a session; tracked as a
+ * launch item.
+ */
+function emailFooter(text: string): string {
+  const base = siteBaseUrl();
+  const settingsUrl = `${base}/settings/notifications`;
+  return `<p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
+    ${text}<br />
+    <a href="${settingsUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe or manage your notification preferences</a>
+  </p>`;
+}
+
 function buildEmailHtml(
   title: string,
   body: string | undefined,
@@ -48,10 +62,7 @@ function buildEmailHtml(
           </tr>
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                You're receiving this because you have email notifications enabled.<br />
-                Manage your preferences in the MakeAbot app under Settings → Notifications.
-              </p>
+              ${emailFooter("You're receiving this because someone contacted you about your post.")}
             </td>
           </tr>
         </table>
@@ -153,10 +164,7 @@ export async function sendDailyDigest(): Promise<void> {
           </tr>
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                You're receiving this daily digest because you have unread conversations.<br />
-                Manage your preferences in the MakeAbot app under Settings → Notifications.
-              </p>
+              ${emailFooter("You're receiving this daily digest because you have unread conversations.")}
             </td>
           </tr>
         </table>

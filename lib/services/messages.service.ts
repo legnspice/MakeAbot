@@ -4,6 +4,7 @@ import * as offersRepo from "../repo/offers.repo";
 import * as requestsRepo from "../repo/requests.repo";
 import * as notificationsRepo from "../repo/notifications.repo";
 import { sendPushToUser } from "./push.service";
+import { runAfterResponse } from "../after-response";
 import {
   FindMessagesSchema,
   InsertMessageSchema,
@@ -25,8 +26,8 @@ export async function createMessage(data: InsertMessageSchema) {
     data.request_bid_id ? "request_bid_id" : "offer_bid_id"
   ) as "request_bid_id" | "offer_bid_id";
 
-  // fire-and-forget — failure must not throw
-  (async () => {
+  // Deferred to after the response — must not block or fail message creation.
+  runAfterResponse(async () => {
     try {
       // Fetch sender name and conversation title in parallel
       const [senderUsers, conversationTitle] = await Promise.all([
@@ -98,6 +99,14 @@ export async function createMessage(data: InsertMessageSchema) {
           url,
           contextId,
         });
+        // The thread has graduated, so the inquiry row is now a duplicate entry
+        // for the same conversation. Remove it once, on transition.
+        if (existingInquiry) {
+          await notificationsRepo.deleteInquiryNotification(
+            data.receiver_id,
+            nonNullContextId,
+          );
+        }
       } else if (existingInquiry) {
         // Phase 1 follow-up — upsert in-app only, no push, no email
         await notificationsRepo.upsertMessageNotification({
@@ -124,7 +133,7 @@ export async function createMessage(data: InsertMessageSchema) {
     } catch {
       // notification failure must never block message creation
     }
-  })();
+  });
 
   return result;
 }

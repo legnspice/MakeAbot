@@ -1,6 +1,9 @@
 import * as reviewsRepo from "../repo/reviews.repo";
 import * as offersRepo from "../repo/offers.repo";
 import * as requestsRepo from "../repo/requests.repo";
+import * as usersRepo from "../repo/users.repo";
+import { sendPushToUser } from "./push.service";
+import { runAfterResponse } from "../after-response";
 import { oneBidRef } from "../reviews";
 import { AppError } from "../error/app-error";
 import { FindReviewsSchema, InsertReviewSchema } from "../validation/reviews";
@@ -61,7 +64,28 @@ export async function createReview(data: InsertReviewSchema) {
     throw new AppError("You've already reviewed this deal.", 409);
   }
 
-  return await reviewsRepo.insertReview(data);
+  const review = await reviewsRepo.insertReview(data);
+
+  // Bell-only: reviews drive the trust model so the rated user must be told,
+  // but a landed review isn't urgent enough to buzz.
+  runAfterResponse(async () => {
+    try {
+      const [reviewer] = await usersRepo.findUsers({ id: data.creator_id });
+      const reviewerName = reviewer?.name ?? "Someone";
+      await sendPushToUser(data.rated_user_id, "new_review", {
+        title: `${reviewerName} left you a review`,
+        body: data.comment?.trim()
+          ? data.comment.slice(0, 80)
+          : `${reviewerName} rated your completed deal.`,
+        url: `/profile/${data.rated_user_id}`,
+        contextId: null,
+      });
+    } catch {
+      // notification failure must never block review creation
+    }
+  });
+
+  return review;
 }
 
 export async function removeReview(id: string, userId: string) {

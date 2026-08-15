@@ -1,4 +1,4 @@
-import { and, eq, lte, ilike, gte, desc, lt, inArray } from "drizzle-orm";
+import { and, eq, lte, ilike, gte, desc, lt, ne, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { offers, offer_bids } from "../db/schema";
 import { getDayRange } from "./helper";
@@ -12,6 +12,21 @@ import {
 
 export async function findOfferById(id: string) {
   return await db.query.offers.findFirst({ where: eq(offers.id, id) });
+}
+
+/** Most recent offer by this user, ignoring `excludeId` (the one just created). */
+export async function findLatestOfferTimestamp(
+  userId: string,
+  excludeId?: string,
+): Promise<Date | null> {
+  const row = await db.query.offers.findFirst({
+    where: excludeId
+      ? and(eq(offers.user_id, userId), ne(offers.id, excludeId))
+      : eq(offers.user_id, userId),
+    orderBy: [desc(offers.created_at)],
+    columns: { created_at: true },
+  });
+  return row?.created_at ?? null;
 }
 
 export async function findOfferBidById(id: string) {

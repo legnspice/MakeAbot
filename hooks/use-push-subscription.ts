@@ -10,12 +10,27 @@ export function usePushSubscription() {
 
   // Check actual browser subscription state on mount so the UI reflects reality
   // after a page reload (hook initializes isSubscribed=false by default).
+  // If permission was already granted but no worker is registered — a fresh
+  // install of the PWA, or a cleared registration — re-register so push keeps
+  // working without the user revisiting Settings.
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker
-      .getRegistration("/sw.js")
-      .then((reg) => reg?.pushManager.getSubscription())
-      .then((sub) => { if (sub) setIsSubscribed(true); });
+    if (typeof window === "undefined" || !("serviceWorker" in navigator))
+      return;
+    void (async () => {
+      let registration =
+        await navigator.serviceWorker.getRegistration("/sw.js");
+      if (
+        !registration &&
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted"
+      ) {
+        registration = await navigator.serviceWorker
+          .register("/sw.js")
+          .catch(() => undefined);
+      }
+      const sub = await registration?.pushManager.getSubscription();
+      if (sub) setIsSubscribed(true);
+    })();
   }, []);
 
   const requestPermissionAndSubscribe = useCallback(async () => {
