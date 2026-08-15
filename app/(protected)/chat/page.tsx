@@ -9,7 +9,7 @@ import Navbar from "@/components/ui/navbar";
 import { ChatRoom } from "@/components/chat-room";
 import { useAuth } from "@/contexts/auth-context";
 import { PageShellSkeleton } from "@/components/ui/page-shell-skeleton";
-import { getDealStatus, completeRequest, completeOfferBid } from "@/lib/actions/deals";
+import { getDealStatus, closeRequest, completeOfferBid } from "@/lib/actions/deals";
 import { getPublicUsers } from "@/lib/actions/users";
 import { getReviews } from "@/lib/actions/reviews";
 import ReportModal, { type ReportTarget } from "@/components/report-modal";
@@ -32,6 +32,7 @@ function ChatPageInner() {
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
+  const [isWinner, setIsWinner] = useState(false);
   const [justMarkedDone, setJustMarkedDone] = useState(false);
   const [isMarkingDone, setIsMarkingDone] = useState(false);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
@@ -62,6 +63,7 @@ function ChatPageInner() {
             ? statusResult.data.bidStatus === "Completed"
             : statusResult.data.parentStatus === "Completed";
         if (done) setIsDone(true);
+        if (statusResult.data.bidStatus === "Completed") setIsWinner(true);
       }
       const reviews = reviewsResult.data ?? [];
       if (reviews.length > 0) {
@@ -82,20 +84,26 @@ function ChatPageInner() {
     ? justMarkedDone
       ? "This deal has been marked done."
       : kind === "request"
-        ? "This request has been fulfilled."
+        ? isWinner
+          ? "This request was closed. You can leave a review."
+          : "This request was closed."
         : "This offer is closed."
     : null;
 
   const handleMarkDone = async () => {
     if (isMarkingDone) return;
-    if (!window.confirm("Mark this deal as done?")) return;
+    const prompt =
+      kind === "offer"
+        ? "Close this transaction?"
+        : "Close this request? All open inquiries will be closed, and everyone you've spoken with can leave a review.";
+    if (!window.confirm(prompt)) return;
 
     setIsMarkingDone(true);
     try {
       const result =
         kind === "offer"
           ? await completeOfferBid(bidId)
-          : await completeRequest(parentId, bidId);
+          : await closeRequest(parentId);
 
       if (result.error) {
         alert(result.error);
@@ -196,6 +204,7 @@ function ChatPageInner() {
           otherName={otherName}
           otherAvatarUrl={otherAvatarUrl ?? undefined}
           dealDone={isDone}
+          reviewEligible={isWinner || justMarkedDone}
         />
       </div>
       <ReportModal

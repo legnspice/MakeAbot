@@ -36,6 +36,7 @@ interface ChatRoomProps {
   otherName?: string;
   otherAvatarUrl?: string;
   dealDone?: boolean;
+  reviewEligible?: boolean;
 }
 export const ChatRoom = ({
   other_user_id,
@@ -45,6 +46,7 @@ export const ChatRoom = ({
   otherName,
   otherAvatarUrl: otherAvatarUrlProp,
   dealDone,
+  reviewEligible,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
@@ -200,18 +202,19 @@ export const ChatRoom = ({
   useEffect(() => {
     if (!bid_id) return;
     (async () => {
-      let isCompleted: boolean;
-      if (dealDone !== undefined) {
-        isCompleted = dealDone;
+      let eligible: boolean;
+      if (reviewEligible !== undefined) {
+        eligible = reviewEligible;
+      } else if (dealDone !== undefined) {
+        eligible = dealDone;
       } else {
         const statusResult = await getDealStatus(bid_id, dealKind);
-        isCompleted =
-          dealKind === "request"
-            ? statusResult.data?.parentStatus === "Completed"
-            : statusResult.data?.bidStatus === "Completed";
+        // Keyed off the bid, not the parent: on a closed request, only the
+        // threads that actually conversed reach Completed.
+        eligible = statusResult.data?.bidStatus === "Completed";
       }
 
-      if (isCompleted) {
+      if (eligible) {
         const reviewsResult = await getReviews({
           creator_id: publicUser.id,
           ...(request_bid_id
@@ -223,7 +226,7 @@ export const ChatRoom = ({
         if (!alreadyReviewed) setRatingOpen(true);
       }
     })();
-  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id, dealDone]);
+  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id, dealDone, reviewEligible]);
 
   const handleRatingClose = () => {
     setRatingOpen(false);
