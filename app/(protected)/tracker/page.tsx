@@ -27,8 +27,9 @@ import { sumUnreadForBids } from "@/lib/unread";
 import { markChatNotificationRead } from "@/lib/actions/notifications";
 import {
   closeOffer,
-  completeRequest,
+  closeRequest,
   completeOfferBid,
+  dismissOfferBid,
 } from "@/lib/actions/deals";
 
 function getPriceRank(price: string): number {
@@ -274,7 +275,7 @@ export default function TrackerPage() {
         );
   const activeRequests =
     activeTab === "posts"
-      ? tabRequests.filter((r) => r.status !== "Completed")
+      ? tabRequests.filter((r) => r.status === "Active")
       : tabRequests.filter(
           (r) =>
             r.status !== "Completed" &&
@@ -282,7 +283,7 @@ export default function TrackerPage() {
         );
   const historyRequests =
     activeTab === "posts"
-      ? tabRequests.filter((r) => r.status === "Completed")
+      ? tabRequests.filter((r) => r.status !== "Active")
       : tabRequests.filter(
           (r) =>
             r.status === "Completed" ||
@@ -434,6 +435,25 @@ export default function TrackerPage() {
     });
   };
 
+  const handleCloseRequest = (requestId: string) => {
+    setConfirmModal({
+      message:
+        "Close this request? All open inquiries will be closed, and everyone you've spoken with can leave a review.",
+      onConfirm: async () => {
+        const { error } = await closeRequest(requestId);
+        if (error) {
+          alert(error);
+          return;
+        }
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === requestId ? { ...r, status: "Completed" } : r,
+          ),
+        );
+      },
+    });
+  };
+
   const handleDeleteRequest = (requestId: string) => {
     setConfirmModal({
       message: "Are you sure you want to delete this item?",
@@ -571,7 +591,7 @@ export default function TrackerPage() {
           isHistory
             ? undefined
             : card.isOwned
-              ? () => handleDeleteRequest(card.id)
+              ? () => handleCloseRequest(card.id)
               : () => handleWithdrawRequestBid(card.rawBidId!)
         }
         deleteLabel={card.isOwned ? "Close" : "Withdraw"}
@@ -705,32 +725,8 @@ export default function TrackerPage() {
               itemId={modalData.id}
               kind={modalData.type}
               onMarkDone={
-                modalData.isHistory
+                modalData.isHistory || modalData.type === "request"
                   ? undefined
-                  : modalData.type === "request"
-                  ? (bidId) => {
-                      setConfirmModal({
-                        message: "Mark this deal as done?",
-                        onConfirm: async () => {
-                          const { error } = await completeRequest(
-                            modalData.id,
-                            bidId,
-                          );
-                          if (error) {
-                            alert(error);
-                            return;
-                          }
-                          setModalData(null);
-                          setRequests((prev) =>
-                            prev.map((r) =>
-                              r.id === modalData.id
-                                ? { ...r, status: "Completed" }
-                                : r,
-                            ),
-                          );
-                        },
-                      });
-                    }
                   : (bidId) => {
                       setConfirmModal({
                         message: "Mark this deal as done?",
@@ -748,6 +744,27 @@ export default function TrackerPage() {
                                     (p) => p.bidId !== bidId,
                                   ),
                                 }
+                              : null,
+                          );
+                        },
+                      });
+                    }
+              }
+              onDismiss={
+                modalData.isHistory || modalData.type !== "offer"
+                  ? undefined
+                  : (bidId) => {
+                      setConfirmModal({
+                        message: "Dismiss this inquiry? No review will be exchanged.",
+                        onConfirm: async () => {
+                          const { error } = await dismissOfferBid(bidId);
+                          if (error) {
+                            alert(error);
+                            return;
+                          }
+                          setModalData((prev) =>
+                            prev
+                              ? { ...prev, people: prev.people.filter((p) => p.bidId !== bidId) }
                               : null,
                           );
                         },
@@ -777,6 +794,7 @@ function ChatListModal({
   onSelect,
   onClose,
   onMarkDone,
+  onDismiss,
 }: {
   title: string;
   people: { id: string; name: string; bidId: string }[];
@@ -788,6 +806,7 @@ function ChatListModal({
   onSelect: (bidId: string, id: string) => void;
   onClose: () => void;
   onMarkDone?: (bidId: string) => void;
+  onDismiss?: (bidId: string) => void;
   itemId?: string;
   kind?: "offer" | "request";
 }) {
@@ -853,7 +872,19 @@ function ChatListModal({
                   }}
                   className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors ml-1"
                 >
-                  Mark done
+                  Close transaction
+                </button>
+              )}
+              {onDismiss && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDismiss(p.bidId);
+                  }}
+                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors ml-1 px-1 py-1"
+                >
+                  Dismiss
                 </button>
               )}
             </li>
