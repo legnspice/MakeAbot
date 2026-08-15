@@ -1,5 +1,4 @@
 import * as offersRepo from "../repo/offers.repo";
-import { offers } from "../db/schema";
 import { sendPushToAllUsers } from "./push.service";
 import { tierAfterPosterCooldown } from "./broadcast.service";
 import { offerBroadcastTier } from "../broadcast-policy";
@@ -81,15 +80,11 @@ export async function editOffer(
   data: UpdateOfferSchema,
   userId: string,
 ) {
-  const updatePayload: Partial<typeof offers.$inferInsert> = { ...data };
-  if (data.status === "Closed") {
-    updatePayload.imgUrl = null;
-  }
-  return await offersRepo.updateOffer(id, updatePayload, userId);
+  return await offersRepo.updateOffer(id, { ...data }, userId);
 }
 
 export async function closeOffer(id: string, userId: string) {
-  await offersRepo.updateOffer(id, { status: "Closed", imgUrl: null }, userId);
+  await offersRepo.updateOffer(id, { status: "Closed" }, userId);
   await offersRepo.closeOfferBids(id);
 }
 
