@@ -40,7 +40,24 @@ export async function createOffer(data: InsertOfferSchema) {
 }
 
 export async function createOfferBid(data: InsertOfferBidSchema) {
-  return await offersRepo.insertOfferBid(data);
+  const bid = await offersRepo.insertOfferBid(data);
+
+  // A new bid is activity: reset the parent's staleness clock so
+  // expireStaleOfferBids does not close live bids on a busy old offer.
+  // Best-effort — a failed touch must never fail the bid.
+  try {
+    const offer = await offersRepo.findOfferById(data.offer_id);
+    if (offer?.user_id)
+      await offersRepo.updateOffer(
+        data.offer_id,
+        { updated_at: new Date() },
+        offer.user_id,
+      );
+  } catch {
+    // Staleness bookkeeping only.
+  }
+
+  return bid;
 }
 
 export async function removeOffer(id: string, userId: string) {

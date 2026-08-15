@@ -8,7 +8,6 @@ import {
   FindRequestBidsSchema,
   InsertRequestBidSchema,
   InsertRequestSchema,
-  UpdateRequestSchema,
 } from "@/lib/validation/requests";
 
 export async function findRequestById(id: string) {
@@ -109,7 +108,7 @@ export async function deleteRequestBid(id: string, userId: string) {
 
 export async function updateRequest(
   id: string,
-  data: UpdateRequestSchema,
+  data: Partial<typeof requests.$inferInsert>,
   userId: string,
 ) {
   return await db

@@ -42,7 +42,24 @@ export async function createRequest(data: InsertRequestSchema) {
 }
 
 export async function createRequestBid(data: InsertRequestBidSchema) {
-  return await requestsRepo.insertRequestBid(data);
+  const bid = await requestsRepo.insertRequestBid(data);
+
+  // A new bid is activity: reset the parent's staleness clock so
+  // expireStaleRequestBids does not close live bids on a busy old request.
+  // Best-effort — a failed touch must never fail the bid.
+  try {
+    const req = await requestsRepo.findRequestById(data.request_id);
+    if (req?.user_id)
+      await requestsRepo.updateRequest(
+        data.request_id,
+        { updated_at: new Date() },
+        req.user_id,
+      );
+  } catch {
+    // Staleness bookkeeping only.
+  }
+
+  return bid;
 }
 
 export async function completeRequest(

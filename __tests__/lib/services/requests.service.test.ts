@@ -115,3 +115,40 @@ describe("requestsService.completeRequest", () => {
     expect(result.loserBids).toEqual([]);
   });
 });
+
+describe("requestsService.createRequestBid", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (requestsRepo.insertRequestBid as jest.Mock).mockResolvedValue({
+      id: "bid-new",
+      request_id: "req-1",
+      bidder_id: "bidder-new",
+    });
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue(activeRequest);
+  });
+
+  it("touches the parent request so the expiry clock resets", async () => {
+    await requestsService.createRequestBid({
+      request_id: "req-1",
+      bidder_id: "bidder-new",
+    });
+
+    expect(requestsRepo.updateRequest).toHaveBeenCalledWith(
+      "req-1",
+      { updated_at: expect.any(Date) },
+      OWNER,
+    );
+  });
+
+  it("still returns the bid when the parent lookup finds nothing", async () => {
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue(undefined);
+
+    const bid = await requestsService.createRequestBid({
+      request_id: "req-1",
+      bidder_id: "bidder-new",
+    });
+
+    expect(bid).toEqual({ id: "bid-new", request_id: "req-1", bidder_id: "bidder-new" });
+    expect(requestsRepo.updateRequest).not.toHaveBeenCalled();
+  });
+});
