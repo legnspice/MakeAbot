@@ -1,6 +1,18 @@
-import { and, eq, lte, ilike, gte, desc, ne, lt, inArray } from "drizzle-orm";
+import {
+  and,
+  eq,
+  lte,
+  ilike,
+  gte,
+  desc,
+  ne,
+  lt,
+  inArray,
+  exists,
+  sql,
+} from "drizzle-orm";
 import { db } from "../db";
-import { requests, request_bids } from "../db/schema";
+import { requests, request_bids, messages } from "../db/schema";
 import { getDayRange } from "./helper";
 import { hasEmptyBatch } from "../batch";
 import {
@@ -177,47 +189,78 @@ export async function withdrawRequestBidForBidder(
 }
 
 /**
- * Complete a request in one transaction: close every other still-Pending bid,
- * mark the winner, then flip the request itself.
+ * Close a request and resolve every bid on it, in one transaction, scoped to
+ * the owner.
  *
- * The request UPDATE is scoped to `ownerId`, so a caller who does not own the
- * row transitions nothing. Returns only the bids this call moved out of
- * Pending — bids the bidder withdrew earlier were already Closed and are
- * correctly absent, which is what makes the loser notification set accurate and
- * a repeat call a no-op.
+ * Pending bids that have at least one message become Completed — that is the
+ * notify-and-review set. Whatever remains Pending had no conversation and
+ * becomes Closed, which is why the second statement needs no message
+ * predicate: the first already claimed everything that qualified. Doing the
+ * message check in SQL keeps it inside the transaction, so a message arriving
+ * mid-close cannot produce an inconsistent result.
+ *
+ * Bids the bidder withdrew earlier are already Closed and are therefore
+ * untouched and unreported, which is what keeps the notification set honest.
+ *
+ * Returns finalStatus null and writes nothing when the caller does not own the
+ * request.
  */
-export async function completeRequestAtomic(
+export async function closeRequestAtomic(
   requestId: string,
-  winningBidId: string,
   ownerId: string,
-): Promise<{ closedLosers: { id: string; bidder_id: string }[] }> {
+): Promise<{
+  completed: { id: string; bidder_id: string }[];
+  silent: { id: string; bidder_id: string }[];
+  finalStatus: "Completed" | "Cancelled" | null;
+}> {
   return await db.transaction(async (tx) => {
     const owned = await tx
-      .update(requests)
-      .set({ status: "Completed", completed_at: new Date() })
-      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)))
-      .returning({ id: requests.id });
+      .select({ id: requests.id })
+      .from(requests)
+      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)));
 
-    if (owned.length === 0) return { closedLosers: [] };
+    if (owned.length === 0)
+      return { completed: [], silent: [], finalStatus: null };
 
-    const closedLosers = await tx
+    const completed = await tx
+      .update(request_bids)
+      .set({ status: "Completed" })
+      .where(
+        and(
+          eq(request_bids.request_id, requestId),
+          eq(request_bids.status, "Pending"),
+          exists(
+            tx
+              .select({ one: sql`1` })
+              .from(messages)
+              .where(eq(messages.request_bid_id, request_bids.id)),
+          ),
+        ),
+      )
+      .returning({ id: request_bids.id, bidder_id: request_bids.bidder_id });
+
+    const silent = await tx
       .update(request_bids)
       .set({ status: "Closed" })
       .where(
         and(
           eq(request_bids.request_id, requestId),
           eq(request_bids.status, "Pending"),
-          ne(request_bids.id, winningBidId),
         ),
       )
       .returning({ id: request_bids.id, bidder_id: request_bids.bidder_id });
 
-    await tx
-      .update(request_bids)
-      .set({ status: "Completed" })
-      .where(eq(request_bids.id, winningBidId));
+    const finalStatus = completed.length > 0 ? "Completed" : "Cancelled";
 
-    return { closedLosers };
+    await tx
+      .update(requests)
+      .set({
+        status: finalStatus,
+        ...(finalStatus === "Completed" ? { completed_at: new Date() } : {}),
+      })
+      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)));
+
+    return { completed, silent, finalStatus };
   });
 }
 
