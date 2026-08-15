@@ -98,6 +98,8 @@ export async function reopenOfferBid(bidId: string, bidderId: string) {
     if (offer.status !== "Active") {
       throw new AppError("This listing is no longer open", 409);
     }
+    if (bid.status === "Completed")
+      throw new AppError("A completed deal cannot be reopened", 409);
   }
   return await offersRepo.updateOfferBidStatusForBidder(
     bidId,

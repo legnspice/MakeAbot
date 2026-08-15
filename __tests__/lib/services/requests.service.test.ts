@@ -203,6 +203,32 @@ describe("requestsService terminal-state guards", () => {
   });
 });
 
+describe("requestsService.reopenRequestBid source state", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue({
+      id: "req-1",
+      user_id: "owner-1",
+      status: "Active",
+    });
+  });
+
+  it("refuses to reopen a completed bid", async () => {
+    (requestsRepo.findRequestBidById as jest.Mock).mockResolvedValue({
+      id: "bid-1",
+      request_id: "req-1",
+      bidder_id: "bidder-1",
+      status: "Completed",
+    });
+
+    await expect(
+      requestsService.reopenRequestBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("A completed deal cannot be reopened");
+
+    expect(requestsRepo.updateRequestBidStatusForBidder).not.toHaveBeenCalled();
+  });
+});
+
 describe("requestsService.closeRequest", () => {
   beforeEach(() => {
     jest.clearAllMocks();

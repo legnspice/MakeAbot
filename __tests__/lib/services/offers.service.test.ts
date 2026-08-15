@@ -256,6 +256,32 @@ describe("offersService.dismissOfferBid", () => {
   });
 });
 
+describe("offersService.reopenOfferBid source state", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      id: "offer-1",
+      user_id: "owner-1",
+      status: "Active",
+    });
+  });
+
+  it("refuses to reopen a completed bid", async () => {
+    (offersRepo.findOfferBidById as jest.Mock).mockResolvedValue({
+      id: "bid-1",
+      offer_id: "offer-1",
+      bidder_id: "bidder-1",
+      status: "Completed",
+    });
+
+    await expect(
+      offersService.reopenOfferBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("A completed deal cannot be reopened");
+
+    expect(offersRepo.updateOfferBidStatusForBidder).not.toHaveBeenCalled();
+  });
+});
+
 describe("offersService.closeOffer notification set", () => {
   beforeEach(() => jest.clearAllMocks());
 
