@@ -159,7 +159,26 @@ export async function dismissOfferBid(bidId: string) {
 export async function closeOffer(offerId: string) {
   return await handleAction(async () => {
     const user = await requireAuth();
-    await offersService.closeOffer(offerId, user.id);
+    const affected = await offersService.closeOffer(offerId, user.id);
+
+    runAfterResponse(async () => {
+      if (affected.length === 0) return;
+
+      const offersList = await offersService.getOffers({ id: offerId });
+      const title = offersList[0]?.title ?? "an offer";
+
+      await Promise.allSettled(
+        affected.map((bid) =>
+          sendPushToUser(bid.bidder_id, "offer_closed", {
+            title: "Offer closed",
+            body: `${title} is no longer available.`,
+            url: `/`,
+            contextId: null,
+          }),
+        ),
+      );
+    });
+
     return { success: true };
   });
 }

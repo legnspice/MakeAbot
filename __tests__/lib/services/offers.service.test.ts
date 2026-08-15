@@ -113,7 +113,10 @@ describe("offersService.closeOffer / completeOfferBid ownership", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("closeOffer throws when closeOfferAtomic returns false", async () => {
-    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue(false);
+    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
+      closed: false,
+      affected: [],
+    });
 
     await expect(
       offersService.closeOffer("offer-1", "not-the-owner"),
@@ -121,11 +124,14 @@ describe("offersService.closeOffer / completeOfferBid ownership", () => {
   });
 
   it("closeOffer does not throw when closeOfferAtomic returns true", async () => {
-    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue(true);
+    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
+      closed: true,
+      affected: [],
+    });
 
     await expect(
       offersService.closeOffer("offer-1", OWNER),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([]);
   });
 
   it("completeOfferBid forwards (bidId, ownerId) to the scoped repo fn", async () => {
@@ -247,5 +253,31 @@ describe("offersService.dismissOfferBid", () => {
     const ok = await offersService.dismissOfferBid("bid-1", "someone-else");
 
     expect(ok).toBe(false);
+  });
+});
+
+describe("offersService.closeOffer notification set", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("returns the bidders whose pending inquiries were closed", async () => {
+    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
+      closed: true,
+      affected: [{ id: "bid-1", bidder_id: "bidder-1" }],
+    });
+
+    const affected = await offersService.closeOffer("offer-1", "owner-1");
+
+    expect(affected).toEqual([{ id: "bid-1", bidder_id: "bidder-1" }]);
+  });
+
+  it("throws and returns nobody when the caller does not own the offer", async () => {
+    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
+      closed: false,
+      affected: [],
+    });
+
+    await expect(
+      offersService.closeOffer("offer-1", "someone-else"),
+    ).rejects.toThrow("Only the offer owner can close this");
   });
 });

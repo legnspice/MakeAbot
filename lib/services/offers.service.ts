@@ -123,8 +123,9 @@ export async function editOffer(
 }
 
 export async function closeOffer(id: string, userId: string) {
-  const closed = await offersRepo.closeOfferAtomic(id, userId);
+  const { closed, affected } = await offersRepo.closeOfferAtomic(id, userId);
   if (!closed) throw new AppError("Only the offer owner can close this", 403);
+  return affected;
 }
 
 export async function completeOfferBid(bidId: string, ownerId: string) {

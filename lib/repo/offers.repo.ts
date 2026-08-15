@@ -243,13 +243,15 @@ export async function dismissOfferBidForOwner(
 
 /**
  * Close an offer and all its Pending bids, in one transaction, scoped to the
- * owner. Returns false when the caller does not own the offer, in which case
- * nothing is written — the bid close must never run on an unowned offer.
+ * owner. Returns `{ closed: false, affected: [] }` when the caller does not
+ * own the offer, in which case nothing is written — the bid close must never
+ * run on an unowned offer. Otherwise returns the bids that were closed, so
+ * callers can notify their bidders.
  */
 export async function closeOfferAtomic(
   offerId: string,
   ownerId: string,
-): Promise<boolean> {
+): Promise<{ closed: boolean; affected: { id: string; bidder_id: string }[] }> {
   return await db.transaction(async (tx) => {
     const owned = await tx
       .update(offers)
@@ -257,16 +259,17 @@ export async function closeOfferAtomic(
       .where(and(eq(offers.id, offerId), eq(offers.user_id, ownerId)))
       .returning({ id: offers.id });
 
-    if (owned.length === 0) return false;
+    if (owned.length === 0) return { closed: false, affected: [] };
 
-    await tx
+    const affected = await tx
       .update(offer_bids)
       .set({ status: "Closed" })
       .where(
         and(eq(offer_bids.offer_id, offerId), eq(offer_bids.status, "Pending")),
-      );
+      )
+      .returning({ id: offer_bids.id, bidder_id: offer_bids.bidder_id });
 
-    return true;
+    return { closed: true, affected };
   });
 }
 
