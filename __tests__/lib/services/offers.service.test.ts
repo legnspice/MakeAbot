@@ -201,4 +201,30 @@ describe("offersService terminal-state guards", () => {
       offersService.withdrawOfferBid("bid-1", "bidder-1"),
     ).rejects.toThrow("This inquiry can no longer be withdrawn");
   });
+
+  it("editOffer throws a 404 (not the terminal-state message) when the offer does not exist", async () => {
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(
+      offersService.editOffer("offer-missing", { title: "New title" }, OWNER),
+    ).rejects.toThrow("Offer not found");
+
+    expect(offersRepo.updateOffer).not.toHaveBeenCalled();
+  });
+
+  it("reopenOfferBid throws a 404 (not the terminal-state message) when the parent offer does not exist", async () => {
+    (offersRepo.findOfferBidById as jest.Mock).mockResolvedValue({
+      id: "bid-1",
+      offer_id: "offer-missing",
+      bidder_id: "bidder-1",
+      status: "Closed",
+    });
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(
+      offersService.reopenOfferBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("Offer not found");
+
+    expect(offersRepo.updateOfferBidStatusForBidder).not.toHaveBeenCalled();
+  });
 });

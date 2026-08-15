@@ -118,6 +118,21 @@ describe("requestsService.completeRequest", () => {
 
     expect(result.loserBids).toEqual([]);
   });
+
+  it("rejects a request that is Cancelled (any non-Active status, not just Completed)", async () => {
+    // Guards on `status !== "Active"` rather than `status === "Completed"` so
+    // a future Cancelled status can't be flipped back to Completed.
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue({
+      ...activeRequest,
+      status: "Cancelled",
+    });
+
+    await expect(
+      requestsService.completeRequest("req-1", "bid-win", OWNER),
+    ).rejects.toThrow("This request is already completed");
+
+    expect(requestsRepo.completeRequestAtomic).not.toHaveBeenCalled();
+  });
 });
 
 describe("requestsService.createRequestBid", () => {
@@ -247,5 +262,35 @@ describe("requestsService terminal-state guards", () => {
     await expect(
       requestsService.withdrawRequestBid("bid-1", "bidder-1"),
     ).rejects.toThrow("This inquiry can no longer be withdrawn");
+  });
+
+  it("editRequest throws a 404 (not the terminal-state message) when the request does not exist", async () => {
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(
+      requestsService.editRequest(
+        "req-missing",
+        { title: "New title" },
+        OWNER,
+      ),
+    ).rejects.toThrow("Request not found");
+
+    expect(requestsRepo.updateRequest).not.toHaveBeenCalled();
+  });
+
+  it("reopenRequestBid throws a 404 (not the terminal-state message) when the parent request does not exist", async () => {
+    (requestsRepo.findRequestBidById as jest.Mock).mockResolvedValue({
+      id: "bid-1",
+      request_id: "req-missing",
+      bidder_id: "bidder-1",
+      status: "Closed",
+    });
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(
+      requestsService.reopenRequestBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("Request not found");
+
+    expect(requestsRepo.updateRequestBidStatusForBidder).not.toHaveBeenCalled();
   });
 });

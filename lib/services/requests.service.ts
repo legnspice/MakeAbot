@@ -87,7 +87,7 @@ export async function completeRequest(
   if (!req) throw new AppError("Request not found", 404);
   if (req.user_id !== callerId)
     throw new AppError("Only the requester can mark this done", 403);
-  if (req.status === "Completed")
+  if (req.status !== "Active")
     throw new AppError("This request is already completed", 409);
 
   const winnerBid = await requestsRepo.findRequestBidById(winningBidId);
@@ -129,11 +129,16 @@ export async function reopenRequestBid(bidId: string, bidderId: string) {
   const bid = await requestsRepo.findRequestBidById(bidId);
   if (bid) {
     const req = await requestsRepo.findRequestById(bid.request_id);
-    if (!req || req.status !== "Active") {
+    if (!req) throw new AppError("Request not found", 404);
+    if (req.status !== "Active") {
       throw new AppError("This listing is no longer open", 409);
     }
   }
-  return await requestsRepo.updateRequestBidStatusForBidder(bidId, bidderId, "Pending");
+  return await requestsRepo.updateRequestBidStatusForBidder(
+    bidId,
+    bidderId,
+    "Pending",
+  );
 }
 
 export async function editRequest(
@@ -142,7 +147,8 @@ export async function editRequest(
   userId: string,
 ) {
   const req = await requestsRepo.findRequestById(id);
-  if (!req || req.status !== "Active") {
+  if (!req) throw new AppError("Request not found", 404);
+  if (req.status !== "Active") {
     throw new AppError(
       "This request is closed and can no longer be edited",
       409,

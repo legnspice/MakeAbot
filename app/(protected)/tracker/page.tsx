@@ -374,7 +374,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await closeOffer(offerId);
         if (error) {
-          alert("Failed to close offer. Please try again.");
+          alert(error);
           return;
         }
         setOffers((prev) =>
@@ -440,7 +440,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await removeRequest(requestId);
         if (error) {
-          alert("Failed to delete item. Please try again.");
+          alert(error);
           return;
         }
         setRequests((prev) => prev.filter((r) => r.id !== requestId));
@@ -717,7 +717,7 @@ export default function TrackerPage() {
                             bidId,
                           );
                           if (error) {
-                            alert("Failed. Please try again.");
+                            alert(error);
                             return;
                           }
                           setModalData(null);
@@ -737,7 +737,7 @@ export default function TrackerPage() {
                         onConfirm: async () => {
                           const { error } = await completeOfferBid(bidId);
                           if (error) {
-                            alert("Failed. Please try again.");
+                            alert(error);
                             return;
                           }
                           setModalData((prev) =>

@@ -139,13 +139,17 @@ export default function CreateRequest() {
     setIsPosting(true);
     try {
       if (editId) {
-        await editRequest(editId, {
+        const { error } = await editRequest(editId, {
           title,
           incentive,
           description: form.description.trim() || null,
           imgUrl: uploadedImageUrl,
           urgency,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
       } else {
         await createRequest({
           user_id: currentUser.id,

@@ -94,11 +94,16 @@ export async function reopenOfferBid(bidId: string, bidderId: string) {
   const bid = await offersRepo.findOfferBidById(bidId);
   if (bid) {
     const offer = await offersRepo.findOfferById(bid.offer_id);
-    if (!offer || offer.status !== "Active") {
+    if (!offer) throw new AppError("Offer not found", 404);
+    if (offer.status !== "Active") {
       throw new AppError("This listing is no longer open", 409);
     }
   }
-  return await offersRepo.updateOfferBidStatusForBidder(bidId, bidderId, "Pending");
+  return await offersRepo.updateOfferBidStatusForBidder(
+    bidId,
+    bidderId,
+    "Pending",
+  );
 }
 
 export async function editOffer(
@@ -107,8 +112,12 @@ export async function editOffer(
   userId: string,
 ) {
   const offer = await offersRepo.findOfferById(id);
-  if (!offer || offer.status !== "Active") {
-    throw new AppError("This offer is closed and can no longer be edited", 409);
+  if (!offer) throw new AppError("Offer not found", 404);
+  if (offer.status !== "Active") {
+    throw new AppError(
+      "This offer is closed and can no longer be edited",
+      409,
+    );
   }
   return await offersRepo.updateOffer(id, { ...data }, userId);
 }

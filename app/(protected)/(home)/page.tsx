@@ -244,10 +244,14 @@ export default function Home() {
           }
         }
       } else {
-        await createOfferBid({
+        const { error } = await createOfferBid({
           offer_id: item.itemDbId,
           bidder_id: currentUser.id,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
         const created = await getOfferBids({
           offer_id: item.itemDbId,
           bidder_id: currentUser.id,
@@ -269,10 +273,14 @@ export default function Home() {
           }
         }
       } else {
-        await createRequestBid({
+        const { error } = await createRequestBid({
           request_id: item.itemDbId,
           bidder_id: currentUser.id,
         });
+        if (error) {
+          alert(error);
+          return;
+        }
         const created = await getRequestBids({
           request_id: item.itemDbId,
           bidder_id: currentUser.id,
