@@ -77,17 +77,22 @@ describe("offersService.createOfferBid", () => {
     expect(offersRepo.updateOffer).not.toHaveBeenCalled();
   });
 
-  it("still returns the bid when the parent touch throws", async () => {
+  it("fails closed (throws, does not insert) when the parent lookup rejects", async () => {
+    // A thrown read means we cannot confirm the offer is still Active, so
+    // the guard must not let the bid through — unlike a genuine "not found"
+    // (see the "finds nothing" case above), which fails open.
     (offersRepo.findOfferById as jest.Mock).mockRejectedValue(
       new Error("db unavailable"),
     );
 
-    const bid = await offersService.createOfferBid({
-      offer_id: "offer-1",
-      bidder_id: "bidder-new",
-    });
+    await expect(
+      offersService.createOfferBid({
+        offer_id: "offer-1",
+        bidder_id: "bidder-new",
+      }),
+    ).rejects.toThrow("Could not verify this offer is still open");
 
-    expect(bid).toEqual({ id: "bid-new", offer_id: "offer-1", bidder_id: "bidder-new" });
+    expect(offersRepo.insertOfferBid).not.toHaveBeenCalled();
   });
 
   it("still returns the bid when the parent update throws", async () => {

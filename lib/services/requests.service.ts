@@ -42,16 +42,17 @@ export async function createRequest(data: InsertRequestSchema) {
 }
 
 export async function createRequestBid(data: InsertRequestBidSchema) {
-  // Look up the parent once, up front. A lookup failure here must not block
-  // the bid (matches the best-effort staleness touch below), so a thrown
-  // read is swallowed and treated as "parent unknown" rather than rejecting
-  // the bid outright. The guard below only fires when we positively know the
-  // request is not Active — it must run before the insert.
+  // Look up the parent once, up front, before the insert. This is the
+  // terminal-state guard: a genuine "not found" fails open (matches prior
+  // behavior — nothing to block against), but a thrown read fails CLOSED —
+  // we cannot positively confirm the request is still Active, so we must not
+  // let the bid through. This is a distinct fetch from the best-effort
+  // staleness touch below, which stays swallowed no matter what.
   let req: Awaited<ReturnType<typeof requestsRepo.findRequestById>> | undefined;
   try {
     req = await requestsRepo.findRequestById(data.request_id);
   } catch {
-    // Lookup failure only — fall through, see staleness note below.
+    throw new AppError("Could not verify this request is still open", 503);
   }
 
   if (req && req.status !== "Active") {

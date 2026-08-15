@@ -390,7 +390,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await withdrawOfferBid(bidId);
         if (error) {
-          alert("Failed to withdraw. Please try again.");
+          alert(error);
           return;
         }
         setOffers((prev) =>
@@ -415,7 +415,7 @@ export default function TrackerPage() {
       onConfirm: async () => {
         const { error } = await withdrawRequestBid(bidId);
         if (error) {
-          alert("Failed to withdraw. Please try again.");
+          alert(error);
           return;
         }
         setRequests((prev) =>
