@@ -97,7 +97,13 @@ export const requests = pgTable("requests", {
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
-  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  // $onUpdate keeps the 14-day expiry cron honest: expireStaleRequestBids
+  // measures staleness against this column, so it must mean "last touched",
+  // not "created".
+  updated_at: timestamp("updated_at")
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
   completed_at: timestamp("completed_at"),
   urgency: urgencyEnum("urgency").notNull().default("Within the day"),
   type: typeEnum("type").notNull().default("Unknown"),
@@ -114,7 +120,13 @@ export const offers = pgTable("offers", {
   title: text("title").notNull(),
   description: text("description"),
   created_at: timestamp("created_at").notNull().defaultNow(),
-  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  // $onUpdate keeps the 14-day expiry cron honest: expireStaleOfferBids
+  // measures staleness against this column, so it must mean "last touched",
+  // not "created".
+  updated_at: timestamp("updated_at")
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
   type: typeEnum("type").notNull().default("Unknown"),
   status: offerStatusEnum("status").notNull().default("Active"),
 });
