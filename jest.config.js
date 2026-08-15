@@ -1,4 +1,3 @@
-const path = require("path");
 const nextJest = require("next/jest");
 
 const createJestConfig = nextJest({ dir: "./" });
@@ -7,9 +6,7 @@ const createJestConfig = nextJest({ dir: "./" });
 // started INSIDE a worktree has ".worktrees" in its own absolute path — so the
 // blanket ignore would skip every test it was asked to run. Only apply it when
 // we are not already inside one.
-const insideWorktree = __dirname
-  .split(path.sep)
-  .includes(".worktrees");
+const insideWorktree = __dirname.split(/[\\/]/).includes(".worktrees");
 
 /** @type {import('jest').Config} */
 const config = {
