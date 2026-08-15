@@ -291,4 +291,18 @@ describe("requestsService.closeRequest", () => {
 
     expect(requestsRepo.closeRequestAtomic).not.toHaveBeenCalled();
   });
+
+  it("rejects a losing racer whose atomic close matched no Active row, instead of reporting a fabricated Cancelled", async () => {
+    // The pre-check read Active, but a concurrent close already resolved the
+    // request by the time closeRequestAtomic ran its own Active-scoped write.
+    (requestsRepo.closeRequestAtomic as jest.Mock).mockResolvedValue({
+      completed: [],
+      silent: [],
+      finalStatus: null,
+    });
+
+    await expect(
+      requestsService.closeRequest("req-1", OWNER),
+    ).rejects.toThrow("This request is already closed");
+  });
 });

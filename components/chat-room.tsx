@@ -205,8 +205,6 @@ export const ChatRoom = ({
       let eligible: boolean;
       if (reviewEligible !== undefined) {
         eligible = reviewEligible;
-      } else if (dealDone !== undefined) {
-        eligible = dealDone;
       } else {
         const statusResult = await getDealStatus(bid_id, dealKind);
         // Keyed off the bid, not the parent: on a closed request, only the

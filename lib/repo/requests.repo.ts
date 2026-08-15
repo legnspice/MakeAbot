@@ -217,7 +217,13 @@ export async function closeRequestAtomic(
     const owned = await tx
       .select({ id: requests.id })
       .from(requests)
-      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)));
+      .where(
+        and(
+          eq(requests.id, requestId),
+          eq(requests.user_id, ownerId),
+          eq(requests.status, "Active"),
+        ),
+      );
 
     if (owned.length === 0)
       return { completed: [], silent: [], finalStatus: null };

@@ -55,12 +55,14 @@ function ChatPageInner() {
       if (statusResult.data) {
         setOwnerUserId(statusResult.data.ownerUserId);
         setParentId(statusResult.data.parentId);
-        // A deal is "done" for THIS chat when its bid is Completed (offers) or the
-        // parent request is Completed (requests) — offers never flip to "Closed"
-        // on a single completed bid, so key offers off the bid status.
+        // A deal is "done" for THIS chat when its bid is Completed or Closed
+        // (offers — Closed covers dismissed inquiries and the read-only state
+        // left behind on siblings once the offer itself closes) or the parent
+        // request is not Active (requests).
         const done =
           kind === "offer"
-            ? statusResult.data.bidStatus === "Completed"
+            ? statusResult.data.bidStatus !== "Pending" ||
+              statusResult.data.parentStatus !== "Active"
             : statusResult.data.parentStatus !== "Active";
         if (done) setIsDone(true);
         if (statusResult.data.bidStatus === "Completed") setIsWinner(true);
@@ -177,7 +179,11 @@ function ChatPageInner() {
             disabled={isMarkingDone}
             className="shrink-0 text-xs font-medium border border-gray-400 rounded px-3 py-1.5 text-gray-600 hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isMarkingDone ? "Marking…" : "Mark done"}
+            {isMarkingDone
+            ? "Marking…"
+            : kind === "request"
+              ? "Close request"
+              : "Close transaction"}
           </button>
         )}
         <button

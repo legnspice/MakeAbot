@@ -91,9 +91,16 @@ export async function closeRequest(requestId: string, callerId: string) {
     callerId,
   );
 
-  // finalStatus is only null when the ownership predicate matched nothing,
-  // which the check above already ruled out.
-  return { completed, request: req, finalStatus: finalStatus ?? "Cancelled" };
+  // finalStatus is only null when the atomic close's Active/owner predicate
+  // matched nothing at write time — the pre-check above read Active, but a
+  // concurrent close can have already resolved the request in between. That
+  // is a losing racer, not a fresh close: surface the same 409 a stale
+  // pre-check would have, instead of reporting success with a fabricated
+  // Cancelled status.
+  if (finalStatus === null)
+    throw new AppError("This request is already closed", 409);
+
+  return { completed, request: req, finalStatus };
 }
 
 export async function expireStaleRequestBids() {
