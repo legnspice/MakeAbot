@@ -138,6 +138,20 @@ describe("deals actions", () => {
       expect(result.error).toBe("This deal is already marked done");
       expect(offersService.completeOfferBid).not.toHaveBeenCalled();
     });
+
+    it("checks ownership before disclosing completion state", async () => {
+      (offersService.getOfferBids as jest.Mock).mockResolvedValue([
+        { id: "bid-1", bidder_id: "bidder-1", offer_id: "offer-1", status: "Completed" },
+      ]);
+      (offersService.getOffers as jest.Mock).mockResolvedValue([
+        { id: "offer-1", user_id: "someone-else", title: "Calculus notes", status: "Active" },
+      ]);
+
+      const result = await completeOfferBid("bid-1");
+
+      expect(result.error).toBe("Only the offer owner can mark this done");
+      expect(offersService.completeOfferBid).not.toHaveBeenCalled();
+    });
   });
 
   describe("closeOffer", () => {

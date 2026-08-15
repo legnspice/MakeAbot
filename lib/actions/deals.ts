@@ -99,14 +99,14 @@ export async function completeOfferBid(bidId: string) {
     const bids = await offersService.getOfferBids({ id: bidId });
     const bid = bids[0];
     if (!bid) throw new AppError("Offer bid not found", 404);
-    if (bid.status === "Completed")
-      throw new AppError("This deal is already marked done", 409);
 
     const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
     if (!offer) throw new AppError("Offer not found", 404);
     if (offer.user_id !== user.id)
       throw new AppError("Only the offer owner can mark this done", 403);
+    if (bid.status === "Completed")
+      throw new AppError("This deal is already marked done", 409);
 
     await offersService.completeOfferBid(bidId);
 
