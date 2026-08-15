@@ -151,4 +151,30 @@ describe("requestsService.createRequestBid", () => {
     expect(bid).toEqual({ id: "bid-new", request_id: "req-1", bidder_id: "bidder-new" });
     expect(requestsRepo.updateRequest).not.toHaveBeenCalled();
   });
+
+  it("still returns the bid when the parent touch throws", async () => {
+    (requestsRepo.findRequestById as jest.Mock).mockRejectedValue(
+      new Error("db unavailable"),
+    );
+
+    const bid = await requestsService.createRequestBid({
+      request_id: "req-1",
+      bidder_id: "bidder-new",
+    });
+
+    expect(bid).toEqual({ id: "bid-new", request_id: "req-1", bidder_id: "bidder-new" });
+  });
+
+  it("still returns the bid when the parent update throws", async () => {
+    (requestsRepo.updateRequest as jest.Mock).mockRejectedValue(
+      new Error("db unavailable"),
+    );
+
+    const bid = await requestsService.createRequestBid({
+      request_id: "req-1",
+      bidder_id: "bidder-new",
+    });
+
+    expect(bid).toEqual({ id: "bid-new", request_id: "req-1", bidder_id: "bidder-new" });
+  });
 });

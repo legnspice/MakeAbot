@@ -74,4 +74,30 @@ describe("offersService.createOfferBid", () => {
     expect(bid).toEqual({ id: "bid-new", offer_id: "offer-1", bidder_id: "bidder-new" });
     expect(offersRepo.updateOffer).not.toHaveBeenCalled();
   });
+
+  it("still returns the bid when the parent touch throws", async () => {
+    (offersRepo.findOfferById as jest.Mock).mockRejectedValue(
+      new Error("db unavailable"),
+    );
+
+    const bid = await offersService.createOfferBid({
+      offer_id: "offer-1",
+      bidder_id: "bidder-new",
+    });
+
+    expect(bid).toEqual({ id: "bid-new", offer_id: "offer-1", bidder_id: "bidder-new" });
+  });
+
+  it("still returns the bid when the parent update throws", async () => {
+    (offersRepo.updateOffer as jest.Mock).mockRejectedValue(
+      new Error("db unavailable"),
+    );
+
+    const bid = await offersService.createOfferBid({
+      offer_id: "offer-1",
+      bidder_id: "bidder-new",
+    });
+
+    expect(bid).toEqual({ id: "bid-new", offer_id: "offer-1", bidder_id: "bidder-new" });
+  });
 });
