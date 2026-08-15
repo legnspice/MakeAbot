@@ -154,6 +154,31 @@ export async function updateOfferBidStatusForBidder(
 }
 
 /**
+ * Withdraw an offer bid: transitions Pending -> Closed, scoped to its own
+ * bidder. Returns false when the caller does not own the bid OR the bid is
+ * not Pending — check and write in one statement, so a Completed/Closed bid
+ * can never be withdrawn after the fact.
+ */
+export async function withdrawOfferBidForBidder(
+  bidId: string,
+  bidderId: string,
+): Promise<boolean> {
+  const rows = await db
+    .update(offer_bids)
+    .set({ status: "Closed" })
+    .where(
+      and(
+        eq(offer_bids.id, bidId),
+        eq(offer_bids.bidder_id, bidderId),
+        eq(offer_bids.status, "Pending"),
+      ),
+    )
+    .returning({ id: offer_bids.id });
+
+  return rows.length > 0;
+}
+
+/**
  * Mark an offer bid Completed, scoped to the parent offer's owner and to the
  * bid still being Pending. Returns false when the caller does not own the
  * offer OR the bid has already been completed — check and write in one

@@ -40,13 +40,28 @@ export async function createOffer(data: InsertOfferSchema) {
 }
 
 export async function createOfferBid(data: InsertOfferBidSchema) {
+  // Look up the parent once, up front. A lookup failure here must not block
+  // the bid (matches the best-effort staleness touch below), so a thrown
+  // read is swallowed and treated as "parent unknown" rather than rejecting
+  // the bid outright. The guard below only fires when we positively know the
+  // offer is not Active — it must run before the insert.
+  let offer: Awaited<ReturnType<typeof offersRepo.findOfferById>> | undefined;
+  try {
+    offer = await offersRepo.findOfferById(data.offer_id);
+  } catch {
+    // Lookup failure only — fall through, see staleness note below.
+  }
+
+  if (offer && offer.status !== "Active") {
+    throw new AppError("This offer is no longer accepting inquiries", 409);
+  }
+
   const bid = await offersRepo.insertOfferBid(data);
 
   // A new bid is activity: reset the parent's staleness clock so
   // expireStaleOfferBids does not close live bids on a busy old offer.
   // Best-effort — a failed touch must never fail the bid.
   try {
-    const offer = await offersRepo.findOfferById(data.offer_id);
     if (offer?.user_id)
       await offersRepo.updateOffer(
         data.offer_id,
@@ -69,10 +84,19 @@ export async function removeOfferBid(id: string, userId: string) {
 }
 
 export async function withdrawOfferBid(bidId: string, bidderId: string) {
-  return await offersRepo.updateOfferBidStatusForBidder(bidId, bidderId, "Closed");
+  const withdrawn = await offersRepo.withdrawOfferBidForBidder(bidId, bidderId);
+  if (!withdrawn)
+    throw new AppError("This inquiry can no longer be withdrawn", 409);
 }
 
 export async function reopenOfferBid(bidId: string, bidderId: string) {
+  const bid = await offersRepo.findOfferBidById(bidId);
+  if (bid) {
+    const offer = await offersRepo.findOfferById(bid.offer_id);
+    if (!offer || offer.status !== "Active") {
+      throw new AppError("This listing is no longer open", 409);
+    }
+  }
   return await offersRepo.updateOfferBidStatusForBidder(bidId, bidderId, "Pending");
 }
 
@@ -81,6 +105,10 @@ export async function editOffer(
   data: UpdateOfferSchema,
   userId: string,
 ) {
+  const offer = await offersRepo.findOfferById(id);
+  if (!offer || offer.status !== "Active") {
+    throw new AppError("This offer is closed and can no longer be edited", 409);
+  }
   return await offersRepo.updateOffer(id, { ...data }, userId);
 }
 

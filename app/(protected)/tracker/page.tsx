@@ -497,7 +497,7 @@ export default function TrackerPage() {
         }}
         onClick={onClickHandler}
         onEdit={
-          !isHistory && card.isOwned
+          card.status === "Active" && card.isOwned
             ? () => router.push(`/create-offer?edit=${card.id}`)
             : undefined
         }
@@ -563,7 +563,7 @@ export default function TrackerPage() {
         }}
         onClick={onClickHandler}
         onEdit={
-          !isHistory && card.isOwned
+          card.status === "Active" && card.isOwned
             ? () => router.push(`/create-request?edit=${card.id}`)
             : undefined
         }

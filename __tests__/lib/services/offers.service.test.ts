@@ -8,15 +8,17 @@ jest.mock("@/lib/services/broadcast.service");
 describe("offers.service bid scoping", () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it("withdrawOfferBid closes the bid through the bidder-scoped repo fn", async () => {
+  it("withdrawOfferBid closes the bid through the bidder-and-Pending-scoped repo fn", async () => {
+    (offersRepo.withdrawOfferBidForBidder as jest.Mock).mockResolvedValue(true);
+
     await offersService.withdrawOfferBid("bid-1", "bidder-1");
 
-    expect(offersRepo.updateOfferBidStatusForBidder).toHaveBeenCalledWith(
+    expect(offersRepo.withdrawOfferBidForBidder).toHaveBeenCalledWith(
       "bid-1",
       "bidder-1",
-      "Closed",
     );
     expect(offersRepo.updateOfferBidStatus).not.toHaveBeenCalled();
+    expect(offersRepo.updateOfferBidStatusForBidder).not.toHaveBeenCalled();
   });
 
   it("reopenOfferBid reopens the bid through the bidder-scoped repo fn", async () => {
@@ -131,5 +133,67 @@ describe("offersService.closeOffer / completeOfferBid ownership", () => {
       OWNER,
     );
     expect(result).toBe(true);
+  });
+});
+
+describe("offersService terminal-state guards", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("editOffer throws when the offer is Closed, and does not call the repo update", async () => {
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      ...activeOffer,
+      status: "Closed",
+    });
+
+    await expect(
+      offersService.editOffer("offer-1", { title: "New title" }, OWNER),
+    ).rejects.toThrow("This offer is closed and can no longer be edited");
+
+    expect(offersRepo.updateOffer).not.toHaveBeenCalled();
+  });
+
+  it("createOfferBid throws when the parent offer is Closed, and does not insert", async () => {
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      ...activeOffer,
+      status: "Closed",
+    });
+
+    await expect(
+      offersService.createOfferBid({
+        offer_id: "offer-1",
+        bidder_id: "bidder-new",
+      }),
+    ).rejects.toThrow("This offer is no longer accepting inquiries");
+
+    expect(offersRepo.insertOfferBid).not.toHaveBeenCalled();
+  });
+
+  it("reopenOfferBid throws when the parent offer is Closed", async () => {
+    (offersRepo.findOfferBidById as jest.Mock).mockResolvedValue({
+      id: "bid-1",
+      offer_id: "offer-1",
+      bidder_id: "bidder-1",
+      status: "Closed",
+    });
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      ...activeOffer,
+      status: "Closed",
+    });
+
+    await expect(
+      offersService.reopenOfferBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("This listing is no longer open");
+
+    expect(offersRepo.updateOfferBidStatusForBidder).not.toHaveBeenCalled();
+  });
+
+  it("withdrawOfferBid throws when the scoped repo call reports no row affected", async () => {
+    (offersRepo.withdrawOfferBidForBidder as jest.Mock).mockResolvedValue(
+      false,
+    );
+
+    await expect(
+      offersService.withdrawOfferBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("This inquiry can no longer be withdrawn");
   });
 });

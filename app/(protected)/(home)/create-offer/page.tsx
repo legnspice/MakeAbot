@@ -50,7 +50,7 @@ export default function CreateOffer() {
     setIsLoadingEdit(true);
     getOffers({ id: editId }).then((result) => {
       const post = result.data?.[0];
-      if (post) {
+      if (post && post.status === "Active") {
         setForm({
           title: post.title ?? "",
           description: post.description ?? "",

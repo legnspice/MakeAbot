@@ -60,9 +60,7 @@ export const updateRequestSchema = requestSchema
     incentive: true,
     title: true,
     description: true,
-    status: true,
     urgency: true,
-    completed_at: true,
     imgUrl: true,
     type: true,
   })

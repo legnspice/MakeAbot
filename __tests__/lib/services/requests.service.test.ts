@@ -8,15 +8,19 @@ jest.mock("@/lib/services/broadcast.service");
 describe("requests.service bid scoping", () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it("withdrawRequestBid closes the bid through the bidder-scoped repo fn", async () => {
+  it("withdrawRequestBid closes the bid through the bidder-and-Pending-scoped repo fn", async () => {
+    (requestsRepo.withdrawRequestBidForBidder as jest.Mock).mockResolvedValue(
+      true,
+    );
+
     await requestsService.withdrawRequestBid("bid-1", "bidder-1");
 
-    expect(requestsRepo.updateRequestBidStatusForBidder).toHaveBeenCalledWith(
+    expect(requestsRepo.withdrawRequestBidForBidder).toHaveBeenCalledWith(
       "bid-1",
       "bidder-1",
-      "Closed",
     );
     expect(requestsRepo.updateRequestBidStatus).not.toHaveBeenCalled();
+    expect(requestsRepo.updateRequestBidStatusForBidder).not.toHaveBeenCalled();
   });
 
   it("reopenRequestBid reopens the bid through the bidder-scoped repo fn", async () => {
@@ -176,5 +180,67 @@ describe("requestsService.createRequestBid", () => {
     });
 
     expect(bid).toEqual({ id: "bid-new", request_id: "req-1", bidder_id: "bidder-new" });
+  });
+});
+
+describe("requestsService terminal-state guards", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("editRequest throws when the request is Completed, and does not call the repo update", async () => {
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue({
+      ...activeRequest,
+      status: "Completed",
+    });
+
+    await expect(
+      requestsService.editRequest("req-1", { title: "New title" }, OWNER),
+    ).rejects.toThrow("This request is closed and can no longer be edited");
+
+    expect(requestsRepo.updateRequest).not.toHaveBeenCalled();
+  });
+
+  it("createRequestBid throws when the parent request is Completed, and does not insert", async () => {
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue({
+      ...activeRequest,
+      status: "Completed",
+    });
+
+    await expect(
+      requestsService.createRequestBid({
+        request_id: "req-1",
+        bidder_id: "bidder-new",
+      }),
+    ).rejects.toThrow("This request is no longer accepting bids");
+
+    expect(requestsRepo.insertRequestBid).not.toHaveBeenCalled();
+  });
+
+  it("reopenRequestBid throws when the parent request is Completed", async () => {
+    (requestsRepo.findRequestBidById as jest.Mock).mockResolvedValue({
+      id: "bid-1",
+      request_id: "req-1",
+      bidder_id: "bidder-1",
+      status: "Closed",
+    });
+    (requestsRepo.findRequestById as jest.Mock).mockResolvedValue({
+      ...activeRequest,
+      status: "Completed",
+    });
+
+    await expect(
+      requestsService.reopenRequestBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("This listing is no longer open");
+
+    expect(requestsRepo.updateRequestBidStatusForBidder).not.toHaveBeenCalled();
+  });
+
+  it("withdrawRequestBid throws when the scoped repo call reports no row affected", async () => {
+    (requestsRepo.withdrawRequestBidForBidder as jest.Mock).mockResolvedValue(
+      false,
+    );
+
+    await expect(
+      requestsService.withdrawRequestBid("bid-1", "bidder-1"),
+    ).rejects.toThrow("This inquiry can no longer be withdrawn");
   });
 });
