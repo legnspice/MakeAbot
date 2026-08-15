@@ -117,6 +117,13 @@ export async function updateRequest(
     .where(and(eq(requests.id, id), eq(requests.user_id, userId)));
 }
 
+/**
+ * Set a single request_bid status, unscoped to any owner or bidder.
+ *
+ * No production caller — this exists only so the service-layer tests can
+ * assert `expect(requestsRepo.updateRequestBidStatus).not.toHaveBeenCalled()`,
+ * guarding against a regression back to an unscoped call. Do not delete it.
+ */
 export async function updateRequestBidStatus(
   bidId: string,
   status: "Pending" | "Completed" | "Closed",
@@ -144,23 +151,6 @@ export async function updateRequestBidStatusForBidder(
     .where(and(eq(request_bids.id, bidId), eq(request_bids.bidder_id, bidderId)));
 }
 
-/** Set all Pending bids on a request to Closed, except the winner */
-export async function bulkCloseRequestBids(
-  requestId: string,
-  exceptBidId: string,
-) {
-  return await db
-    .update(request_bids)
-    .set({ status: "Closed" })
-    .where(
-      and(
-        eq(request_bids.request_id, requestId),
-        eq(request_bids.status, "Pending"),
-        ne(request_bids.id, exceptBidId),
-      ),
-    );
-}
-
 /**
  * Complete a request in one transaction: close every other still-Pending bid,
  * mark the winner, then flip the request itself.
@@ -177,6 +167,14 @@ export async function completeRequestAtomic(
   ownerId: string,
 ): Promise<{ closedLosers: { id: string; bidder_id: string }[] }> {
   return await db.transaction(async (tx) => {
+    const owned = await tx
+      .update(requests)
+      .set({ status: "Completed", completed_at: new Date() })
+      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)))
+      .returning({ id: requests.id });
+
+    if (owned.length === 0) return { closedLosers: [] };
+
     const closedLosers = await tx
       .update(request_bids)
       .set({ status: "Closed" })
@@ -193,11 +191,6 @@ export async function completeRequestAtomic(
       .update(request_bids)
       .set({ status: "Completed" })
       .where(eq(request_bids.id, winningBidId));
-
-    await tx
-      .update(requests)
-      .set({ status: "Completed", completed_at: new Date() })
-      .where(and(eq(requests.id, requestId), eq(requests.user_id, ownerId)));
 
     return { closedLosers };
   });

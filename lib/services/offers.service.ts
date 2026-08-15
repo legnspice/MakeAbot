@@ -3,6 +3,7 @@ import { sendPushToAllUsers } from "./push.service";
 import { tierAfterPosterCooldown } from "./broadcast.service";
 import { offerBroadcastTier } from "../broadcast-policy";
 import { runAfterResponse } from "../after-response";
+import { AppError } from "@/lib/error/app-error";
 import {
   FindOffersSchema,
   FindOfferBidsSchema,
@@ -84,12 +85,12 @@ export async function editOffer(
 }
 
 export async function closeOffer(id: string, userId: string) {
-  await offersRepo.updateOffer(id, { status: "Closed" }, userId);
-  await offersRepo.closeOfferBids(id);
+  const closed = await offersRepo.closeOfferAtomic(id, userId);
+  if (!closed) throw new AppError("Only the offer owner can close this", 403);
 }
 
-export async function completeOfferBid(bidId: string) {
-  return await offersRepo.completeOfferBid(bidId);
+export async function completeOfferBid(bidId: string, ownerId: string) {
+  return await offersRepo.completeOfferBidForOwner(bidId, ownerId);
 }
 
 export async function expireStaleOfferBids() {

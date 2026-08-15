@@ -101,3 +101,35 @@ describe("offersService.createOfferBid", () => {
     expect(bid).toEqual({ id: "bid-new", offer_id: "offer-1", bidder_id: "bidder-new" });
   });
 });
+
+describe("offersService.closeOffer / completeOfferBid ownership", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("closeOffer throws when closeOfferAtomic returns false", async () => {
+    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue(false);
+
+    await expect(
+      offersService.closeOffer("offer-1", "not-the-owner"),
+    ).rejects.toThrow("Only the offer owner can close this");
+  });
+
+  it("closeOffer does not throw when closeOfferAtomic returns true", async () => {
+    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue(true);
+
+    await expect(
+      offersService.closeOffer("offer-1", OWNER),
+    ).resolves.toBeUndefined();
+  });
+
+  it("completeOfferBid forwards (bidId, ownerId) to the scoped repo fn", async () => {
+    (offersRepo.completeOfferBidForOwner as jest.Mock).mockResolvedValue(true);
+
+    const result = await offersService.completeOfferBid("bid-1", OWNER);
+
+    expect(offersRepo.completeOfferBidForOwner).toHaveBeenCalledWith(
+      "bid-1",
+      OWNER,
+    );
+    expect(result).toBe(true);
+  });
+});

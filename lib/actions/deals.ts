@@ -67,16 +67,12 @@ export async function completeRequest(requestId: string, winningBidId: string) {
       const requesterName = requesterUsers[0]?.name ?? "Someone";
 
       await Promise.allSettled([
-        ...(winnerBid
-          ? [
-              sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
-                title: "Your offer was accepted!",
-                body: `${requesterName} marked your bid on ${request.title} as done.`,
-                url: `/chat?bidId=${winningBidId}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
-                contextId: null,
-              }),
-            ]
-          : []),
+        sendPushToUser(winnerBid.bidder_id, "request_completed_winner", {
+          title: "Your offer was accepted!",
+          body: `${requesterName} marked your bid on ${request.title} as done.`,
+          url: `/chat?bidId=${winningBidId}&kind=request&otherId=${request.user_id}&title=${encodeURIComponent(request.title)}`,
+          contextId: null,
+        }),
         ...loserBids.map((loser) =>
           sendPushToUser(loser.bidder_id, "request_completed_loser", {
             title: "Request fulfilled",
@@ -103,12 +99,13 @@ export async function completeOfferBid(bidId: string) {
     const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
     if (!offer) throw new AppError("Offer not found", 404);
-    if (offer.user_id !== user.id)
-      throw new AppError("Only the offer owner can mark this done", 403);
-    if (bid.status === "Completed")
-      throw new AppError("This deal is already marked done", 409);
 
-    await offersService.completeOfferBid(bidId);
+    const completed = await offersService.completeOfferBid(bidId, user.id);
+    if (!completed) {
+      if (offer.user_id !== user.id)
+        throw new AppError("Only the offer owner can mark this done", 403);
+      throw new AppError("This deal is already marked done", 409);
+    }
 
     // Deferred — the name lookup feeds the push body only, so it must not sit
     // on the critical path.
