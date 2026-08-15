@@ -1,6 +1,7 @@
 "use server";
 
 import { handleAction } from "@/lib/error/actions-handler";
+import { AppError } from "@/lib/error/app-error";
 import { requireAuth } from "@/lib/actions/auth";
 import * as offersService from "@/lib/services/offers.service";
 import * as requestsService from "@/lib/services/requests.service";
@@ -93,33 +94,37 @@ export async function completeRequest(requestId: string, winningBidId: string) {
 
 export async function completeOfferBid(bidId: string) {
   return await handleAction(async () => {
-    await requireAuth();
+    const user = await requireAuth();
 
     const bids = await offersService.getOfferBids({ id: bidId });
     const bid = bids[0];
-    if (!bid) throw new Error("Offer bid not found");
+    if (!bid) throw new AppError("Offer bid not found", 404);
+    if (bid.status === "Completed")
+      throw new AppError("This deal is already marked done", 409);
 
     const offersList = await offersService.getOffers({ id: bid.offer_id });
     const offer = offersList[0];
-    if (!offer) throw new Error("Offer not found");
-
-    // Fetch offerer display name
-    const offererUsers = await usersService.getUsers({
-      id: offer.user_id ?? undefined,
-    });
-    const offererName = offererUsers[0]?.name ?? "Someone";
+    if (!offer) throw new AppError("Offer not found", 404);
+    if (offer.user_id !== user.id)
+      throw new AppError("Only the offer owner can mark this done", 403);
 
     await offersService.completeOfferBid(bidId);
 
-    // Deferred — the caller shouldn't wait on push delivery
-    runAfterResponse(() =>
-      sendPushToUser(bid.bidder_id, "offer_bid_completed", {
+    // Deferred — the name lookup feeds the push body only, so it must not sit
+    // on the critical path.
+    runAfterResponse(async () => {
+      const offererUsers = await usersService.getUsers({
+        id: offer.user_id ?? undefined,
+      });
+      const offererName = offererUsers[0]?.name ?? "Someone";
+
+      await sendPushToUser(bid.bidder_id, "offer_bid_completed", {
         title: "Deal confirmed!",
         body: `${offererName} marked your deal on ${offer.title} as done.`,
         url: `/chat?bidId=${bidId}&kind=offer&otherId=${offer.user_id}&title=${encodeURIComponent(offer.title)}`,
         contextId: null,
-      }),
-    );
+      });
+    });
 
     return { success: true };
   });

@@ -92,7 +92,7 @@ describe("deals actions", () => {
   describe("completeOfferBid", () => {
     it("completes the bid and notifies the bidder", async () => {
       (offersService.getOfferBids as jest.Mock).mockResolvedValue([
-        { id: "bid-1", bidder_id: "bidder-1", offer_id: "offer-1" },
+        { id: "bid-1", bidder_id: "bidder-1", offer_id: "offer-1", status: "Pending" },
       ]);
       (offersService.getOffers as jest.Mock).mockResolvedValue([
         { id: "offer-1", user_id: "user-owner", title: "Calculus notes", status: "Active" },
@@ -108,6 +108,35 @@ describe("deals actions", () => {
         "offer_bid_completed",
         expect.objectContaining({ title: "Deal confirmed!" }),
       );
+    });
+
+    it("rejects a caller who does not own the offer", async () => {
+      (offersService.getOfferBids as jest.Mock).mockResolvedValue([
+        { id: "bid-1", bidder_id: "bidder-1", offer_id: "offer-1", status: "Pending" },
+      ]);
+      (offersService.getOffers as jest.Mock).mockResolvedValue([
+        { id: "offer-1", user_id: "someone-else", title: "Calculus notes", status: "Active" },
+      ]);
+
+      const result = await completeOfferBid("bid-1");
+
+      expect(result.error).toBe("Only the offer owner can mark this done");
+      expect(offersService.completeOfferBid).not.toHaveBeenCalled();
+      expect(pushService.sendPushToUser).not.toHaveBeenCalled();
+    });
+
+    it("rejects a bid that is already completed", async () => {
+      (offersService.getOfferBids as jest.Mock).mockResolvedValue([
+        { id: "bid-1", bidder_id: "bidder-1", offer_id: "offer-1", status: "Completed" },
+      ]);
+      (offersService.getOffers as jest.Mock).mockResolvedValue([
+        { id: "offer-1", user_id: "user-owner", title: "Calculus notes", status: "Active" },
+      ]);
+
+      const result = await completeOfferBid("bid-1");
+
+      expect(result.error).toBe("This deal is already marked done");
+      expect(offersService.completeOfferBid).not.toHaveBeenCalled();
     });
   });
 
