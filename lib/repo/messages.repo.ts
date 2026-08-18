@@ -14,6 +14,7 @@ import {
 import { db } from "../db";
 import { messages } from "../db/schema";
 import { getDayRange } from "./helper";
+import { notDeleted } from "./soft-delete";
 import {
   FindMessagesSchema,
   InsertMessageSchema,
@@ -39,7 +40,7 @@ export async function findConversation(filters: FindConversationSchema) {
   }
 
   return await db.query.messages.findMany({
-    where: and(...conditions),
+    where: and(notDeleted(messages), ...conditions),
     orderBy: [asc(messages.timestamp)], // Oldest first for chat display
   });
 }
@@ -73,7 +74,7 @@ export async function findMessages(filters: FindMessagesSchema) {
   }
 
   return await db.query.messages.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
+    where: and(notDeleted(messages), ...conditions),
     orderBy: [desc(messages.timestamp)],
   });
 }
@@ -97,7 +98,7 @@ export async function findLatestTimestampsForBids(
             latest: max(messages.timestamp),
           })
           .from(messages)
-          .where(inArray(messages.offer_bid_id, offerBidIds))
+          .where(and(notDeleted(messages), inArray(messages.offer_bid_id, offerBidIds)))
           .groupBy(messages.offer_bid_id)
       : [],
     requestBidIds.length > 0
@@ -107,7 +108,7 @@ export async function findLatestTimestampsForBids(
             latest: max(messages.timestamp),
           })
           .from(messages)
-          .where(inArray(messages.request_bid_id, requestBidIds))
+          .where(and(notDeleted(messages), inArray(messages.request_bid_id, requestBidIds)))
           .groupBy(messages.request_bid_id)
       : [],
   ]);
@@ -130,6 +131,7 @@ export async function hasUserSentMessageInThread(
     .from(messages)
     .where(
       and(
+        notDeleted(messages),
         eq(messages.sender_id, userId),
         field === "request_bid_id"
           ? eq(messages.request_bid_id, threadId)
@@ -141,6 +143,7 @@ export async function hasUserSentMessageInThread(
 
 export async function deleteMessage(id: string, userId: string) {
   return await db
-    .delete(messages)
+    .update(messages)
+    .set({ deleted_at: new Date() })
     .where(and(eq(messages.id, id), eq(messages.sender_id, userId)));
 }
