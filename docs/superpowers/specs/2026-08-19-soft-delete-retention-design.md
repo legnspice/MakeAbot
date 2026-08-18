@@ -165,17 +165,17 @@ no such query yet; it needs one — open reports (`status = 'open'`) whose
 `reported_request_id` / `reported_offer_id` falls in a given set of ids. Batched
 against the sweep's candidate list, not queried per listing.
 
-## Open for sign-off
+## Retention window: 30 days (decided)
 
-**The 30-day window is a recommendation, not a decision that has been made.** It
-is long enough to cover the dispute window where chat logs actually matter, and
-short enough to be a defensible reading of best-effort deletion. Anything from 7
-to 90 days is arguable.
+Confirmed 2026-08-19. Long enough to cover the dispute window where chat logs
+actually matter, short enough to be a defensible reading of best-effort deletion.
 
-A window of `0` — anonymize immediately, retain only tombstones and reviews — is
-also coherent and strictly safer on privacy, at the cost of the observability
-that motivated soft-delete in the first place. If moderation turns out never to
-read the retained window in practice, `0` is the better design.
+The alternative considered and rejected was a window of `0` — anonymize
+immediately, retain only tombstones and reviews. That is strictly safer on
+privacy and simpler to implement, but it discards the observability that
+motivated soft-delete in the first place. Worth revisiting if moderation turns
+out never to read the retained window in practice; the window is a single
+constant, so changing it later is a one-line change.
 
 ## Out of scope
 
