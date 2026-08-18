@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { offers, offer_bids, requests, request_bids } from "../db/schema";
 import { and, or, eq } from "drizzle-orm";
+import { notDeleted } from "./soft-delete";
 
 /** True iff a bid links users a and b in either direction (bidder↔owner), any status. */
 export async function relationshipExists(a: string, b: string): Promise<boolean> {
@@ -9,9 +10,13 @@ export async function relationshipExists(a: string, b: string): Promise<boolean>
     .from(offer_bids)
     .innerJoin(offers, eq(offer_bids.offer_id, offers.id))
     .where(
-      or(
-        and(eq(offer_bids.bidder_id, a), eq(offers.user_id, b)),
-        and(eq(offer_bids.bidder_id, b), eq(offers.user_id, a)),
+      and(
+        notDeleted(offer_bids),
+        notDeleted(offers),
+        or(
+          and(eq(offer_bids.bidder_id, a), eq(offers.user_id, b)),
+          and(eq(offer_bids.bidder_id, b), eq(offers.user_id, a)),
+        ),
       ),
     )
     .limit(1);
@@ -22,9 +27,13 @@ export async function relationshipExists(a: string, b: string): Promise<boolean>
     .from(request_bids)
     .innerJoin(requests, eq(request_bids.request_id, requests.id))
     .where(
-      or(
-        and(eq(request_bids.bidder_id, a), eq(requests.user_id, b)),
-        and(eq(request_bids.bidder_id, b), eq(requests.user_id, a)),
+      and(
+        notDeleted(request_bids),
+        notDeleted(requests),
+        or(
+          and(eq(request_bids.bidder_id, a), eq(requests.user_id, b)),
+          and(eq(request_bids.bidder_id, b), eq(requests.user_id, a)),
+        ),
       ),
     )
     .limit(1);

@@ -307,3 +307,27 @@ describe("offersService.closeOffer notification set", () => {
     ).rejects.toThrow("Only the offer owner can close this");
   });
 });
+
+describe("offersService.removeOffer soft delete", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("delegates to the cascading soft delete and never hard-deletes", async () => {
+    (offersRepo.softDeleteOfferCascade as jest.Mock).mockResolvedValue(true);
+
+    await offersService.removeOffer("offer-1", "owner-1");
+
+    expect(offersRepo.softDeleteOfferCascade).toHaveBeenCalledWith(
+      "offer-1",
+      "owner-1",
+    );
+    expect(offersRepo.deleteOffer).not.toHaveBeenCalled();
+  });
+
+  it("throws when the caller does not own the offer", async () => {
+    (offersRepo.softDeleteOfferCascade as jest.Mock).mockResolvedValue(false);
+
+    await expect(
+      offersService.removeOffer("offer-1", "someone-else"),
+    ).rejects.toThrow("Only the owner can delete this");
+  });
+});

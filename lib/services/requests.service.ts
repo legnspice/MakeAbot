@@ -108,7 +108,8 @@ export async function expireStaleRequestBids() {
 }
 
 export async function removeRequest(id: string, userId: string) {
-  return await requestsRepo.deleteRequest(id, userId);
+  const removed = await requestsRepo.softDeleteRequestCascade(id, userId);
+  if (!removed) throw new AppError("Only the owner can delete this", 403);
 }
 
 export async function removeRequestBid(id: string, userId: string) {

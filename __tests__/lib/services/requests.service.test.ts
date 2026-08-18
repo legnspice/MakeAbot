@@ -306,3 +306,27 @@ describe("requestsService.closeRequest", () => {
     ).rejects.toThrow("This request is already closed");
   });
 });
+
+describe("requestsService.removeRequest soft delete", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("delegates to the cascading soft delete and never hard-deletes", async () => {
+    (requestsRepo.softDeleteRequestCascade as jest.Mock).mockResolvedValue(true);
+
+    await requestsService.removeRequest("req-1", "owner-1");
+
+    expect(requestsRepo.softDeleteRequestCascade).toHaveBeenCalledWith(
+      "req-1",
+      "owner-1",
+    );
+    expect(requestsRepo.deleteRequest).not.toHaveBeenCalled();
+  });
+
+  it("throws when the caller does not own the request", async () => {
+    (requestsRepo.softDeleteRequestCascade as jest.Mock).mockResolvedValue(false);
+
+    await expect(
+      requestsService.removeRequest("req-1", "someone-else"),
+    ).rejects.toThrow("Only the owner can delete this");
+  });
+});

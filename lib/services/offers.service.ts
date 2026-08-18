@@ -77,7 +77,8 @@ export async function createOfferBid(data: InsertOfferBidSchema) {
 }
 
 export async function removeOffer(id: string, userId: string) {
-  return await offersRepo.deleteOffer(id, userId);
+  const removed = await offersRepo.softDeleteOfferCascade(id, userId);
+  if (!removed) throw new AppError("Only the owner can delete this", 403);
 }
 
 export async function removeOfferBid(id: string, userId: string) {
