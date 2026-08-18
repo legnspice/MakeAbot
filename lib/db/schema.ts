@@ -55,6 +55,9 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   is_read: boolean("is_read").default(false).notNull(),
+  // Soft delete. NULL means live.
+  // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
+  deleted_at: timestamp("deleted_at"),
 });
 
 export const reviews = pgTable(
@@ -108,6 +111,9 @@ export const requests = pgTable("requests", {
   urgency: urgencyEnum("urgency").notNull().default("Within the day"),
   type: typeEnum("type").notNull().default("Unknown"),
   status: requestStatusEnum("status").notNull().default("Active"),
+  // Soft delete. NULL means live.
+  // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
+  deleted_at: timestamp("deleted_at"),
 });
 
 export const offers = pgTable("offers", {
@@ -129,6 +135,9 @@ export const offers = pgTable("offers", {
     .$onUpdate(() => new Date()),
   type: typeEnum("type").notNull().default("Unknown"),
   status: offerStatusEnum("status").notNull().default("Active"),
+  // Soft delete. NULL means live.
+  // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
+  deleted_at: timestamp("deleted_at"),
 });
 
 export const request_bids = pgTable("request_bids", {
@@ -143,6 +152,9 @@ export const request_bids = pgTable("request_bids", {
     }),
   created_at: timestamp("created_at").notNull().defaultNow(),
   status: bidStatusEnum("status").notNull().default("Pending"),
+  // Soft delete. NULL means live.
+  // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
+  deleted_at: timestamp("deleted_at"),
 });
 
 export const offer_bids = pgTable("offer_bids", {
@@ -157,6 +169,9 @@ export const offer_bids = pgTable("offer_bids", {
     }),
   created_at: timestamp("created_at").notNull().defaultNow(),
   status: bidStatusEnum("status").notNull().default("Pending"),
+  // Soft delete. NULL means live.
+  // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
+  deleted_at: timestamp("deleted_at"),
 });
 
 export const notifications = pgTable(
