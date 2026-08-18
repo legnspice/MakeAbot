@@ -346,7 +346,11 @@ export async function closeOfferAtomic(
       .update(offer_bids)
       .set({ status: "Closed" })
       .where(
-        and(eq(offer_bids.offer_id, offerId), eq(offer_bids.status, "Pending")),
+        and(
+          eq(offer_bids.offer_id, offerId),
+          eq(offer_bids.status, "Pending"),
+          notDeleted(offer_bids),
+        ),
       )
       .returning({ id: offer_bids.id, bidder_id: offer_bids.bidder_id });
 
