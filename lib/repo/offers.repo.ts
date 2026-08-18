@@ -12,9 +12,10 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "../db";
-import { offers, offer_bids } from "../db/schema";
+import { offers, offer_bids, messages } from "../db/schema";
 import { getDayRange } from "./helper";
 import { hasEmptyBatch } from "../batch";
+import { notDeleted } from "./soft-delete";
 import {
   FindOffersSchema,
   FindOfferBidsSchema,
@@ -23,7 +24,9 @@ import {
 } from "../validation/offers";
 
 export async function findOfferById(id: string) {
-  return await db.query.offers.findFirst({ where: eq(offers.id, id) });
+  return await db.query.offers.findFirst({
+    where: and(eq(offers.id, id), notDeleted(offers)),
+  });
 }
 
 /** Most recent offer by this user, ignoring `excludeId` (the one just created). */
@@ -33,8 +36,12 @@ export async function findLatestOfferTimestamp(
 ): Promise<Date | null> {
   const row = await db.query.offers.findFirst({
     where: excludeId
-      ? and(eq(offers.user_id, userId), ne(offers.id, excludeId))
-      : eq(offers.user_id, userId),
+      ? and(
+          eq(offers.user_id, userId),
+          ne(offers.id, excludeId),
+          notDeleted(offers),
+        )
+      : and(eq(offers.user_id, userId), notDeleted(offers)),
     orderBy: [desc(offers.created_at)],
     columns: { created_at: true },
   });
@@ -42,7 +49,9 @@ export async function findLatestOfferTimestamp(
 }
 
 export async function findOfferBidById(id: string) {
-  return await db.query.offer_bids.findFirst({ where: eq(offer_bids.id, id) });
+  return await db.query.offer_bids.findFirst({
+    where: and(eq(offer_bids.id, id), notDeleted(offer_bids)),
+  });
 }
 
 export async function findOffers(filters: FindOffersSchema) {
@@ -61,7 +70,7 @@ export async function findOffers(filters: FindOffersSchema) {
     conditions.push(lte(offers.created_at, endOfDay));
   }
   return await db.query.offers.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
+    where: and(notDeleted(offers), ...conditions),
     orderBy: [desc(offers.created_at)],
   });
 }
@@ -81,7 +90,7 @@ export async function findOfferBids(filters: FindOfferBidsSchema) {
     conditions.push(lte(offer_bids.created_at, endOfDay));
   }
   return await db.query.offer_bids.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
+    where: and(notDeleted(offer_bids), ...conditions),
     orderBy: [desc(offer_bids.created_at)],
   });
 }
@@ -98,14 +107,69 @@ export async function insertOfferBid(data: InsertOfferBidSchema) {
 
 export async function deleteOffer(id: string, userId: string) {
   return await db
-    .delete(offers)
+    .update(offers)
+    .set({ deleted_at: new Date() })
     .where(and(eq(offers.id, id), eq(offers.user_id, userId)));
 }
 
 export async function deleteOfferBid(id: string, userId: string) {
   return await db
-    .delete(offer_bids)
+    .update(offer_bids)
+    .set({ deleted_at: new Date() })
     .where(and(eq(offer_bids.id, id), eq(offer_bids.bidder_id, userId)));
+}
+
+/**
+ * Soft-delete an offer and everything under it, scoped to the owner.
+ *
+ * Bids are tombstoned, never removed — reviews cascade from them (spec D2), so
+ * deleting one here would destroy exactly what soft delete exists to protect.
+ * Returns false when the caller does not own the offer, having written nothing.
+ */
+export async function softDeleteOfferCascade(
+  offerId: string,
+  ownerId: string,
+): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    const now = new Date();
+
+    const owned = await tx
+      .update(offers)
+      .set({ deleted_at: now })
+      .where(
+        and(
+          eq(offers.id, offerId),
+          eq(offers.user_id, ownerId),
+          notDeleted(offers),
+        ),
+      )
+      .returning({ id: offers.id });
+
+    if (owned.length === 0) return false;
+
+    const bids = await tx
+      .update(offer_bids)
+      .set({ deleted_at: now })
+      .where(and(eq(offer_bids.offer_id, offerId), notDeleted(offer_bids)))
+      .returning({ id: offer_bids.id });
+
+    if (bids.length > 0) {
+      await tx
+        .update(messages)
+        .set({ deleted_at: now })
+        .where(
+          and(
+            inArray(
+              messages.offer_bid_id,
+              bids.map((b) => b.id),
+            ),
+            notDeleted(messages),
+          ),
+        );
+    }
+
+    return true;
+  });
 }
 
 export async function updateOffer(
@@ -171,6 +235,7 @@ export async function withdrawOfferBidForBidder(
         eq(offer_bids.id, bidId),
         eq(offer_bids.bidder_id, bidderId),
         eq(offer_bids.status, "Pending"),
+        notDeleted(offer_bids),
       ),
     )
     .returning({ id: offer_bids.id });
@@ -195,12 +260,17 @@ export async function completeOfferBidForOwner(
       and(
         eq(offer_bids.id, bidId),
         eq(offer_bids.status, "Pending"),
+        notDeleted(offer_bids),
         exists(
           db
             .select({ one: sql`1` })
             .from(offers)
             .where(
-              and(eq(offers.id, offer_bids.offer_id), eq(offers.user_id, ownerId)),
+              and(
+                eq(offers.id, offer_bids.offer_id),
+                eq(offers.user_id, ownerId),
+                notDeleted(offers),
+              ),
             ),
         ),
       ),
@@ -226,12 +296,17 @@ export async function dismissOfferBidForOwner(
       and(
         eq(offer_bids.id, bidId),
         eq(offer_bids.status, "Pending"),
+        notDeleted(offer_bids),
         exists(
           db
             .select({ one: sql`1` })
             .from(offers)
             .where(
-              and(eq(offers.id, offer_bids.offer_id), eq(offers.user_id, ownerId)),
+              and(
+                eq(offers.id, offer_bids.offer_id),
+                eq(offers.user_id, ownerId),
+                notDeleted(offers),
+              ),
             ),
         ),
       ),
@@ -256,7 +331,13 @@ export async function closeOfferAtomic(
     const owned = await tx
       .update(offers)
       .set({ status: "Closed" })
-      .where(and(eq(offers.id, offerId), eq(offers.user_id, ownerId)))
+      .where(
+        and(
+          eq(offers.id, offerId),
+          eq(offers.user_id, ownerId),
+          notDeleted(offers),
+        ),
+      )
       .returning({ id: offers.id });
 
     if (owned.length === 0) return { closed: false, affected: [] };
@@ -287,7 +368,12 @@ export async function expireStaleOfferBids(): Promise<
     .from(offer_bids)
     .innerJoin(offers, eq(offer_bids.offer_id, offers.id))
     .where(
-      and(eq(offer_bids.status, "Pending"), lt(offers.updated_at, cutoff)),
+      and(
+        eq(offer_bids.status, "Pending"),
+        lt(offers.updated_at, cutoff),
+        notDeleted(offers),
+        notDeleted(offer_bids),
+      ),
     );
 
   if (stale.length === 0) return [];
