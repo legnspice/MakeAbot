@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../db";
 import { reports, type InsertReport } from "../db/schema";
 
@@ -54,4 +54,41 @@ export async function updateReportStatus(id: string, status: string) {
     .update(reports)
     .set({ status, updated_at: sql`now()` })
     .where(eq(reports.id, id));
+}
+
+/**
+ * Which of these listings have an open report against them.
+ *
+ * The purge skips these so a reported user cannot delete the evidence and wait
+ * out the retention window.
+ */
+export async function findOpenReportTargetIds(
+  requestIds: string[],
+  offerIds: string[],
+): Promise<{ requestIds: Set<string>; offerIds: Set<string> }> {
+  const result = { requestIds: new Set<string>(), offerIds: new Set<string>() };
+  if (requestIds.length === 0 && offerIds.length === 0) return result;
+
+  const targets = [
+    requestIds.length > 0
+      ? inArray(reports.reported_request_id, requestIds)
+      : undefined,
+    offerIds.length > 0
+      ? inArray(reports.reported_offer_id, offerIds)
+      : undefined,
+  ].filter((t): t is SQL => Boolean(t));
+
+  const rows = await db
+    .select({
+      requestId: reports.reported_request_id,
+      offerId: reports.reported_offer_id,
+    })
+    .from(reports)
+    .where(and(eq(reports.status, "open"), or(...targets)));
+
+  for (const r of rows) {
+    if (r.requestId) result.requestIds.add(r.requestId);
+    if (r.offerId) result.offerIds.add(r.offerId);
+  }
+  return result;
 }
