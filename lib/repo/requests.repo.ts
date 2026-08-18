@@ -15,6 +15,7 @@ import { db } from "../db";
 import { requests, request_bids, messages } from "../db/schema";
 import { getDayRange } from "./helper";
 import { hasEmptyBatch } from "../batch";
+import { notDeleted } from "./soft-delete";
 import {
   FindRequestsSchema,
   FindRequestBidsSchema,
@@ -24,7 +25,7 @@ import {
 
 export async function findRequestById(id: string) {
   return await db.query.requests.findFirst({
-    where: eq(requests.id, id),
+    where: and(eq(requests.id, id), notDeleted(requests)),
   });
 }
 
@@ -35,8 +36,12 @@ export async function findLatestRequestTimestamp(
 ): Promise<Date | null> {
   const row = await db.query.requests.findFirst({
     where: excludeId
-      ? and(eq(requests.user_id, userId), ne(requests.id, excludeId))
-      : eq(requests.user_id, userId),
+      ? and(
+          eq(requests.user_id, userId),
+          ne(requests.id, excludeId),
+          notDeleted(requests),
+        )
+      : and(eq(requests.user_id, userId), notDeleted(requests)),
     orderBy: [desc(requests.created_at)],
     columns: { created_at: true },
   });
@@ -45,7 +50,7 @@ export async function findLatestRequestTimestamp(
 
 export async function findRequestBidById(id: string) {
   return await db.query.request_bids.findFirst({
-    where: eq(request_bids.id, id),
+    where: and(eq(request_bids.id, id), notDeleted(request_bids)),
   });
 }
 
@@ -69,7 +74,7 @@ export async function findRequests(filters: FindRequestsSchema) {
   }
 
   return await db.query.requests.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
+    where: and(notDeleted(requests), ...conditions),
     orderBy: [desc(requests.created_at)],
   });
 }
@@ -91,7 +96,7 @@ export async function findRequestBids(filters: FindRequestBidsSchema) {
   }
 
   return await db.query.request_bids.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
+    where: and(notDeleted(request_bids), ...conditions),
     orderBy: [desc(request_bids.created_at)],
   });
 }
@@ -108,14 +113,74 @@ export async function insertRequestBid(data: InsertRequestBidSchema) {
 
 export async function deleteRequest(id: string, userId: string) {
   return await db
-    .delete(requests)
+    .update(requests)
+    .set({ deleted_at: new Date() })
     .where(and(eq(requests.id, id), eq(requests.user_id, userId)));
 }
 
 export async function deleteRequestBid(id: string, userId: string) {
   return await db
-    .delete(request_bids)
+    .update(request_bids)
+    .set({ deleted_at: new Date() })
     .where(and(eq(request_bids.id, id), eq(request_bids.bidder_id, userId)));
+}
+
+/**
+ * Soft-delete a request and everything under it, scoped to the owner.
+ *
+ * Bids are tombstoned, never removed — reviews cascade from them (spec D2), so
+ * deleting one here would destroy exactly what soft delete exists to protect.
+ * Returns false when the caller does not own the request, having written nothing.
+ */
+export async function softDeleteRequestCascade(
+  requestId: string,
+  ownerId: string,
+): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    const now = new Date();
+
+    const owned = await tx
+      .update(requests)
+      .set({ deleted_at: now })
+      .where(
+        and(
+          eq(requests.id, requestId),
+          eq(requests.user_id, ownerId),
+          notDeleted(requests),
+        ),
+      )
+      .returning({ id: requests.id });
+
+    if (owned.length === 0) return false;
+
+    const bids = await tx
+      .update(request_bids)
+      .set({ deleted_at: now })
+      .where(
+        and(
+          eq(request_bids.request_id, requestId),
+          notDeleted(request_bids),
+        ),
+      )
+      .returning({ id: request_bids.id });
+
+    if (bids.length > 0) {
+      await tx
+        .update(messages)
+        .set({ deleted_at: now })
+        .where(
+          and(
+            inArray(
+              messages.request_bid_id,
+              bids.map((b) => b.id),
+            ),
+            notDeleted(messages),
+          ),
+        );
+    }
+
+    return true;
+  });
 }
 
 export async function updateRequest(
@@ -181,6 +246,7 @@ export async function withdrawRequestBidForBidder(
         eq(request_bids.id, bidId),
         eq(request_bids.bidder_id, bidderId),
         eq(request_bids.status, "Pending"),
+        notDeleted(request_bids),
       ),
     )
     .returning({ id: request_bids.id });
@@ -222,6 +288,7 @@ export async function closeRequestAtomic(
           eq(requests.id, requestId),
           eq(requests.user_id, ownerId),
           eq(requests.status, "Active"),
+          notDeleted(requests),
         ),
       );
 
@@ -235,6 +302,7 @@ export async function closeRequestAtomic(
         and(
           eq(request_bids.request_id, requestId),
           eq(request_bids.status, "Pending"),
+          notDeleted(request_bids),
           exists(
             tx
               .select({ one: sql`1` })
@@ -252,6 +320,7 @@ export async function closeRequestAtomic(
         and(
           eq(request_bids.request_id, requestId),
           eq(request_bids.status, "Pending"),
+          notDeleted(request_bids),
         ),
       )
       .returning({ id: request_bids.id, bidder_id: request_bids.bidder_id });
@@ -284,7 +353,12 @@ export async function expireStaleRequestBids(): Promise<
     .from(request_bids)
     .innerJoin(requests, eq(request_bids.request_id, requests.id))
     .where(
-      and(eq(request_bids.status, "Pending"), lt(requests.updated_at, cutoff)),
+      and(
+        eq(request_bids.status, "Pending"),
+        lt(requests.updated_at, cutoff),
+        notDeleted(requests),
+        notDeleted(request_bids),
+      ),
     );
 
   if (stale.length === 0) return [];
