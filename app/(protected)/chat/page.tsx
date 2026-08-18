@@ -33,6 +33,7 @@ function ChatPageInner() {
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
   const [isWinner, setIsWinner] = useState(false);
+  const [offerStillActive, setOfferStillActive] = useState(false);
   const [justMarkedDone, setJustMarkedDone] = useState(false);
   const [isMarkingDone, setIsMarkingDone] = useState(false);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
@@ -66,6 +67,9 @@ function ChatPageInner() {
             : statusResult.data.parentStatus !== "Active";
         if (done) setIsDone(true);
         if (statusResult.data.bidStatus === "Completed") setIsWinner(true);
+        // A dismissed inquiry leaves the offer itself Active, so the banner
+        // must not claim the offer is closed when it is still in the feed.
+        setOfferStillActive(statusResult.data.parentStatus === "Active");
       }
       const reviews = reviewsResult.data ?? [];
       if (reviews.length > 0) {
@@ -89,7 +93,11 @@ function ChatPageInner() {
         ? isWinner
           ? "This request was closed. You can leave a review."
           : "This request was closed."
-        : "This offer is closed."
+        : isWinner
+          ? "This transaction is complete. You can leave a review."
+          : offerStillActive
+            ? "The owner closed this inquiry."
+            : "This offer is closed."
     : null;
 
   const handleMarkDone = async () => {
