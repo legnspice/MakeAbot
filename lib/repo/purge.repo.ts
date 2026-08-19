@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, lt, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { db } from "../db";
 import {
   messages,
@@ -14,8 +14,10 @@ import { retentionCutoff } from "./soft-delete";
 /**
  * Placeholder for an anonymized listing.
  *
- * `title` is NOT NULL, so it cannot be nulled — and it doubles as the
- * "already anonymized" marker that makes a second sweep a genuine no-op.
+ * `title` is NOT NULL, so it cannot be nulled. It is a placeholder value
+ * only — the "already anonymized" marker is the `anonymized_at` column, not
+ * this string, because a user could otherwise title their own listing
+ * exactly this and be excluded from the sweep forever.
  */
 export const ANONYMIZED_TITLE = "[deleted]";
 
@@ -56,7 +58,7 @@ async function dueRequests(cutoff: Date): Promise<Candidate[]> {
       and(
         isNotNull(requests.deleted_at),
         lt(requests.deleted_at, cutoff),
-        ne(requests.title, ANONYMIZED_TITLE),
+        isNull(requests.anonymized_at),
       ),
     );
 }
@@ -74,7 +76,7 @@ async function dueOffers(cutoff: Date): Promise<Candidate[]> {
       and(
         isNotNull(offers.deleted_at),
         lt(offers.deleted_at, cutoff),
-        ne(offers.title, ANONYMIZED_TITLE),
+        isNull(offers.anonymized_at),
       ),
     );
 }
@@ -180,6 +182,7 @@ export async function purgeDueListings(now: Date): Promise<PurgeSummary> {
         description: null,
         incentive: null,
         imgUrl: null,
+        anonymized_at: now,
         updated_at: candidate.updated_at,
       })
       .where(eq(requests.id, candidate.id));
@@ -200,6 +203,7 @@ export async function purgeDueListings(now: Date): Promise<PurgeSummary> {
         description: null,
         incentive: null,
         imgUrl: null,
+        anonymized_at: now,
         updated_at: candidate.updated_at,
       })
       .where(eq(offers.id, candidate.id));

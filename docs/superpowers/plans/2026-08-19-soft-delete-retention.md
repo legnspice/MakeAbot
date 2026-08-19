@@ -4,7 +4,7 @@
 
 **Goal:** Make Delete hide immediately and anonymize after 30 days, so it stops cascading away reviews in both directions and stops outliving its own evidence for reports.
 
-**Architecture:** Five nullable `deleted_at` columns. Every read in the four affected repos gains a `notDeleted()` predicate, applied in the repo layer only. Delete paths become soft and cascade the tombstone explicitly, since `ON DELETE CASCADE` does not fire for an update. A fourth step in the `expire-bids` cron anonymizes listings and hard-deletes messages past the window, skipping anything an open report references. Bids persist as tombstones forever because reviews cascade from them. A source-level test then locks the read rule in place.
+**Architecture:** Five nullable `deleted_at` columns, plus a nullable `anonymized_at` on `requests` and `offers` marking rows the purge sweep has already stripped (a real column, not a magic `title` string, since the latter is user-settable and forgeable). Every read in the four affected repos gains a `notDeleted()` predicate, applied in the repo layer only. Delete paths become soft and cascade the tombstone explicitly, since `ON DELETE CASCADE` does not fire for an update. A fourth step in the `expire-bids` cron anonymizes listings and hard-deletes messages past the window, skipping anything an open report references. Bids persist as tombstones forever because reviews cascade from them. A source-level test then locks the read rule in place.
 
 **Tech Stack:** Next.js 16 App Router, Drizzle ORM over Supabase Postgres (transaction-mode pooler, `prepare: false`), Jest, Zod, Tailwind 4.
 
@@ -29,7 +29,7 @@
 
 | File | Change | Responsibility |
 |---|---|---|
-| `lib/db/schema.ts` | Modify | `deleted_at` on 5 tables |
+| `lib/db/schema.ts` | Modify | `deleted_at` on 5 tables; `anonymized_at` on `requests`, `offers` |
 | `lib/repo/soft-delete.ts` | **Create** | `notDeleted()`, `RETENTION_DAYS`, `retentionCutoff()` |
 | `lib/repo/messages.repo.ts` | Modify | Filter 4 reads; soft-delete `deleteMessage` |
 | `lib/repo/offers.repo.ts` | Modify | Filter 5 reads + write-internal selects; soft delete + cascade |

@@ -134,8 +134,13 @@ surfaces get their own narrow repo functions that explicitly select tombstones.
 
 This spec **requires DDL**, unlike the close-model work: `deleted_at timestamp`
 (nullable, no default) on `requests`, `offers`, `request_bids`, `offer_bids`,
-`messages`. Five columns, all additive, no backfill — every existing row is
-correctly `NULL`.
+`messages`, plus `anonymized_at timestamp` (nullable, no default) on
+`requests` and `offers`. Seven columns, all additive, no backfill — every
+existing row is correctly `NULL`. `anonymized_at` exists because the sweep's
+original "already anonymized" check compared `title` against a fixed
+placeholder string, which a user could set on their own listing to escape the
+sweep forever; a real column that only the sweep ever writes closes that
+hole.
 
 Per project convention this runs as `pnpm drizzle-kit push`, never
 `generate`/`migrate`. **Niles runs it**, for the same reason as the close-model

@@ -114,6 +114,10 @@ export const requests = pgTable("requests", {
   // Soft delete. NULL means live.
   // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
   deleted_at: timestamp("deleted_at"),
+  // Set once the purge sweep anonymizes this row. NULL means not yet swept —
+  // this is the real "already anonymized" marker; `title` is a placeholder
+  // value only, never the sentinel (it is user-settable, so it was forgeable).
+  anonymized_at: timestamp("anonymized_at"),
 });
 
 export const offers = pgTable("offers", {
@@ -138,6 +142,10 @@ export const offers = pgTable("offers", {
   // Soft delete. NULL means live.
   // See docs/superpowers/specs/2026-08-19-soft-delete-retention-design.md
   deleted_at: timestamp("deleted_at"),
+  // Set once the purge sweep anonymizes this row. NULL means not yet swept —
+  // this is the real "already anonymized" marker; `title` is a placeholder
+  // value only, never the sentinel (it is user-settable, so it was forgeable).
+  anonymized_at: timestamp("anonymized_at"),
 });
 
 export const request_bids = pgTable("request_bids", {

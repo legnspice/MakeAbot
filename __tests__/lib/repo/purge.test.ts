@@ -14,7 +14,7 @@ type Row = Record<string, unknown>;
 
 /** Every db operation the sweep issued, in order, for assertions. */
 type Op =
-  | { kind: "select"; table: string; params: unknown[] }
+  | { kind: "select"; table: string; params: unknown[]; sql: string }
   | { kind: "delete"; table: string; params: unknown[] }
   | { kind: "update"; table: string; values: Row; params: unknown[] };
 
@@ -38,6 +38,41 @@ function boundParams(node: unknown, out: unknown[] = []): unknown[] {
   if (n.queryChunks !== undefined) return boundParams(n.queryChunks, out);
   if (n.encoder !== undefined && "value" in n) out.push(n.value);
   return out;
+}
+
+/**
+ * Render the *operator text* of a Drizzle SQL predicate, e.g.
+ * `"( is not null and  <  and  is null)"`.
+ *
+ * `boundParams` only proves the right value was bound; it says nothing about
+ * which comparison bound it, so `lt` -> `gt` or `isNull` -> `isNotNull`
+ * would pass silently. Drizzle's SQL tree stores literal SQL text as
+ * `StringChunk`s (a bare array-valued node with no `encoder`) interleaved
+ * with the column/param nodes, so collecting just those chunks reconstructs
+ * the operators in source order without the identifiers or bound values
+ * getting in the way.
+ */
+function sqlText(node: unknown, out: string[] = []): string {
+  if (!node || typeof node !== "object") return out.join("");
+  if (Array.isArray(node)) {
+    for (const child of node) sqlText(child, out);
+    return out.join("");
+  }
+  const n = node as {
+    queryChunks?: unknown;
+    value?: unknown;
+    encoder?: unknown;
+  };
+  if (
+    n.value !== undefined &&
+    Array.isArray(n.value) &&
+    n.encoder === undefined
+  ) {
+    out.push(...n.value.filter((v): v is string => typeof v === "string"));
+    return out.join("");
+  }
+  if (n.queryChunks !== undefined) sqlText(n.queryChunks, out);
+  return out.join("");
 }
 
 let ops: Op[];
@@ -65,7 +100,12 @@ function installDbMock() {
     from: (table: object) => ({
       where: (w: unknown) => {
         const name = getTableName(table as never);
-        ops.push({ kind: "select", table: name, params: boundParams(w) });
+        ops.push({
+          kind: "select",
+          table: name,
+          params: boundParams(w),
+          sql: sqlText(w),
+        });
         return Promise.resolve(nextFor(selectResults, name));
       },
     }),
@@ -160,6 +200,7 @@ describe("purgeDueListings", () => {
       description: null,
       incentive: null,
       imgUrl: null,
+      anonymized_at: NOW,
       updated_at: OLD,
     });
     // Nothing else may be written — fee/price/urgency/status/user_id/timestamps stay.
@@ -218,11 +259,25 @@ describe("purgeDueListings", () => {
 
     const cutoff = retentionCutoff(NOW);
     for (const table of ["requests", "offers"]) {
-      const op = ops.find((o) => o.kind === "select" && o.table === table)!;
+      const op = ops.find(
+        (o) => o.kind === "select" && o.table === table,
+      ) as Extract<Op, { kind: "select" }>;
       expect(op).toBeDefined();
       expect(op.params).toContainEqual(cutoff);
       // Sanity: the cutoff is RETENTION_DAYS back, not "now".
       expect(cutoff.getTime()).toBe(NOW.getTime() - RETENTION_DAYS * DAY);
+      // Operator coverage: `boundParams` above only proves the cutoff value
+      // was bound *somewhere* — it would still pass if `lt` became `gt`, or
+      // if `isNull(anonymized_at)` became `isNotNull(anonymized_at)`. The
+      // mock replays whatever rows a test queues regardless of the predicate
+      // it's given, so a behavioural "two rows, only the older one swept"
+      // test can't distinguish those inversions either — it would pass
+      // against a broken predicate just as easily. Assert on the generated
+      // SQL text instead, which does encode the operator.
+      expect(op.sql).toContain(" < ");
+      expect(op.sql).not.toContain(" > ");
+      expect(op.sql.trim().endsWith("is null)")).toBe(true);
+      expect(op.sql).not.toContain("is not null)");
     }
 
     expect(summary).toEqual({
@@ -297,7 +352,7 @@ describe("purgeDueListings", () => {
 
   it("is a no-op on a second run over already-anonymized listings", async () => {
     // Run once for real, then hand the second run what the DB would return:
-    // nothing, because the predicate excludes title = ANONYMIZED_TITLE.
+    // nothing, because the predicate excludes rows with anonymized_at set.
     selectResults = {
       requests: [[candidate("r1")], []],
       offers: [[], []],
@@ -322,13 +377,20 @@ describe("purgeDueListings", () => {
     expect(ops.slice(opsAfterFirst).every((o) => o.kind === "select")).toBe(
       true,
     );
-    // And the exclusion it relies on is genuinely in the predicate.
+    // And the exclusion it relies on is genuinely in the predicate: a row
+    // with anonymized_at already set is excluded via `isNull(anonymized_at)`,
+    // not by matching on ANONYMIZED_TITLE (which is now just a placeholder
+    // value, not the sentinel — a user-chosen title of "[deleted]" must not
+    // exempt a listing from the sweep). Assert on the generated SQL text so
+    // an inversion to `isNotNull` — which would flip the sweep to target
+    // already-anonymized rows instead of skipping them — fails the test.
     const requestSelects = ops.filter(
       (o) => o.kind === "select" && o.table === "requests",
-    );
+    ) as Extract<Op, { kind: "select" }>[];
     expect(requestSelects).toHaveLength(2);
     for (const op of requestSelects) {
-      expect(op.params).toContain(ANONYMIZED_TITLE);
+      expect(op.sql.trim().endsWith("is null)")).toBe(true);
+      expect(op.sql).not.toContain("is not null)");
     }
   });
 });
