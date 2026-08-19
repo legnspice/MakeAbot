@@ -138,11 +138,12 @@ function ChatPageInner() {
       <Navbar />
 
       {/* Header */}
-      <header className="h-14 border-b border-gray-200 bg-white shrink-0">
-        {/* The shell behaviour (h-14, shrink-0, the full-bleed bottom rule)
-            stays on <header>; only the content is capped, so the header,
-            banner and message column share one set of edges. */}
-        <div className="h-full w-full max-w-4xl mx-auto flex items-center px-4 gap-3">
+      <header className="h-14 bg-white shrink-0">
+        {/* The shell behaviour (h-14, shrink-0) stays on <header>; the bottom
+            rule moves onto the capped inner wrapper along with the content,
+            so the rule ends where the content ends instead of full-bleeding
+            under it. */}
+        <div className="h-full w-full max-w-4xl mx-auto flex items-center px-4 gap-3 border-b border-gray-200">
           <button
             type="button"
             onClick={() => router.back()}
@@ -213,8 +214,8 @@ function ChatPageInner() {
 
       {/* Completion banner */}
       {bannerText && (
-        <div className="bg-green-50 border-b border-green-200 shrink-0">
-          <div className="w-full max-w-4xl mx-auto px-4 py-2 text-sm text-green-700 font-medium text-center">
+        <div className="shrink-0">
+          <div className="w-full max-w-4xl mx-auto px-4 py-2 text-sm text-green-700 font-medium text-center bg-green-50 border-b border-green-200">
             {bannerText}
           </div>
         </div>
