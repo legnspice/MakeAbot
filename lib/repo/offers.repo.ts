@@ -180,7 +180,9 @@ export async function updateOffer(
   return await db
     .update(offers)
     .set(data)
-    .where(and(eq(offers.id, id), eq(offers.user_id, userId)));
+    .where(
+      and(eq(offers.id, id), eq(offers.user_id, userId), notDeleted(offers)),
+    );
 }
 
 /**
@@ -214,7 +216,13 @@ export async function updateOfferBidStatusForBidder(
   return await db
     .update(offer_bids)
     .set({ status })
-    .where(and(eq(offer_bids.id, bidId), eq(offer_bids.bidder_id, bidderId)));
+    .where(
+      and(
+        eq(offer_bids.id, bidId),
+        eq(offer_bids.bidder_id, bidderId),
+        notDeleted(offer_bids),
+      ),
+    );
 }
 
 /**

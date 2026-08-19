@@ -85,7 +85,35 @@ describe("deals actions", () => {
       const result = await getDealStatus("bad-bid", "request");
 
       expect(result.data).toBeNull();
-      expect(result.error).toBe("Something went wrong");
+      expect(result.error).toBe("Request bid not found");
+    });
+
+    it("returns error when offer bid not found", async () => {
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(null);
+
+      const result = await getDealStatus("bad-bid", "offer");
+
+      expect(result.data).toBeNull();
+      expect(result.error).toBe("Offer bid not found");
+    });
+
+    it("allows a party (the bidder) to read the deal status", async () => {
+      mockRequireAuth.mockResolvedValue({ id: "bidder-1" });
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(requestDeal);
+
+      const result = await getDealStatus("bid-1", "request");
+
+      expect(result.data?.parentId).toBe("req-1");
+    });
+
+    it("rejects a caller who is not a party to the deal", async () => {
+      mockRequireAuth.mockResolvedValue({ id: "some-stranger" });
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(requestDeal);
+
+      const result = await getDealStatus("bid-1", "request");
+
+      expect(result.data).toBeNull();
+      expect(result.error).toBe("You are not part of this conversation");
     });
   });
 

@@ -26,9 +26,17 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
     // eligibility rule, so the bid and its parent are read exactly once.
     const deal = await reviewsService.resolveDeal(bidId, kind);
     if (!deal)
-      throw new Error(
+      throw new AppError(
         kind === "request" ? "Request bid not found" : "Offer bid not found",
+        404,
       );
+
+    // Only a party to this deal (the bidder or the parent's owner) may read
+    // its status — bid ids are UUIDs, not practically enumerable, but this
+    // keeps getDealStatus in line with every other authorization check in
+    // this file.
+    if (!deal.ids.has(user.id))
+      throw new AppError("You are not part of this conversation", 403);
 
     // Review eligibility is decided by the server, once
     // (reviews.service.reviewEligibility). The client renders this boolean and
