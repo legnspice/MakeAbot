@@ -211,7 +211,7 @@ export const ChatRoom = ({
           : ((await getDealStatus(bid_id, dealKind)).data?.canReview ?? false);
       if (eligible) setRatingOpen(true);
     })();
-  }, [bid_id, dealKind, dealDone, canReview, hasReviewed]);
+  }, [bid_id, dealKind, publicUser.id, dealDone, canReview, hasReviewed]);
 
   const handleRatingClose = () => {
     setRatingOpen(false);

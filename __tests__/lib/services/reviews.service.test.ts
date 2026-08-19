@@ -1,4 +1,8 @@
-import { reviewEligibility, createReview } from "@/lib/services/reviews.service";
+import {
+  reviewEligibility,
+  resolveDeal,
+  createReview,
+} from "@/lib/services/reviews.service";
 import * as reviewsRepo from "@/lib/repo/reviews.repo";
 import * as offersRepo from "@/lib/repo/offers.repo";
 import * as requestsRepo from "@/lib/repo/requests.repo";
@@ -74,6 +78,16 @@ describe("reviewEligibility", () => {
     });
   });
 
+  it('refuses with "not-found" when the parent is gone', async () => {
+    mockOfferDeal("Completed");
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(reviewEligibility("bid-1", "offer", OWNER)).resolves.toEqual({
+      ok: false,
+      reason: "not-found",
+    });
+  });
+
   it('refuses with "not-completed" for a Pending bid', async () => {
     mockOfferDeal("Pending");
 
@@ -109,6 +123,51 @@ describe("reviewEligibility", () => {
       ok: false,
       reason: "already-reviewed",
     });
+  });
+});
+
+describe("a pre-resolved deal is never resolved twice", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (reviewsRepo.findReviewByCreatorAndBid as jest.Mock).mockResolvedValue(
+      undefined,
+    );
+  });
+
+  it("reviewEligibility skips resolution when handed a deal", async () => {
+    mockOfferDeal("Completed");
+    const deal = await resolveDeal("bid-1", "offer");
+    (offersRepo.findOfferBidById as jest.Mock).mockClear();
+    (offersRepo.findOfferById as jest.Mock).mockClear();
+
+    await expect(
+      reviewEligibility("bid-1", "offer", OWNER, deal),
+    ).resolves.toEqual({ ok: true });
+
+    expect(offersRepo.findOfferBidById).not.toHaveBeenCalled();
+    expect(offersRepo.findOfferById).not.toHaveBeenCalled();
+  });
+
+  it('treats an explicitly null deal as "not-found" without re-reading', async () => {
+    await expect(
+      reviewEligibility("bid-1", "offer", OWNER, null),
+    ).resolves.toEqual({ ok: false, reason: "not-found" });
+    expect(offersRepo.findOfferBidById).not.toHaveBeenCalled();
+  });
+
+  it("createReview reads the bid and its parent exactly once", async () => {
+    mockOfferDeal("Completed");
+    (reviewsRepo.insertReview as jest.Mock).mockResolvedValue([{ id: "r-1" }]);
+
+    await createReview({
+      creator_id: OWNER,
+      rated_user_id: BIDDER,
+      rating: 5,
+      offer_bid_id: "bid-1",
+    } as never);
+
+    expect(offersRepo.findOfferBidById).toHaveBeenCalledTimes(1);
+    expect(offersRepo.findOfferById).toHaveBeenCalledTimes(1);
   });
 });
 

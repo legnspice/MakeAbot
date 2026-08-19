@@ -26,51 +26,34 @@ describe("deals actions", () => {
       ok: false,
       reason: "not-completed",
     });
+    (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(null);
   });
 
   describe("getDealStatus", () => {
+    const requestDeal = {
+      bidStatus: "Pending",
+      bidderId: "bidder-1",
+      parentId: "req-1",
+      parentStatus: "Active",
+      ownerUserId: "user-owner",
+      ids: new Set(["bidder-1", "user-owner"]),
+    };
+    const offerDeal = { ...requestDeal, parentId: "offer-1" };
+
     it("returns parentStatus, ownerUserId, and parentId for a request bid", async () => {
-      (requestsService.getRequestBids as jest.Mock).mockResolvedValue([
-        { id: "bid-1", request_id: "req-1", bidder_id: "bidder-1", status: "Pending" },
-      ]);
-      (requestsService.getRequests as jest.Mock).mockResolvedValue([
-        { id: "req-1", user_id: "user-owner", status: "Active" },
-      ]);
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(requestDeal);
 
       const result = await getDealStatus("bid-1", "request");
 
       expect(result.data?.parentStatus).toBe("Active");
       expect(result.data?.ownerUserId).toBe("user-owner");
       expect(result.data?.parentId).toBe("req-1");
+      expect(result.data?.bidStatus).toBe("Pending");
       expect(result.data?.canReview).toBe(false);
     });
 
-    it("reports canReview straight from the server-side eligibility rule", async () => {
-      (requestsService.getRequestBids as jest.Mock).mockResolvedValue([
-        { id: "bid-1", request_id: "req-1", bidder_id: "bidder-1", status: "Completed" },
-      ]);
-      (requestsService.getRequests as jest.Mock).mockResolvedValue([
-        { id: "req-1", user_id: "user-owner", status: "Completed" },
-      ]);
-      (reviewsService.reviewEligibility as jest.Mock).mockResolvedValue({ ok: true });
-
-      const result = await getDealStatus("bid-1", "request");
-
-      expect(reviewsService.reviewEligibility).toHaveBeenCalledWith(
-        "bid-1",
-        "request",
-        "user-owner",
-      );
-      expect(result.data?.canReview).toBe(true);
-    });
-
     it("returns parentStatus, ownerUserId, and parentId for an offer bid", async () => {
-      (offersService.getOfferBids as jest.Mock).mockResolvedValue([
-        { id: "bid-1", offer_id: "offer-1", bidder_id: "bidder-1", status: "Pending" },
-      ]);
-      (offersService.getOffers as jest.Mock).mockResolvedValue([
-        { id: "offer-1", user_id: "user-owner", status: "Active" },
-      ]);
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(offerDeal);
 
       const result = await getDealStatus("bid-1", "offer");
 
@@ -79,8 +62,25 @@ describe("deals actions", () => {
       expect(result.data?.parentId).toBe("offer-1");
     });
 
+    it("resolves the deal once and hands it to the eligibility rule", async () => {
+      const completed = { ...requestDeal, bidStatus: "Completed" };
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(completed);
+      (reviewsService.reviewEligibility as jest.Mock).mockResolvedValue({ ok: true });
+
+      const result = await getDealStatus("bid-1", "request");
+
+      expect(reviewsService.resolveDeal).toHaveBeenCalledTimes(1);
+      expect(reviewsService.reviewEligibility).toHaveBeenCalledWith(
+        "bid-1",
+        "request",
+        "user-owner",
+        completed,
+      );
+      expect(result.data?.canReview).toBe(true);
+    });
+
     it("returns error when bid not found", async () => {
-      (requestsService.getRequestBids as jest.Mock).mockResolvedValue([]);
+      (reviewsService.resolveDeal as jest.Mock).mockResolvedValue(null);
 
       const result = await getDealStatus("bad-bid", "request");
 

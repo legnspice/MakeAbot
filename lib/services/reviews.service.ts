@@ -20,43 +20,75 @@ export type ReviewEligibility =
     };
 
 /**
- * The two parties on a deal, plus the bid's status. Resolved once here so the
- * eligibility rule and the counterparty check never read the deal differently.
+ * A deal resolved once: the bid, its parent, and the two parties. This is the
+ * only place that knows who the parties on a deal are. Callers that need the
+ * deal's own fields (see `getDealStatus`) read them from here and hand the
+ * result to `reviewEligibility`, so a deal is never resolved twice.
+ * Returns null when either the bid or its parent is missing.
  */
-async function dealParties(bidId: string, kind: "offer" | "request") {
+export type ResolvedDeal = {
+  bidStatus: string;
+  bidderId: string;
+  parentId: string;
+  parentStatus: string;
+  ownerUserId: string | null;
+  /** The parties: bidder + parent owner. */
+  ids: Set<string | null>;
+};
+
+export async function resolveDeal(
+  bidId: string,
+  kind: "offer" | "request",
+): Promise<ResolvedDeal | null> {
   if (kind === "offer") {
     const bid = await offersRepo.findOfferBidById(bidId);
     if (!bid) return null;
     const offer = await offersRepo.findOfferById(bid.offer_id);
+    if (!offer) return null;
     return {
-      status: bid.status as string,
-      ids: new Set<string | null | undefined>([bid.bidder_id, offer?.user_id]),
+      bidStatus: bid.status,
+      bidderId: bid.bidder_id,
+      parentId: offer.id,
+      parentStatus: offer.status,
+      ownerUserId: offer.user_id,
+      ids: new Set<string | null>([bid.bidder_id, offer.user_id]),
     };
   }
   const bid = await requestsRepo.findRequestBidById(bidId);
   if (!bid) return null;
   const req = await requestsRepo.findRequestById(bid.request_id);
+  if (!req) return null;
   return {
-    status: bid.status as string,
-    ids: new Set<string | null | undefined>([bid.bidder_id, req?.user_id]),
+    bidStatus: bid.status,
+    bidderId: bid.bidder_id,
+    parentId: req.id,
+    parentStatus: req.status,
+    ownerUserId: req.user_id,
+    ids: new Set<string | null>([bid.bidder_id, req.user_id]),
   };
 }
 
 /**
- * THE review rule — the only place that decides whether a user may review a
+ * THE review rule -- the only place that decides whether a user may review a
  * deal. Both the read path (`getDealStatus`) and the write path
  * (`createReview`) go through this, so a client can never be prompted for a
  * review the server would refuse.
+ *
+ * `deal` lets a caller that has already resolved the deal pass it in; omit it
+ * and this resolves the deal itself. Passing `null` means "already looked, not
+ * there".
  */
 export async function reviewEligibility(
   bidId: string,
   kind: "offer" | "request",
   userId: string,
+  deal?: ResolvedDeal | null,
 ): Promise<ReviewEligibility> {
-  const deal = await dealParties(bidId, kind);
-  if (!deal) return { ok: false, reason: "not-found" };
-  if (deal.status !== "Completed") return { ok: false, reason: "not-completed" };
-  if (!deal.ids.has(userId)) return { ok: false, reason: "not-a-party" };
+  const resolved = deal === undefined ? await resolveDeal(bidId, kind) : deal;
+  if (!resolved) return { ok: false, reason: "not-found" };
+  if (resolved.bidStatus !== "Completed")
+    return { ok: false, reason: "not-completed" };
+  if (!resolved.ids.has(userId)) return { ok: false, reason: "not-a-party" };
 
   const existing = await reviewsRepo.findReviewByCreatorAndBid(
     userId,
@@ -82,11 +114,12 @@ export async function createReview(data: InsertReviewSchema) {
   // check runs between the two throws so the original precedence survives:
   // "not a completed deal you were part of" (403) outranks "already
   // reviewed" (409).
-  const deal = await dealParties(ref.bidId, ref.kind);
+  const deal = await resolveDeal(ref.bidId, ref.kind);
   const eligibility = await reviewEligibility(
     ref.bidId,
     ref.kind,
     data.creator_id,
+    deal,
   );
 
   const notPartOfDeal =

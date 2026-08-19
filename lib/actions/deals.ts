@@ -22,40 +22,26 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
   }>(async () => {
     const user = await requireAuth();
 
+    // One resolution of the deal serves both this action's fields and the
+    // eligibility rule, so the bid and its parent are read exactly once.
+    const deal = await reviewsService.resolveDeal(bidId, kind);
+    if (!deal)
+      throw new Error(
+        kind === "request" ? "Request bid not found" : "Offer bid not found",
+      );
+
     // Review eligibility is decided by the server, once
     // (reviews.service.reviewEligibility). The client renders this boolean and
     // derives nothing from bidStatus.
     const canReview = (
-      await reviewsService.reviewEligibility(bidId, kind, user.id)
+      await reviewsService.reviewEligibility(bidId, kind, user.id, deal)
     ).ok;
 
-    if (kind === "request") {
-      const bids = await requestsService.getRequestBids({ id: bidId });
-      const bid = bids[0];
-      if (!bid) throw new Error("Request bid not found");
-      const reqs = await requestsService.getRequests({ id: bid.request_id });
-      const req = reqs[0];
-      if (!req) throw new Error("Request not found");
-      return {
-        parentStatus: req.status,
-        bidStatus: bid.status,
-        ownerUserId: req.user_id,
-        parentId: req.id,
-        canReview,
-      };
-    }
-
-    const bids = await offersService.getOfferBids({ id: bidId });
-    const bid = bids[0];
-    if (!bid) throw new Error("Offer bid not found");
-    const offersList = await offersService.getOffers({ id: bid.offer_id });
-    const offer = offersList[0];
-    if (!offer) throw new Error("Offer not found");
     return {
-      parentStatus: offer.status,
-      bidStatus: bid.status,
-      ownerUserId: offer.user_id,
-      parentId: offer.id,
+      parentStatus: deal.parentStatus,
+      bidStatus: deal.bidStatus,
+      ownerUserId: deal.ownerUserId,
+      parentId: deal.parentId,
       canReview,
     };
   });
