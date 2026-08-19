@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/actions/auth";
 import * as offersService from "@/lib/services/offers.service";
 import * as requestsService from "@/lib/services/requests.service";
 import * as usersService from "@/lib/services/users.service";
+import * as reviewsService from "@/lib/services/reviews.service";
 import { sendPushToUser } from "@/lib/services/push.service";
 import { runAfterResponse } from "@/lib/after-response";
 
@@ -17,8 +18,16 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
     bidStatus: string;
     ownerUserId: string | null;
     parentId: string;
+    canReview: boolean;
   }>(async () => {
-    await requireAuth();
+    const user = await requireAuth();
+
+    // Review eligibility is decided by the server, once
+    // (reviews.service.reviewEligibility). The client renders this boolean and
+    // derives nothing from bidStatus.
+    const canReview = (
+      await reviewsService.reviewEligibility(bidId, kind, user.id)
+    ).ok;
 
     if (kind === "request") {
       const bids = await requestsService.getRequestBids({ id: bidId });
@@ -32,6 +41,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
         bidStatus: bid.status,
         ownerUserId: req.user_id,
         parentId: req.id,
+        canReview,
       };
     }
 
@@ -46,6 +56,7 @@ export async function getDealStatus(bidId: string, kind: DealKind) {
       bidStatus: bid.status,
       ownerUserId: offer.user_id,
       parentId: offer.id,
+      canReview,
     };
   });
 }

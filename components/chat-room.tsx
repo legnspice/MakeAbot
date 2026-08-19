@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import type { SelectMessage } from "@/lib/db/schema";
 import { useAuth } from "@/contexts/auth-context";
 import { getPublicUsers } from "@/lib/actions/users";
-import { getReviews } from "@/lib/actions/reviews";
 import { getDealStatus } from "@/lib/actions/deals";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -36,7 +35,9 @@ interface ChatRoomProps {
   otherName?: string;
   otherAvatarUrl?: string;
   dealDone?: boolean;
-  reviewEligible?: boolean;
+  /** Server-decided review eligibility. Passed by the chat page; when absent
+   *  this component asks the server itself. Never derived on the client. */
+  canReview?: boolean;
 }
 export const ChatRoom = ({
   other_user_id,
@@ -46,7 +47,7 @@ export const ChatRoom = ({
   otherName,
   otherAvatarUrl: otherAvatarUrlProp,
   dealDone,
-  reviewEligible,
+  canReview,
 }: ChatRoomProps) => {
   const [dbMessages, setDbMessages] = useState<SelectMessage[]>([]);
   const [otherUserName, setOtherUserName] = useState("Unknown User");
@@ -198,33 +199,19 @@ export const ChatRoom = ({
   const [ratingOpen, setRatingOpen] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
 
-  // Check if user already left a review for this deal
+  // Review eligibility is decided on the server (reviewEligibility) and simply
+  // rendered here: it already accounts for bid completion, party membership and
+  // whether this user has reviewed. Nothing is re-derived client-side.
   useEffect(() => {
-    if (!bid_id) return;
+    if (!bid_id || hasReviewed) return;
     (async () => {
-      let eligible: boolean;
-      if (reviewEligible !== undefined) {
-        eligible = reviewEligible;
-      } else {
-        const statusResult = await getDealStatus(bid_id, dealKind);
-        // Keyed off the bid, not the parent: on a closed request, only the
-        // threads that actually conversed reach Completed.
-        eligible = statusResult.data?.bidStatus === "Completed";
-      }
-
-      if (eligible) {
-        const reviewsResult = await getReviews({
-          creator_id: publicUser.id,
-          ...(request_bid_id
-            ? { request_bid_id }
-            : { offer_bid_id: offer_bid_id! }),
-        });
-        const alreadyReviewed = (reviewsResult.data ?? []).length > 0;
-        setHasReviewed(alreadyReviewed);
-        if (!alreadyReviewed) setRatingOpen(true);
-      }
+      const eligible =
+        canReview !== undefined
+          ? canReview
+          : ((await getDealStatus(bid_id, dealKind)).data?.canReview ?? false);
+      if (eligible) setRatingOpen(true);
     })();
-  }, [bid_id, dealKind, publicUser.id, request_bid_id, offer_bid_id, dealDone, reviewEligible]);
+  }, [bid_id, dealKind, dealDone, canReview, hasReviewed]);
 
   const handleRatingClose = () => {
     setRatingOpen(false);

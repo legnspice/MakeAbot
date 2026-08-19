@@ -12,6 +12,62 @@ export async function getReviews(filters: FindReviewsSchema) {
   return await reviewsRepo.findReviews(filters);
 }
 
+export type ReviewEligibility =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "not-found" | "not-completed" | "not-a-party" | "already-reviewed";
+    };
+
+/**
+ * The two parties on a deal, plus the bid's status. Resolved once here so the
+ * eligibility rule and the counterparty check never read the deal differently.
+ */
+async function dealParties(bidId: string, kind: "offer" | "request") {
+  if (kind === "offer") {
+    const bid = await offersRepo.findOfferBidById(bidId);
+    if (!bid) return null;
+    const offer = await offersRepo.findOfferById(bid.offer_id);
+    return {
+      status: bid.status as string,
+      ids: new Set<string | null | undefined>([bid.bidder_id, offer?.user_id]),
+    };
+  }
+  const bid = await requestsRepo.findRequestBidById(bidId);
+  if (!bid) return null;
+  const req = await requestsRepo.findRequestById(bid.request_id);
+  return {
+    status: bid.status as string,
+    ids: new Set<string | null | undefined>([bid.bidder_id, req?.user_id]),
+  };
+}
+
+/**
+ * THE review rule — the only place that decides whether a user may review a
+ * deal. Both the read path (`getDealStatus`) and the write path
+ * (`createReview`) go through this, so a client can never be prompted for a
+ * review the server would refuse.
+ */
+export async function reviewEligibility(
+  bidId: string,
+  kind: "offer" | "request",
+  userId: string,
+): Promise<ReviewEligibility> {
+  const deal = await dealParties(bidId, kind);
+  if (!deal) return { ok: false, reason: "not-found" };
+  if (deal.status !== "Completed") return { ok: false, reason: "not-completed" };
+  if (!deal.ids.has(userId)) return { ok: false, reason: "not-a-party" };
+
+  const existing = await reviewsRepo.findReviewByCreatorAndBid(
+    userId,
+    kind,
+    bidId,
+  );
+  if (existing) return { ok: false, reason: "already-reviewed" };
+
+  return { ok: true };
+}
+
 export async function createReview(data: InsertReviewSchema) {
   if (data.creator_id === data.rated_user_id) {
     throw new AppError("You can't review yourself.", 400);
@@ -22,45 +78,27 @@ export async function createReview(data: InsertReviewSchema) {
     throw new AppError("A review must reference exactly one deal.", 400);
   }
 
-  // Verify the referenced bid is a COMPLETED deal linking the reviewer and the rated user.
-  let bidderId: string | undefined;
-  let ownerId: string | null | undefined;
-  let status: string | undefined;
-  if (ref.kind === "offer") {
-    const bid = await offersRepo.findOfferBidById(ref.bidId);
-    if (bid) {
-      bidderId = bid.bidder_id;
-      status = bid.status;
-      const offer = await offersRepo.findOfferById(bid.offer_id);
-      ownerId = offer?.user_id;
-    }
-  } else {
-    const bid = await requestsRepo.findRequestBidById(ref.bidId);
-    if (bid) {
-      bidderId = bid.bidder_id;
-      status = bid.status;
-      const req = await requestsRepo.findRequestById(bid.request_id);
-      ownerId = req?.user_id;
-    }
-  }
+  // The server decides eligibility in exactly one place. The counterparty
+  // check runs between the two throws so the original precedence survives:
+  // "not a completed deal you were part of" (403) outranks "already
+  // reviewed" (409).
+  const deal = await dealParties(ref.bidId, ref.kind);
+  const eligibility = await reviewEligibility(
+    ref.bidId,
+    ref.kind,
+    data.creator_id,
+  );
 
-  const parties = new Set([bidderId, ownerId]);
-  const linksBoth =
-    parties.has(data.creator_id) && parties.has(data.rated_user_id);
-  if (status !== "Completed" || !linksBoth) {
+  const notPartOfDeal =
+    (!eligibility.ok && eligibility.reason !== "already-reviewed") ||
+    !deal?.ids.has(data.rated_user_id);
+  if (notPartOfDeal) {
     throw new AppError(
       "You can only review a completed deal you were part of.",
       403,
     );
   }
-
-  // One review per reviewer per deal.
-  const existing = await reviewsRepo.findReviewByCreatorAndBid(
-    data.creator_id,
-    ref.kind,
-    ref.bidId,
-  );
-  if (existing) {
+  if (!eligibility.ok) {
     throw new AppError("You've already reviewed this deal.", 409);
   }
 

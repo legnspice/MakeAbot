@@ -32,7 +32,8 @@ function ChatPageInner() {
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [parentId, setParentId] = useState("");
   const [isDone, setIsDone] = useState(false);
-  const [isWinner, setIsWinner] = useState(false);
+  // Server-decided: getDealStatus.canReview. Never derived here.
+  const [canReview, setCanReview] = useState(false);
   const [offerStillActive, setOfferStillActive] = useState(false);
   const [justMarkedDone, setJustMarkedDone] = useState(false);
   const [isMarkingDone, setIsMarkingDone] = useState(false);
@@ -66,7 +67,7 @@ function ChatPageInner() {
               statusResult.data.parentStatus !== "Active"
             : statusResult.data.parentStatus !== "Active";
         if (done) setIsDone(true);
-        if (statusResult.data.bidStatus === "Completed") setIsWinner(true);
+        setCanReview(statusResult.data.canReview);
         // A dismissed inquiry leaves the offer itself Active, so the banner
         // must not claim the offer is closed when it is still in the feed.
         setOfferStillActive(statusResult.data.parentStatus === "Active");
@@ -90,10 +91,10 @@ function ChatPageInner() {
     ? justMarkedDone
       ? "This deal has been marked done."
       : kind === "request"
-        ? isWinner
+        ? canReview
           ? "This request was closed. You can leave a review."
           : "This request was closed."
-        : isWinner
+        : canReview
           ? "This transaction is complete. You can leave a review."
           : offerStillActive
             ? "The owner closed this inquiry."
@@ -123,7 +124,7 @@ function ChatPageInner() {
       setJustMarkedDone(true);
       const refreshed = await getDealStatus(bidId, kind);
       if (refreshed.data) {
-        setIsWinner(refreshed.data.bidStatus === "Completed");
+        setCanReview(refreshed.data.canReview);
       }
     } finally {
       setIsMarkingDone(false);
@@ -222,7 +223,7 @@ function ChatPageInner() {
           otherName={otherName}
           otherAvatarUrl={otherAvatarUrl ?? undefined}
           dealDone={isDone}
-          reviewEligible={isWinner}
+          canReview={canReview}
         />
       </div>
       <ReportModal

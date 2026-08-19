@@ -3,12 +3,14 @@ import * as requestsService from "@/lib/services/requests.service";
 import * as offersService from "@/lib/services/offers.service";
 import * as pushService from "@/lib/services/push.service";
 import * as usersService from "@/lib/services/users.service";
+import * as reviewsService from "@/lib/services/reviews.service";
 import * as authModule from "@/lib/actions/auth";
 
 jest.mock("@/lib/services/requests.service");
 jest.mock("@/lib/services/offers.service");
 jest.mock("@/lib/services/push.service");
 jest.mock("@/lib/services/users.service");
+jest.mock("@/lib/services/reviews.service");
 jest.mock("@/lib/actions/auth");
 
 const mockUser = { id: "user-owner" };
@@ -20,6 +22,10 @@ describe("deals actions", () => {
     mockRequireAuth.mockResolvedValue(mockUser);
     (pushService.sendPushToUser as jest.Mock).mockResolvedValue(undefined);
     (usersService.getUsers as jest.Mock).mockResolvedValue([{ id: "user-owner", name: "Owner User" }]);
+    (reviewsService.reviewEligibility as jest.Mock).mockResolvedValue({
+      ok: false,
+      reason: "not-completed",
+    });
   });
 
   describe("getDealStatus", () => {
@@ -36,6 +42,26 @@ describe("deals actions", () => {
       expect(result.data?.parentStatus).toBe("Active");
       expect(result.data?.ownerUserId).toBe("user-owner");
       expect(result.data?.parentId).toBe("req-1");
+      expect(result.data?.canReview).toBe(false);
+    });
+
+    it("reports canReview straight from the server-side eligibility rule", async () => {
+      (requestsService.getRequestBids as jest.Mock).mockResolvedValue([
+        { id: "bid-1", request_id: "req-1", bidder_id: "bidder-1", status: "Completed" },
+      ]);
+      (requestsService.getRequests as jest.Mock).mockResolvedValue([
+        { id: "req-1", user_id: "user-owner", status: "Completed" },
+      ]);
+      (reviewsService.reviewEligibility as jest.Mock).mockResolvedValue({ ok: true });
+
+      const result = await getDealStatus("bid-1", "request");
+
+      expect(reviewsService.reviewEligibility).toHaveBeenCalledWith(
+        "bid-1",
+        "request",
+        "user-owner",
+      );
+      expect(result.data?.canReview).toBe(true);
     });
 
     it("returns parentStatus, ownerUserId, and parentId for an offer bid", async () => {
