@@ -10,7 +10,7 @@ import FilterBar, {
 } from "@/components/ui/filter-bar";
 import { useAuth } from "@/contexts/auth-context";
 import { TrackerPageSkeleton } from "@/components/ui/skeletons/tracker-skeleton";
-import { withdrawOfferBid } from "@/lib/actions/offers";
+import { removeOffer, withdrawOfferBid } from "@/lib/actions/offers";
 import { removeRequest, withdrawRequestBid } from "@/lib/actions/requests";
 import { getTrackerData } from "@/lib/actions/tracker";
 import {
@@ -456,7 +456,8 @@ export default function TrackerPage() {
 
   const handleDeleteRequest = (requestId: string) => {
     setConfirmModal({
-      message: "Are you sure you want to delete this item?",
+      message:
+        "Delete this request? It and its messages will be removed. Reviews you've given and received stay on both profiles.",
       onConfirm: async () => {
         const { error } = await removeRequest(requestId);
         if (error) {
@@ -464,6 +465,21 @@ export default function TrackerPage() {
           return;
         }
         setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      },
+    });
+  };
+
+  const handleDeleteOffer = (offerId: string) => {
+    setConfirmModal({
+      message:
+        "Delete this offer? It and its messages will be removed. Reviews you've given and received stay on both profiles.",
+      onConfirm: async () => {
+        const { error } = await removeOffer(offerId);
+        if (error) {
+          alert(error);
+          return;
+        }
+        setOffers((prev) => prev.filter((o) => o.id !== offerId));
       },
     });
   };
@@ -724,6 +740,19 @@ export default function TrackerPage() {
               onClose={() => setModalData(null)}
               itemId={modalData.id}
               kind={modalData.type}
+              deleteItemLabel={
+                modalData.type === "offer" ? "Delete offer" : "Delete request"
+              }
+              onDeleteItem={() => {
+                const id = modalData.id;
+                const kind = modalData.type;
+                setModalData(null);
+                if (kind === "offer") {
+                  handleDeleteOffer(id);
+                } else {
+                  handleDeleteRequest(id);
+                }
+              }}
               onMarkDone={
                 modalData.isHistory || modalData.type === "request"
                   ? undefined
@@ -795,6 +824,8 @@ function ChatListModal({
   onClose,
   onMarkDone,
   onDismiss,
+  onDeleteItem,
+  deleteItemLabel,
 }: {
   title: string;
   people: { id: string; name: string; bidId: string }[];
@@ -807,6 +838,8 @@ function ChatListModal({
   onClose: () => void;
   onMarkDone?: (bidId: string) => void;
   onDismiss?: (bidId: string) => void;
+  onDeleteItem?: () => void;
+  deleteItemLabel?: string;
   itemId?: string;
   kind?: "offer" | "request";
 }) {
@@ -890,6 +923,15 @@ function ChatListModal({
             </li>
           ))}
         </ul>
+        {onDeleteItem && (
+          <button
+            type="button"
+            onClick={onDeleteItem}
+            className="mt-4 pt-3 border-t border-gray-100 w-full text-center text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
+          >
+            {deleteItemLabel ?? "Delete"}
+          </button>
+        )}
       </div>
     </div>
   );
