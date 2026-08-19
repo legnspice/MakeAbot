@@ -3,6 +3,7 @@ import { expireStaleOfferBids } from "@/lib/services/offers.service";
 import { expireStaleRequestBids } from "@/lib/services/requests.service";
 import { sendPushToUser } from "@/lib/services/push.service";
 import * as notificationsRepo from "@/lib/repo/notifications.repo";
+import { purgeDueListings, type PurgeSummary } from "@/lib/repo/purge.repo";
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -53,10 +54,20 @@ export async function GET(req: NextRequest) {
       console.error("[cron/expire-bids] broadcast prune failed", err);
     }
 
+    // Retention sweep: listings soft-deleted longer than RETENTION_DAYS ago
+    // lose their content. Bids are never deleted — reviews cascade from them.
+    let purged: PurgeSummary | null = null;
+    try {
+      purged = await purgeDueListings(new Date());
+    } catch (err) {
+      console.error("[cron/expire-bids] retention purge failed", err);
+    }
+
     console.log("[cron/expire-bids] completed", {
       expiredOfferBids: offerResults.length,
       expiredRequestBids: requestResults.length,
       prunedBroadcasts,
+      purged,
     });
 
     return NextResponse.json({
@@ -64,6 +75,7 @@ export async function GET(req: NextRequest) {
       expiredOfferBids: offerResults.length,
       expiredRequestBids: requestResults.length,
       prunedBroadcasts,
+      purged,
     });
   } catch (err) {
     console.error("[cron/expire-bids] failed", err);
