@@ -17,8 +17,33 @@ const REPOS = [
   "relationships.repo.ts",
 ];
 
-/** Reads are what must filter; writes carry their own scoping. */
+/**
+ * Reads are what must filter; writes carry their own scoping.
+ *
+ * This list is how the gate below decides what counts as a "read" at all: a
+ * function whose name does not start with one of these prefixes is invisible
+ * to this file's coverage checks, not merely exempt from them — it is never
+ * inspected, so it can omit `notDeleted(...)` with nobody noticing. New read
+ * functions added to these four repo files MUST be named with one of these
+ * prefixes (or this list extended to cover the new name) or they will not be
+ * checked here at all.
+ */
 const READ_PREFIXES = ["find", "get", "has", "relationship"];
+
+/**
+ * Prefixes that read naturally as "this returns rows" but are NOT in
+ * READ_PREFIXES above. A function named with one of these would silently
+ * skip every check in this file. See the guard test below.
+ */
+const READ_LIKE_PREFIXES_NOT_COVERED = [
+  "list",
+  "resolve",
+  "fetch",
+  "select",
+  "query",
+  "load",
+  "read",
+];
 
 function bodiesOf(src: string): Map<string, string> {
   const out = new Map<string, string>();
@@ -55,5 +80,24 @@ describe("soft-delete read coverage", () => {
         expect(bodies.get(name)).toContain("notDeleted(");
       });
     }
+
+    it(`${file} has no exported function named with a read-like prefix that READ_PREFIXES would miss`, () => {
+      const blindSpots = [...bodies.keys()].filter((name) =>
+        READ_LIKE_PREFIXES_NOT_COVERED.some((p) =>
+          name.toLowerCase().startsWith(p),
+        ),
+      );
+
+      if (blindSpots.length > 0) {
+        throw new Error(
+          `${file} exports ${blindSpots.join(", ")}, whose name starts with a ` +
+            `read-like prefix not in READ_PREFIXES (${READ_PREFIXES.join(", ")}). ` +
+            `The soft-delete coverage check above never inspects these functions. ` +
+            `Either rename them to start with one of READ_PREFIXES, or add their ` +
+            `prefix to READ_PREFIXES so this gate actually checks them.`,
+        );
+      }
+      expect(blindSpots).toEqual([]);
+    });
   }
 });

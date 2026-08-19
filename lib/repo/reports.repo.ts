@@ -57,6 +57,37 @@ export async function updateReportStatus(id: string, status: string) {
 }
 
 /**
+ * Builds (without executing) the query behind `findOpenReportTargetIds`.
+ *
+ * Split out purely so tests can call `.toSQL()` on the builder and assert on
+ * the rendered SQL/params without a database connection. Callers with both
+ * arrays empty should use the early return in `findOpenReportTargetIds`
+ * instead of calling this directly — an empty `or()` is a always-false
+ * degenerate clause.
+ */
+export function buildOpenReportTargetsQuery(
+  requestIds: string[],
+  offerIds: string[],
+) {
+  const targets = [
+    requestIds.length > 0
+      ? inArray(reports.reported_request_id, requestIds)
+      : undefined,
+    offerIds.length > 0
+      ? inArray(reports.reported_offer_id, offerIds)
+      : undefined,
+  ].filter((t): t is SQL => Boolean(t));
+
+  return db
+    .select({
+      requestId: reports.reported_request_id,
+      offerId: reports.reported_offer_id,
+    })
+    .from(reports)
+    .where(and(eq(reports.status, "open"), or(...targets)));
+}
+
+/**
  * Which of these listings have an open report against them.
  *
  * The purge skips these so a reported user cannot delete the evidence and wait
@@ -69,22 +100,7 @@ export async function findOpenReportTargetIds(
   const result = { requestIds: new Set<string>(), offerIds: new Set<string>() };
   if (requestIds.length === 0 && offerIds.length === 0) return result;
 
-  const targets = [
-    requestIds.length > 0
-      ? inArray(reports.reported_request_id, requestIds)
-      : undefined,
-    offerIds.length > 0
-      ? inArray(reports.reported_offer_id, offerIds)
-      : undefined,
-  ].filter((t): t is SQL => Boolean(t));
-
-  const rows = await db
-    .select({
-      requestId: reports.reported_request_id,
-      offerId: reports.reported_offer_id,
-    })
-    .from(reports)
-    .where(and(eq(reports.status, "open"), or(...targets)));
+  const rows = await buildOpenReportTargetsQuery(requestIds, offerIds);
 
   for (const r of rows) {
     if (r.requestId) result.requestIds.add(r.requestId);
