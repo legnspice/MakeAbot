@@ -19,13 +19,11 @@ import {
   getOffers,
   getOfferBids,
   createOfferBid,
-  reopenOfferBid,
 } from "@/lib/actions/offers";
 import {
   getRequests,
   getRequestBids,
   createRequestBid,
-  reopenRequestBid,
 } from "@/lib/actions/requests";
 import { getPublicUsers } from "@/lib/actions/users";
 import { excludeOwnItems } from "@/lib/feed";
@@ -234,15 +232,12 @@ export default function Home() {
         offer_id: item.itemDbId,
         bidder_id: currentUser.id,
       });
-      if (existing.data && existing.data.length > 0) {
+      if (
+        existing.data &&
+        existing.data.length > 0 &&
+        existing.data[0].status === "Pending"
+      ) {
         bidId = existing.data[0].id;
-        if (existing.data[0].status === "Closed") {
-          const { error } = await reopenOfferBid(bidId);
-          if (error) {
-            alert(error);
-            return;
-          }
-        }
       } else {
         const { error } = await createOfferBid({
           offer_id: item.itemDbId,
@@ -263,15 +258,12 @@ export default function Home() {
         request_id: item.itemDbId,
         bidder_id: currentUser.id,
       });
-      if (existing.data && existing.data.length > 0) {
+      if (
+        existing.data &&
+        existing.data.length > 0 &&
+        existing.data[0].status === "Pending"
+      ) {
         bidId = existing.data[0].id;
-        if (existing.data[0].status === "Closed") {
-          const { error } = await reopenRequestBid(bidId);
-          if (error) {
-            alert(error);
-            return;
-          }
-        }
       } else {
         const { error } = await createRequestBid({
           request_id: item.itemDbId,

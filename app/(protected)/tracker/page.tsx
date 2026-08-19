@@ -471,7 +471,7 @@ export default function TrackerPage() {
   const renderOfferCard = (card: TrackerOffer, isHistory: boolean) => {
     const counterparty = card.requesters[0];
     const activePeople = card.requesters.filter(
-      (r) => isHistory || r.bidStatus !== "Closed",
+      (r) => isHistory || r.bidStatus === "Pending",
     );
     const onClickHandler = card.isOwned
       ? () =>
@@ -537,7 +537,7 @@ export default function TrackerPage() {
   const renderRequestCard = (card: TrackerRequest, isHistory: boolean) => {
     const counterparty = card.bidders[0];
     const activePeople = card.bidders.filter(
-      (b) => isHistory || b.bidStatus !== "Closed",
+      (b) => isHistory || b.bidStatus === "Pending",
     );
     const onClickHandler = card.isOwned
       ? () =>
