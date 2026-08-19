@@ -138,95 +138,104 @@ function ChatPageInner() {
       <Navbar />
 
       {/* Header */}
-      <header className="h-14 border-b border-gray-200 bg-white flex items-center px-4 gap-3 shrink-0">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="w-9 h-9 rounded-full border border-[#3761B0] text-[#3761B0] flex items-center justify-center shrink-0"
-          aria-label="Back"
-        >
-          <ChevronLeft size={20} />
-        </button>
-
-        <Link
-          href={`/profile/${otherId}`}
-          className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-90"
-        >
-          <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
-            {otherAvatarUrl ? (
-              <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
-            ) : (
-              <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
-                {(otherName || "U").charAt(0)}
-              </span>
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
-                {title}{otherName ? ` | ${otherName}` : ""}
-              </p>
-              {otherRating != null ? (
-                <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
-                  {otherRating}<StarFill className="text-[#DEA440]" size={12} />
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 leading-tight">
-              {kind === "offer" ? "Offer" : "Request"}
-            </p>
-          </div>
-        </Link>
-
-        {isOwner && !isDone && (
+      <header className="h-14 border-b border-gray-200 bg-white shrink-0">
+        {/* The shell behaviour (h-14, shrink-0, the full-bleed bottom rule)
+            stays on <header>; only the content is capped, so the header,
+            banner and message column share one set of edges. */}
+        <div className="h-full w-full max-w-4xl mx-auto flex items-center px-4 gap-3">
           <button
             type="button"
-            onClick={handleMarkDone}
-            disabled={isMarkingDone}
-            className="shrink-0 text-xs font-medium border border-gray-400 rounded px-3 py-1.5 text-gray-600 hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => router.back()}
+            className="w-9 h-9 rounded-full border border-[#3761B0] text-[#3761B0] flex items-center justify-center shrink-0"
+            aria-label="Back"
           >
-            {isMarkingDone
-            ? "Marking…"
-            : kind === "request"
-              ? "Close request"
-              : "Close transaction"}
+            <ChevronLeft size={20} />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={() =>
-            setReportTarget({ type: "user", id: otherId, label: otherName || "user" })
-          }
-          className="shrink-0 text-xs text-gray-400 hover:text-red-500 transition-colors"
-        >
-          Report
-        </button>
+
+          <Link
+            href={`/profile/${otherId}`}
+            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-90"
+          >
+            <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
+              {otherAvatarUrl ? (
+                <Image src={otherAvatarUrl} alt={otherName || "User"} width={36} height={36} className="object-cover w-full h-full" />
+              ) : (
+                <span className="flex items-center justify-center w-full h-full text-sm font-medium text-gray-500 uppercase">
+                  {(otherName || "U").charAt(0)}
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-bold text-gray-900 leading-tight line-clamp-1 text-sm">
+                  {title}{otherName ? ` | ${otherName}` : ""}
+                </p>
+                {otherRating != null ? (
+                  <span className="flex items-center gap-0.5 text-xs font-medium text-gray-600 shrink-0">
+                    {otherRating}<StarFill className="text-[#DEA440]" size={12} />
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400 italic shrink-0">No reviews yet</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 leading-tight">
+                {kind === "offer" ? "Offer" : "Request"}
+              </p>
+            </div>
+          </Link>
+
+          {isOwner && !isDone && (
+            <button
+              type="button"
+              onClick={handleMarkDone}
+              disabled={isMarkingDone}
+              className="shrink-0 text-xs font-medium border border-gray-400 rounded px-3 py-1.5 text-gray-600 hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isMarkingDone
+              ? "Marking…"
+              : kind === "request"
+                ? "Close request"
+                : "Close transaction"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              setReportTarget({ type: "user", id: otherId, label: otherName || "user" })
+            }
+            className="shrink-0 text-xs text-gray-400 hover:text-red-500 transition-colors"
+          >
+            Report
+          </button>
+        </div>
       </header>
 
       {/* Completion banner */}
       {bannerText && (
-        <div className="bg-green-50 border-b border-green-200 px-4 py-2 text-sm text-green-700 font-medium text-center shrink-0">
-          {bannerText}
+        <div className="bg-green-50 border-b border-green-200 shrink-0">
+          <div className="w-full max-w-4xl mx-auto px-4 py-2 text-sm text-green-700 font-medium text-center">
+            {bannerText}
+          </div>
         </div>
       )}
 
-      {/* Chat — capped on wide screens so the message column and composer
-          stay contained like every other page. The cap lives here, not on the
-          h-dvh shell, so the sticky header and input keep working. */}
-      <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto">
-        <ChatRoom
-          other_user_id={otherId}
-          offer_bid_id={kind === "offer" ? bidId : null}
-          request_bid_id={kind === "request" ? bidId : null}
-          disabled={isDone}
-          otherName={otherName}
-          otherAvatarUrl={otherAvatarUrl ?? undefined}
-          dealDone={isDone}
-          canReview={canReview}
-        />
+      {/* Chat — the flex child keeps `flex-1 min-h-0` so it still bounds the
+          message list's scroll region; the width cap lives on the inner
+          wrapper, matching the header and banner. */}
+      <div className="flex-1 min-h-0">
+        <div className="h-full w-full max-w-4xl mx-auto">
+          <ChatRoom
+            other_user_id={otherId}
+            offer_bid_id={kind === "offer" ? bidId : null}
+            request_bid_id={kind === "request" ? bidId : null}
+            disabled={isDone}
+            otherName={otherName}
+            otherAvatarUrl={otherAvatarUrl ?? undefined}
+            dealDone={isDone}
+            canReview={canReview}
+          />
+        </div>
       </div>
       <ReportModal
         open={reportTarget !== null}
