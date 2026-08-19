@@ -70,8 +70,7 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const avatarFileRefDesktop = useRef<HTMLInputElement>(null);
-  const avatarFileRefMobile = useRef<HTMLInputElement>(null);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const highResAvatar = getHighResAvatarUrl(avatarUrl);
@@ -114,8 +113,7 @@ export default function ProfilePage() {
       console.error("Avatar upload failed:", err);
     } finally {
       setIsUploadingAvatar(false);
-      if (avatarFileRefDesktop.current) avatarFileRefDesktop.current.value = "";
-      if (avatarFileRefMobile.current) avatarFileRefMobile.current.value = "";
+      if (avatarFileRef.current) avatarFileRef.current.value = "";
     }
   };
 
@@ -187,13 +185,15 @@ export default function ProfilePage() {
       <Navbar />
 
       <main className="flex-1 px-4 pt-6 pb-28 w-full mx-auto max-w-md md:max-w-5xl">
-        {/* ── Desktop layout ── */}
-        <div className="hidden md:block">
-          {/* Header: avatar + info side by side */}
-          <div className="flex items-start gap-8">
+        {/* Single responsive tree: mobile-first, `md:` widens to the desktop
+            layout. Do not re-fork this into per-viewport copies. */}
+        <div className="flex flex-col gap-4 md:gap-0">
+          {/* Header: avatar stacked on mobile, side-by-side from md up.
+              `relative` anchors the mobile edit-profile button. */}
+          <div className="relative flex flex-col md:flex-row items-start gap-3 md:gap-8">
             {/* Avatar */}
-            <div className="relative w-48 h-48 shrink-0">
-              <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-500 text-2xl font-medium">
+            <div className="relative w-24 h-24 md:w-48 md:h-48 shrink-0">
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-500 text-sm md:text-2xl font-medium">
                 {highResAvatar ? (
                   <Image
                     src={highResAvatar}
@@ -206,7 +206,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <input
-                ref={avatarFileRefDesktop}
+                ref={avatarFileRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -215,52 +215,86 @@ export default function ProfilePage() {
               />
               <button
                 type="button"
-                onClick={() => avatarFileRefDesktop.current?.click()}
+                onClick={() => avatarFileRef.current?.click()}
                 disabled={isUploadingAvatar}
-                className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black flex items-center justify-center shadow-md transition-colors disabled:opacity-60 z-10"
+                className="absolute bottom-0 right-0 md:bottom-2 md:right-2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black flex items-center justify-center shadow-md transition-colors disabled:opacity-60 z-10"
                 aria-label="Change profile picture"
               >
                 {isUploadingAvatar ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
                 ) : (
-                  <CameraFill size={20} />
+                  <CameraFill className="w-4 h-4 md:w-5 md:h-5" />
                 )}
               </button>
             </div>
 
             {/* Info */}
-            <div className="flex-1 pt-2">
-              {/* Name + rating + edit */}
-              <div className="flex items-center gap-4">
-                <h1 className="text-4xl font-bold text-gray-900">
-                  {name || "User"}
-                </h1>
-                {reviewCount > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-2xl font-semibold text-gray-800">
-                      {displayRating}
-                    </span>
-                    <StarFill className="text-[#DEA440]" size={24} />
+            <div className="w-full md:flex-1 md:pt-2">
+              <div className="flex items-center md:items-start justify-between gap-4 w-full pr-2 md:pr-0">
+                <div className="flex flex-col items-start min-w-0">
+                  <h1 className="text-2xl md:text-4xl font-bold text-gray-900">
+                    {name || "User"}
+                  </h1>
+                  {/* Phone + ID: stacked under the name on mobile, one row from md up */}
+                  <div className="flex flex-col md:flex-row md:items-center md:gap-4 mt-0.5 md:mt-2 text-gray-500 text-sm">
+                    {phoneNumber && <span>{phoneNumber}</span>}
+                    {idNumber && <span>ID: {idNumber}</span>}
                   </div>
+                </div>
+
+                {/* Rating — genuinely forked: mobile renders a five-star row
+                    with "x / 5 (n)" plus an explicit empty state, desktop a
+                    compact numeric score with no empty state. Different
+                    element counts, so no single element expresses both. */}
+                {reviewCount > 0 ? (
+                  <>
+                    <div className="flex md:hidden flex-col items-center justify-center gap-1 shrink-0 ml-auto">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) =>
+                          n <= filledStars ? (
+                            <StarFill
+                              key={n}
+                              className="text-[#DEA440]"
+                              size={20}
+                            />
+                          ) : (
+                            <Star key={n} className="text-gray-200" size={20} />
+                          ),
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-600 font-medium">
+                        {displayRating} / 5 ({reviewCount})
+                      </span>
+                    </div>
+                    <div className="hidden md:flex items-center gap-1.5 shrink-0">
+                      <span className="text-2xl font-semibold text-gray-800">
+                        {displayRating}
+                      </span>
+                      <StarFill className="text-[#DEA440]" size={24} />
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-sm text-gray-400 italic md:hidden">
+                    No reviews yet
+                  </span>
                 )}
+
+                {/* Edit profile: icon-only chip pinned to the top-right of the
+                    header on mobile, labelled button in the header row from
+                    md up. */}
                 <button
                   type="button"
                   onClick={openEdit}
-                  className="ml-auto font-bold text-sm w-32 h-8  bg-[#D89A30] rounded flex items-center justify-center text-white hover:bg-[#C4881C] transition-colors shrink-0"
+                  className="absolute top-0 right-0 md:static md:ml-auto w-8 h-8 md:w-32 md:h-8 rounded bg-[#DEA440] hover:bg-[#C48A2A] md:bg-[#D89A30] md:hover:bg-[#C4881C] text-black md:text-white font-bold text-sm flex items-center justify-center transition-colors shrink-0"
                   aria-label="Edit profile"
                 >
-                  Edit Profile
-                  <PencilSquare className="ml-2" size={16} />
+                  <span className="hidden md:inline">Edit Profile</span>
+                  <PencilSquare className="md:ml-2" size={16} />
                 </button>
               </div>
 
-              {/* Phone + ID */}
-              <div className="flex items-center gap-4 mt-2 text-gray-500 text-sm">
-                {phoneNumber && <span>{phoneNumber}</span>}
-                {idNumber && <span>ID: {idNumber}</span>}
-              </div>
               {description && (
-                <p className="mt-3 text-sm text-gray-700 leading-relaxed max-w-xl">
+                <p className="mt-3 text-sm text-gray-700 leading-relaxed md:max-w-xl">
                   {description}
                 </p>
               )}
@@ -268,10 +302,10 @@ export default function ProfilePage() {
           </div>
 
           {/* Buttons row */}
-          <div className="flex items-center gap-3 mt-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-3 md:mt-6">
             <Button
               type="button"
-              className="rounded-full bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium px-6"
+              className="w-full md:w-auto rounded-xl md:rounded-full py-6 md:py-2 md:px-6 bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium"
             >
               {currentUser.contributions} completed transaction
               {currentUser.contributions !== 1 ? "s" : ""}
@@ -280,8 +314,9 @@ export default function ProfilePage() {
               <Button
                 type="submit"
                 variant="outline"
-                className="rounded-full border-gray-300 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium flex items-center gap-2"
+                className="w-full md:w-auto rounded-xl md:rounded-full border-red-200 md:border-gray-300 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium flex items-center justify-center gap-2"
               >
+                <BoxArrowRight size={16} />
                 Log out
               </Button>
             </form>
@@ -296,27 +331,27 @@ export default function ProfilePage() {
           </div>
 
           {/* Current offers */}
-          <section className="mt-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <section className="mt-4 md:mt-8">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
               Current Offers
             </h2>
-            <div className="border-t border-gray-200 pt-4">
+            <div className="md:border-t md:border-gray-200 md:pt-4">
               {offers.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">No active offers</p>
               ) : (
-                <div className="flex gap-4 overflow-x-auto pb-2">
+                <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
                   {offers.map((offer) => (
                     <div
                       key={offer.id}
-                      className="shrink-0 w-52 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                      className="shrink-0 w-40 md:w-52 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                     >
                       <p className="font-bold text-gray-800 uppercase text-sm mb-1 truncate">
                         {offer.title}
                       </p>
-                      <p className="text-sm text-gray-500 mb-4 line-clamp-3">
+                      <p className="text-sm text-gray-500 mb-2 md:mb-4 line-clamp-2 md:line-clamp-3">
                         {offer.description ?? "—"}
                       </p>
-                      <p className="font-bold text-[#3761B0]">
+                      <p className="font-bold text-gray-900 md:text-[#3761B0]">
                         {formatPrice(offer.price)}
                       </p>
                     </div>
@@ -327,170 +362,11 @@ export default function ProfilePage() {
           </section>
 
           {/* Reviews */}
-          <section className="mt-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Reviews</h2>
-            <div className="border-t border-gray-200 pt-2 max-w-2xl">
-              <ReviewsList reviews={reviews} />
-            </div>
-          </section>
-        </div>
-
-        {/* ── Mobile layout ── */}
-        <div className="flex md:hidden flex-col gap-4">
-          <div className="relative flex flex-col items-start gap-3">
-            <button
-              type="button"
-              onClick={openEdit}
-              className="absolute top-0 right-0 w-8 h-8 bg-[#DEA440] rounded flex items-center justify-center text-black hover:bg-[#C48A2A] transition-colors"
-              aria-label="Edit profile"
-            >
-              <PencilSquare size={16} />
-            </button>
-
-            {/* Profile picture */}
-            <div className="relative w-24 h-24">
-              <div className="w-full h-full rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500 text-sm font-medium">
-                {highResAvatar ? (
-                  <Image
-                    src={highResAvatar}
-                    alt="Profile"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="uppercase">{(name || "U").charAt(0)}</span>
-                )}
-              </div>
-              <input
-                ref={avatarFileRefMobile}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-                disabled={isUploadingAvatar}
-              />
-              <button
-                type="button"
-                onClick={() => avatarFileRefMobile.current?.click()}
-                disabled={isUploadingAvatar}
-                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#DEA440] hover:bg-[#C48A2A] text-black flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
-                aria-label="Change profile picture"
-              >
-                {isUploadingAvatar ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <CameraFill size={16} />
-                )}
-              </button>
-            </div>
-
-            {/* Name + rating row */}
-            <div className="flex items-center justify-between gap-4 w-full pr-2">
-              <div className="flex flex-col items-start">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {name || "User"}
-                </h1>
-                {phoneNumber && (
-                  <span className="text-sm text-gray-500 mt-0.5">
-                    {phoneNumber}
-                  </span>
-                )}
-                {idNumber && (
-                  <span className="text-sm text-gray-500">ID: {idNumber}</span>
-                )}
-              </div>
-              {reviewCount > 0 ? (
-                <div className="flex flex-col items-center justify-center gap-1 shrink-0 ml-auto">
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((n) =>
-                      n <= filledStars ? (
-                        <StarFill
-                          key={n}
-                          className="text-[#DEA440]"
-                          size={20}
-                        />
-                      ) : (
-                        <Star key={n} className="text-gray-200" size={20} />
-                      ),
-                    )}
-                  </div>
-                  <span className="text-sm text-gray-600 font-medium">
-                    {displayRating} / 5 ({reviewCount})
-                  </span>
-                </div>
-              ) : (
-                <span className="text-sm text-gray-400 italic">
-                  No reviews yet
-                </span>
-              )}
-            </div>
-            {description && (
-              <p className="text-sm text-gray-700 leading-relaxed">
-                &quot;{description}&quot;
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="button"
-            className="w-full rounded-xl bg-[#3761B0] hover:bg-[#2d5199] text-white font-medium py-6"
-          >
-            {currentUser.contributions} completed transaction
-            {currentUser.contributions !== 1 ? "s" : ""}
-          </Button>
-
-          <form action={logout}>
-            <Button
-              type="submit"
-              variant="outline"
-              className="w-full rounded-xl border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 font-medium flex items-center justify-center gap-2"
-            >
-              <BoxArrowRight size={16} />
-              Log out
-            </Button>
-          </form>
-          {isAdmin && (
-            <Link
-              href="/admin/reports"
-              className="text-sm text-[#3761B0] hover:underline"
-            >
-              Admin · Reports
-            </Link>
-          )}
-
-          {/* Current offers */}
-          <section className="mt-4">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
-              Current Offers
+          <section className="mt-4 md:mt-8">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">
+              Reviews
             </h2>
-            {offers.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No active offers</p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                {offers.map((offer) => (
-                  <div
-                    key={offer.id}
-                    className="shrink-0 w-40 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                  >
-                    <p className="font-bold text-gray-800 uppercase text-sm mb-1 truncate">
-                      {offer.title}
-                    </p>
-                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                      {offer.description ?? "—"}
-                    </p>
-                    <p className="font-bold text-gray-900">
-                      {formatPrice(offer.price)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Reviews */}
-          <section className="mt-4">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Reviews</h2>
-            <div className="border-t border-gray-200 pt-2">
+            <div className="border-t border-gray-200 pt-2 md:max-w-2xl">
               <ReviewsList reviews={reviews} />
             </div>
           </section>
