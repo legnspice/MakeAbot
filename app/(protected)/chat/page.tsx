@@ -54,6 +54,15 @@ function ChatPageInner() {
       getReviews({ rated_user_id: otherId }),
       getPublicUsers([otherId]),
     ]).then(([statusResult, reviewsResult, usersResult]) => {
+      if (!statusResult.data) {
+        // Same posture as the route guard above: a caller with no business
+        // in this thread (non-party, bad bid id) gets sent back rather than
+        // a half-loaded page with a live composer. Surface the server's own
+        // message — it now carries a real 403/404, not a placeholder.
+        alert(statusResult.error);
+        router.replace("/tracker");
+        return;
+      }
       if (statusResult.data) {
         setOwnerUserId(statusResult.data.ownerUserId);
         setParentId(statusResult.data.parentId);
@@ -83,7 +92,7 @@ function ChatPageInner() {
         setOtherAvatarUrl(user.avatar_url ?? null);
       }
     });
-  }, [bidId, otherId, kind]);
+  }, [bidId, otherId, kind, router]);
 
   const isOwner = ownerUserId === currentUser?.id;
 
