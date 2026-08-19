@@ -319,7 +319,14 @@ export async function closeRequestAtomic(
             tx
               .select({ one: sql`1` })
               .from(messages)
-              .where(eq(messages.request_bid_id, request_bids.id)),
+              // Correlated on the OUTER request_bids.id — do not replace with a
+              // literal id, or every silent bid would complete.
+              .where(
+                and(
+                  eq(messages.request_bid_id, request_bids.id),
+                  notDeleted(messages),
+                ),
+              ),
           ),
         ),
       )

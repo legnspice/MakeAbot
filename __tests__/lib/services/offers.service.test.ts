@@ -110,17 +110,52 @@ describe("offersService.createOfferBid", () => {
 });
 
 describe("offersService.closeOffer / completeOfferBid ownership", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(activeOffer);
+  });
 
-  it("closeOffer throws when closeOfferAtomic returns false", async () => {
+  it("closeOffer rejects a caller who does not own the offer with 403, not 404", async () => {
+    await expect(
+      offersService.closeOffer("offer-1", "not-the-owner"),
+    ).rejects.toThrow("Only the offer owner can close this");
+
+    expect(offersRepo.closeOfferAtomic).not.toHaveBeenCalled();
+  });
+
+  it("closeOffer rejects an offer that does not exist (or is soft-deleted) with 404", async () => {
+    // findOfferById filters notDeleted, so a tombstoned offer reads as missing.
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(offersService.closeOffer("offer-1", OWNER)).rejects.toThrow(
+      "Offer not found",
+    );
+
+    expect(offersRepo.closeOfferAtomic).not.toHaveBeenCalled();
+  });
+
+  it("closeOffer rejects an offer that is already closed instead of silently succeeding", async () => {
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      ...activeOffer,
+      status: "Closed",
+    });
+
+    await expect(offersService.closeOffer("offer-1", OWNER)).rejects.toThrow(
+      "This offer is already closed",
+    );
+
+    expect(offersRepo.closeOfferAtomic).not.toHaveBeenCalled();
+  });
+
+  it("closeOffer rejects a losing racer whose atomic close matched no row", async () => {
     (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
       closed: false,
       affected: [],
     });
 
-    await expect(
-      offersService.closeOffer("offer-1", "not-the-owner"),
-    ).rejects.toThrow("Only the offer owner can close this");
+    await expect(offersService.closeOffer("offer-1", OWNER)).rejects.toThrow(
+      "This offer is already closed",
+    );
   });
 
   it("closeOffer does not throw when closeOfferAtomic returns true", async () => {
@@ -132,6 +167,31 @@ describe("offersService.closeOffer / completeOfferBid ownership", () => {
     await expect(
       offersService.closeOffer("offer-1", OWNER),
     ).resolves.toEqual([]);
+  });
+
+  it("closeOffer maps its three failures to the same codes closeRequest does", async () => {
+    const codeOf = async (fn: () => Promise<unknown>) => {
+      try {
+        await fn();
+      } catch (e) {
+        return (e as { statusCode?: number }).statusCode;
+      }
+      return undefined;
+    };
+
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(undefined);
+    expect(await codeOf(() => offersService.closeOffer("o", OWNER))).toBe(404);
+
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue(activeOffer);
+    expect(await codeOf(() => offersService.closeOffer("o", "stranger"))).toBe(
+      403,
+    );
+
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      ...activeOffer,
+      status: "Closed",
+    });
+    expect(await codeOf(() => offersService.closeOffer("o", OWNER))).toBe(409);
   });
 
   it("completeOfferBid forwards (bidId, ownerId) to the scoped repo fn", async () => {
@@ -283,7 +343,13 @@ describe("offersService.reopenOfferBid source state", () => {
 });
 
 describe("offersService.closeOffer notification set", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (offersRepo.findOfferById as jest.Mock).mockResolvedValue({
+      ...activeOffer,
+      user_id: "owner-1",
+    });
+  });
 
   it("returns the bidders whose pending inquiries were closed", async () => {
     (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
@@ -297,14 +363,11 @@ describe("offersService.closeOffer notification set", () => {
   });
 
   it("throws and returns nobody when the caller does not own the offer", async () => {
-    (offersRepo.closeOfferAtomic as jest.Mock).mockResolvedValue({
-      closed: false,
-      affected: [],
-    });
-
     await expect(
       offersService.closeOffer("offer-1", "someone-else"),
     ).rejects.toThrow("Only the offer owner can close this");
+
+    expect(offersRepo.closeOfferAtomic).not.toHaveBeenCalled();
   });
 });
 

@@ -126,8 +126,25 @@ export async function editOffer(
 }
 
 export async function closeOffer(id: string, userId: string) {
+  // Mirrors requestsService.closeRequest: pre-check so the three distinct
+  // failures stay distinct. closeOfferAtomic's own predicate collapses
+  // missing, soft-deleted and not-the-owner into one `closed: false`, which
+  // used to surface as a blanket 403 — and, having no status predicate at all,
+  // let a re-close of an already-Closed offer report success.
+  const offer = await offersRepo.findOfferById(id);
+  if (!offer) throw new AppError("Offer not found", 404);
+  if (offer.user_id !== userId)
+    throw new AppError("Only the offer owner can close this", 403);
+  if (offer.status !== "Active")
+    throw new AppError("This offer is already closed", 409);
+
   const { closed, affected } = await offersRepo.closeOfferAtomic(id, userId);
-  if (!closed) throw new AppError("Only the offer owner can close this", 403);
+
+  // The pre-check read an Active offer we own, so a non-match at write time
+  // means a concurrent close or delete got there first. That is a losing
+  // racer, not a fresh close — surface the same 409 a stale pre-check would.
+  if (!closed) throw new AppError("This offer is already closed", 409);
+
   return affected;
 }
 

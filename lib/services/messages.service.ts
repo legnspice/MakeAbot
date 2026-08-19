@@ -5,6 +5,7 @@ import * as requestsRepo from "../repo/requests.repo";
 import * as notificationsRepo from "../repo/notifications.repo";
 import { sendPushToUser } from "./push.service";
 import { runAfterResponse } from "../after-response";
+import { AppError } from "@/lib/error/app-error";
 import {
   FindMessagesSchema,
   InsertMessageSchema,
@@ -19,7 +20,42 @@ export async function getConversation(filters: FindConversationSchema) {
   return await messagesRepo.findConversation(filters);
 }
 
+/**
+ * The terminal-state guard for the highest-traffic write in the app.
+ *
+ * `findMessages` filters `messages.deleted_at` but never the parent bid's, so
+ * without this check a stale open chat tab could keep inserting into a thread
+ * whose listing had already been deleted — the send succeeds, a `new_message`
+ * push fires to the very user who deleted the listing, and both parties see a
+ * live thread sitting on top of a tombstone until the 30-day purge.
+ *
+ * Mirrors `createOfferBid` / `createRequestBid`: a thrown read fails CLOSED,
+ * because we cannot positively confirm the thread is still live. Unlike those,
+ * a genuine "not found" also fails — the bid finders already filter
+ * `notDeleted`, so missing and tombstoned are the same answer here, and both
+ * mean there is no thread to write to. Contextless messages (no bid on either
+ * side) have no parent to check and are left alone.
+ */
+async function assertThreadWritable(data: InsertMessageSchema) {
+  if (!data.request_bid_id && !data.offer_bid_id) return;
+
+  let bid: { deleted_at?: Date | null } | undefined;
+  try {
+    bid = data.request_bid_id
+      ? await requestsRepo.findRequestBidById(data.request_bid_id)
+      : await offersRepo.findOfferBidById(data.offer_bid_id!);
+  } catch {
+    throw new AppError("Could not verify this conversation is still open", 503);
+  }
+
+  if (!bid || bid.deleted_at) {
+    throw new AppError("This conversation is no longer available", 404);
+  }
+}
+
 export async function createMessage(data: InsertMessageSchema) {
+  await assertThreadWritable(data);
+
   const result = await messagesRepo.insertMessage(data);
   const contextId = data.request_bid_id ?? data.offer_bid_id ?? null;
   const threadField = (
