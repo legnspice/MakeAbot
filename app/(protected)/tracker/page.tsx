@@ -726,14 +726,6 @@ export default function TrackerPage() {
             )}
           </section>
 
-          {confirmModal && (
-            <ConfirmModal
-              message={confirmModal.message}
-              onConfirm={confirmModal.onConfirm}
-              onClose={() => setConfirmModal(null)}
-            />
-          )}
-
           {modalData && (
             <ChatListModal
               title={modalData.title}
@@ -842,6 +834,14 @@ export default function TrackerPage() {
               }
             />
           )}
+
+          {confirmModal && (
+            <ConfirmModal
+              message={confirmModal.message}
+              onConfirm={confirmModal.onConfirm}
+              onClose={() => setConfirmModal(null)}
+            />
+          )}
         </main>
       )}
 
@@ -891,15 +891,19 @@ function ChatListModal({
 
   const renderPerson = (p: (typeof people)[number]) => {
     const isPending = p.bidStatus === "Pending";
+    const hasActions = (onMarkDone || onDismiss) && isPending;
     return (
-      <li key={p.bidId} className="flex items-center gap-1">
+      <li
+        key={p.bidId}
+        className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0"
+      >
         <button
           type="button"
           onClick={() => {
             onSelect(p.bidId, p.id);
             onClose();
           }}
-          className={`flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
+          className={`min-w-0 flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
         >
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -907,7 +911,7 @@ function ChatListModal({
             >
               {p.name.charAt(0).toUpperCase()}
             </span>
-            <span className="text-sm font-medium text-gray-800 truncate">
+            <span className="text-sm font-medium text-gray-800 truncate min-w-0">
               {p.name}
             </span>
           </div>
@@ -920,29 +924,33 @@ function ChatListModal({
             <ChatDotsFill className={iconClass} size={16} />
           </div>
         </button>
-        {onMarkDone && isPending && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMarkDone(p.bidId);
-            }}
-            className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors ml-1"
-          >
-            Close transaction
-          </button>
-        )}
-        {onDismiss && isPending && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDismiss(p.bidId);
-            }}
-            className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors ml-1 px-1 py-1"
-          >
-            Dismiss
-          </button>
+        {hasActions && (
+          <div className="flex items-center gap-2 w-full justify-end sm:w-auto shrink-0">
+            {onMarkDone && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkDone(p.bidId);
+                }}
+                className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors"
+              >
+                Close transaction
+              </button>
+            )}
+            {onDismiss && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDismiss(p.bidId);
+                }}
+                className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors px-1 py-1"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
         )}
       </li>
     );
@@ -954,7 +962,7 @@ function ChatListModal({
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 max-h-[70vh] flex flex-col"
+        className="w-full sm:max-w-lg min-w-0 bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 max-h-[70vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -971,7 +979,7 @@ function ChatListModal({
         {people.length === 0 && (
           <p className="text-center text-gray-400 text-sm py-6">{emptyLabel}</p>
         )}
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto min-w-0">
           <ul className="space-y-2">{livePeople.map(renderPerson)}</ul>
           {completedPeople.length > 0 && (
             <>
@@ -1043,11 +1051,11 @@ function ConfirmModal({
   const [loading, setLoading] = useState(false);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5"
+        className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-sm text-gray-800 mb-5">{message}</p>
