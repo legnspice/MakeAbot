@@ -71,6 +71,27 @@ type TrackerRequest = {
   notificationCount?: number;
 };
 
+/**
+ * Bid statuses whose chat thread stays reachable from a non-history card.
+ *
+ * The active/history split is per CARD (listing status, or "some bid still
+ * Pending"); this is per THREAD, and the two do not line up. An offer
+ * deliberately stays Active after a completed transaction, so a Completed
+ * thread on an Active offer has no other route in the tracker — filtering it
+ * out of the chat list stranded the owner outside the only chat where they
+ * could leave a review, and stopped its unread count being visible at all.
+ *
+ * Completed threads therefore stay reachable but visually separated
+ * (ChatListModal renders them under their own heading). Closed threads — the
+ * dismissed and swept-up ones, with no review to exchange — stay hidden on
+ * non-history cards. A history card shows everything.
+ */
+const REACHABLE_THREAD_STATUSES = ["Pending", "Completed"];
+
+function isReachableThread(bidStatus: string, isHistory: boolean): boolean {
+  return isHistory || REACHABLE_THREAD_STATUSES.includes(bidStatus);
+}
+
 type TrackerCard =
   | { type: "offer"; data: TrackerOffer }
   | { type: "request"; data: TrackerRequest };
@@ -202,7 +223,7 @@ export default function TrackerPage() {
   const [modalData, setModalData] = useState<{
     id: string;
     title: string;
-    people: { id: string; name: string; bidId: string }[];
+    people: { id: string; name: string; bidId: string; bidStatus: string }[];
     type: "offer" | "request";
     isHistory: boolean;
   } | null>(null);
@@ -486,15 +507,15 @@ export default function TrackerPage() {
 
   const renderOfferCard = (card: TrackerOffer, isHistory: boolean) => {
     const counterparty = card.requesters[0];
-    const activePeople = card.requesters.filter(
-      (r) => isHistory || r.bidStatus === "Pending",
+    const chatPeople = card.requesters.filter((r) =>
+      isReachableThread(r.bidStatus, isHistory),
     );
     const onClickHandler = card.isOwned
       ? () =>
           setModalData({
             id: card.id,
             title: card.itemName,
-            people: activePeople,
+            people: chatPeople,
             type: "offer",
             isHistory,
           })
@@ -521,7 +542,7 @@ export default function TrackerPage() {
         typeBadge="Offer"
         badgeCount={sumUnreadForBids(
           unreadByContext,
-          activePeople.map((p) => p.bidId),
+          chatPeople.map((p) => p.bidId),
         )}
         detail={{
           title: card.itemName,
@@ -552,15 +573,15 @@ export default function TrackerPage() {
 
   const renderRequestCard = (card: TrackerRequest, isHistory: boolean) => {
     const counterparty = card.bidders[0];
-    const activePeople = card.bidders.filter(
-      (b) => isHistory || b.bidStatus === "Pending",
+    const chatPeople = card.bidders.filter((b) =>
+      isReachableThread(b.bidStatus, isHistory),
     );
     const onClickHandler = card.isOwned
       ? () =>
           setModalData({
             id: card.id,
             title: card.itemName,
-            people: activePeople,
+            people: chatPeople,
             type: "request",
             isHistory,
           })
@@ -587,7 +608,7 @@ export default function TrackerPage() {
         typeBadge="Request"
         badgeCount={sumUnreadForBids(
           unreadByContext,
-          activePeople.map((p) => p.bidId),
+          chatPeople.map((p) => p.bidId),
         )}
         detail={{
           title: card.itemName,
@@ -765,15 +786,34 @@ export default function TrackerPage() {
                             alert(error);
                             return;
                           }
+                          // Move the thread to Completed rather than dropping
+                          // it: the owner still needs a way back in to leave a
+                          // review, and the offer itself stays Active so the
+                          // card will not move to History to carry it.
+                          const toCompleted = <
+                            T extends { bidId: string; bidStatus: string },
+                          >(
+                            list: T[],
+                          ) =>
+                            list.map((p) =>
+                              p.bidId === bidId
+                                ? { ...p, bidStatus: "Completed" }
+                                : p,
+                            );
                           setModalData((prev) =>
                             prev
-                              ? {
-                                  ...prev,
-                                  people: prev.people.filter(
-                                    (p) => p.bidId !== bidId,
-                                  ),
-                                }
+                              ? { ...prev, people: toCompleted(prev.people) }
                               : null,
+                          );
+                          setOffers((prev) =>
+                            prev.map((o) =>
+                              o.id === modalData.id
+                                ? {
+                                    ...o,
+                                    requesters: toCompleted(o.requesters),
+                                  }
+                                : o,
+                            ),
                           );
                         },
                       });
@@ -828,7 +868,7 @@ function ChatListModal({
   deleteItemLabel,
 }: {
   title: string;
-  people: { id: string; name: string; bidId: string }[];
+  people: { id: string; name: string; bidId: string; bidStatus: string }[];
   accentClass: string;
   avatarClass: string;
   iconClass: string;
@@ -843,6 +883,71 @@ function ChatListModal({
   itemId?: string;
   kind?: "offer" | "request";
 }) {
+  // Live threads first; finished ones stay reachable but out of the way.
+  // `Closed`/other statuses only ever reach here on a history card, where
+  // there is no live/finished distinction to draw — group them with Pending.
+  const completedPeople = people.filter((p) => p.bidStatus === "Completed");
+  const livePeople = people.filter((p) => p.bidStatus !== "Completed");
+
+  const renderPerson = (p: (typeof people)[number]) => {
+    const isPending = p.bidStatus === "Pending";
+    return (
+      <li key={p.bidId} className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => {
+            onSelect(p.bidId, p.id);
+            onClose();
+          }}
+          className={`flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={`w-7 h-7 shrink-0 rounded-full ${avatarClass} flex items-center justify-center text-xs font-semibold`}
+            >
+              {p.name.charAt(0).toUpperCase()}
+            </span>
+            <span className="text-sm font-medium text-gray-800 truncate">
+              {p.name}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {unreadByBid[p.bidId] > 0 && (
+              <span className="min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+                {unreadByBid[p.bidId] > 99 ? "99+" : unreadByBid[p.bidId]}
+              </span>
+            )}
+            <ChatDotsFill className={iconClass} size={16} />
+          </div>
+        </button>
+        {onMarkDone && isPending && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkDone(p.bidId);
+            }}
+            className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors ml-1"
+          >
+            Close transaction
+          </button>
+        )}
+        {onDismiss && isPending && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss(p.bidId);
+            }}
+            className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors ml-1 px-1 py-1"
+          >
+            Dismiss
+          </button>
+        )}
+      </li>
+    );
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
@@ -866,63 +971,17 @@ function ChatListModal({
         {people.length === 0 && (
           <p className="text-center text-gray-400 text-sm py-6">{emptyLabel}</p>
         )}
-        <ul className="overflow-y-auto space-y-2">
-          {people.map((p) => (
-            <li key={p.bidId} className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  onSelect(p.bidId, p.id);
-                  onClose();
-                }}
-                className={`flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${accentClass} transition-colors`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`w-7 h-7 shrink-0 rounded-full ${avatarClass} flex items-center justify-center text-xs font-semibold`}
-                  >
-                    {p.name.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="text-sm font-medium text-gray-800 truncate">
-                    {p.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {unreadByBid[p.bidId] > 0 && (
-                    <span className="min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
-                      {unreadByBid[p.bidId] > 99 ? "99+" : unreadByBid[p.bidId]}
-                    </span>
-                  )}
-                  <ChatDotsFill className={iconClass} size={16} />
-                </div>
-              </button>
-              {onMarkDone && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMarkDone(p.bidId);
-                  }}
-                  className="shrink-0 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-600 hover:border-gray-500 transition-colors ml-1"
-                >
-                  Close transaction
-                </button>
-              )}
-              {onDismiss && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDismiss(p.bidId);
-                  }}
-                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors ml-1 px-1 py-1"
-                >
-                  Dismiss
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-y-auto">
+          <ul className="space-y-2">{livePeople.map(renderPerson)}</ul>
+          {completedPeople.length > 0 && (
+            <>
+              <p className="mt-4 mb-2 pt-3 border-t border-gray-100 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Completed
+              </p>
+              <ul className="space-y-2">{completedPeople.map(renderPerson)}</ul>
+            </>
+          )}
+        </div>
         {onDeleteItem && (
           <button
             type="button"
