@@ -57,6 +57,20 @@ export async function updateReportStatus(id: string, status: string) {
 }
 
 /**
+ * Report statuses that protect their target listing from the retention purge.
+ *
+ * `open` is untriaged and `reviewing` is actively under moderation — in both
+ * cases the listing text, image and messages are still live evidence, so the
+ * purge must leave them alone. `resolved` and `dismissed` are deliberately
+ * absent: those reports are closed out, and protecting them would mean the
+ * listing never ages out at all.
+ *
+ * Adding a new status to the vocabulary in `lib/reports.ts`? Decide here
+ * whether it protects.
+ */
+export const PROTECTIVE_REPORT_STATUSES = ["open", "reviewing"] as const;
+
+/**
  * Builds (without executing) the query behind `findOpenReportTargetIds`.
  *
  * Split out purely so tests can call `.toSQL()` on the builder and assert on
@@ -84,14 +98,21 @@ export function buildOpenReportTargetsQuery(
       offerId: reports.reported_offer_id,
     })
     .from(reports)
-    .where(and(eq(reports.status, "open"), or(...targets)));
+    .where(
+      and(
+        inArray(reports.status, [...PROTECTIVE_REPORT_STATUSES]),
+        or(...targets),
+      ),
+    );
 }
 
 /**
- * Which of these listings have an open report against them.
+ * Which of these listings have a report against them in a protective status
+ * (see `PROTECTIVE_REPORT_STATUSES`).
  *
  * The purge skips these so a reported user cannot delete the evidence and wait
- * out the retention window.
+ * out the retention window — and so moving a report to `reviewing` does not
+ * itself hand the purge permission to destroy what moderation is reading.
  */
 export async function findOpenReportTargetIds(
   requestIds: string[],
