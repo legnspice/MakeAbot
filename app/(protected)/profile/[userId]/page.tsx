@@ -93,7 +93,7 @@ export default function PublicProfilePage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-      <main className="flex-1 px-4 pt-6 pb-28 w-full mx-auto max-w-md md:max-w-3xl">
+      <main className="flex-1 px-4 pt-6 pb-28 w-full mx-auto max-w-md md:max-w-5xl">
         {/* Header */}
         <div className="flex items-start gap-4 md:gap-8">
           <div className="relative w-24 h-24 md:w-40 md:h-40 shrink-0 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-500 text-2xl font-medium">

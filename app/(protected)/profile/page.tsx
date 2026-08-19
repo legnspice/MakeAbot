@@ -295,7 +295,11 @@ export default function ProfilePage() {
 
               {description && (
                 <p className="mt-3 text-sm text-gray-700 leading-relaxed md:max-w-xl">
+                  {/* Decorative quotes are a mobile-only treatment; from md up
+                      the bio renders plain, matching the public profile page. */}
+                  <span className="md:hidden">&quot;</span>
                   {description}
+                  <span className="md:hidden">&quot;</span>
                 </p>
               )}
             </div>

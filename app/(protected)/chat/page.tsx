@@ -213,8 +213,10 @@ function ChatPageInner() {
         </div>
       )}
 
-      {/* Chat */}
-      <div className="flex-1 min-h-0">
+      {/* Chat — capped on wide screens so the message column and composer
+          stay contained like every other page. The cap lives here, not on the
+          h-dvh shell, so the sticky header and input keep working. */}
+      <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto">
         <ChatRoom
           other_user_id={otherId}
           offer_bid_id={kind === "offer" ? bidId : null}
