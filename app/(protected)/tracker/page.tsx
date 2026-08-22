@@ -958,11 +958,11 @@ function ChatListModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-lg min-w-0 bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 max-h-[70vh] flex flex-col"
+        className="w-full sm:max-w-lg min-w-0 bg-white rounded-2xl shadow-xl p-5 max-h-[70vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -1051,11 +1051,11 @@ function ConfirmModal({
   const [loading, setLoading] = useState(false);
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5"
+        className="w-full sm:max-w-md bg-white rounded-2xl shadow-xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-sm text-gray-800 mb-5">{message}</p>
